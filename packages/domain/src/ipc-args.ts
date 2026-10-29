@@ -8,6 +8,7 @@ import {
   createTaskInputSchema,
   createUserInputSchema,
   deviceSettingsPatchSchema,
+  droppedFilesSchema,
   entityTypeSchema,
   exportOptionsSchema,
   idSchema,
@@ -74,6 +75,7 @@ export const IPC_ARGS = {
   'workflows:removeAndMigrate': z.tuple([idSchema, idSchema]),
 
   'attachments:add': byId,
+  'attachments:addFiles': z.tuple([idSchema, droppedFilesSchema]),
   'attachments:list': byId,
   'attachments:open': byId,
   'attachments:saveAs': byId,

@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import DOMPurify, { type Config } from 'dompurify';
 import { Marked, type Tokens } from 'marked';
+import { type AttachmentMetadata, attachmentUrl } from '@glacier-tasks/domain';
 
-/** `attachment:<uuid>` references a file of the same task (D10); rendered from M6 on. */
+/** `attachment:<uuid>` references a file of the same task (D10). */
 const ATTACHMENT_SRC =
   /^attachment:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 const EXTERNAL_HREF = /^https?:\/\//i;
@@ -62,12 +63,17 @@ export class MarkdownService {
   });
   private readonly purify = DOMPurify(window);
 
-  render(source: string): string {
+  /**
+   * `attachments` are the live attachments of the task being shown. Only those that are
+   * previewable become images (D10, D33); any other reference stays a placeholder.
+   */
+  render(source: string, attachments: ReadonlyArray<AttachmentMetadata> = []): string {
+    const previewable = new Set(attachments.filter((a) => a.previewable).map((a) => a.id));
     const html = this.marked.parse(source) as string;
     const fragment = this.purify.sanitize(html, PURIFY_CONFIG) as unknown as DocumentFragment;
     for (const link of fragment.querySelectorAll('a')) hardenLink(link);
     for (const input of fragment.querySelectorAll('input')) hardenCheckbox(input);
-    for (const image of fragment.querySelectorAll('img')) replaceImage(image);
+    for (const image of fragment.querySelectorAll('img')) replaceImage(image, previewable);
     const container = document.createElement('div');
     container.append(fragment);
     return container.innerHTML;
@@ -95,14 +101,25 @@ function hardenCheckbox(input: HTMLInputElement): void {
 }
 
 /**
- * MD-05: no image is fetched while rendering. Attachment references become a labelled
- * placeholder (displayed inline from M6); any other source is reduced to its alt text.
+ * MD-05: a previewable attachment of the same task becomes an image served by the media
+ * protocol. Every other image is never fetched: unknown or non-previewable attachment
+ * references become a labelled placeholder, any other source is reduced to its alt text.
  */
-function replaceImage(image: HTMLImageElement): void {
+function replaceImage(image: HTMLImageElement, previewable: ReadonlySet<string>): void {
+  const attachment = ATTACHMENT_SRC.exec(image.getAttribute('src') ?? '');
+  const id = attachment ? (attachment[1] as string).toLowerCase() : null;
+  if (id && previewable.has(id)) {
+    const inline = document.createElement('img');
+    inline.className = 'md-attachment';
+    inline.src = attachmentUrl(id);
+    inline.alt = image.getAttribute('alt') ?? '';
+    inline.loading = 'lazy';
+    image.replaceWith(inline);
+    return;
+  }
   const placeholder = document.createElement('span');
   placeholder.className = 'md-image';
-  const attachment = ATTACHMENT_SRC.exec(image.getAttribute('src') ?? '');
-  if (attachment) placeholder.dataset['attachmentId'] = (attachment[1] as string).toLowerCase();
+  if (id) placeholder.dataset['attachmentId'] = id;
   else placeholder.classList.add('md-image-blocked');
   placeholder.textContent = image.getAttribute('alt') || image.getAttribute('src') || '';
   image.replaceWith(placeholder);

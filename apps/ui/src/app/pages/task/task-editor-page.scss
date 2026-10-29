@@ -153,6 +153,24 @@
   }
 }
 
+app-task-attachments,
+.history {
+  display: block;
+  margin-top: 24px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+
+  h2 {
+    margin: 0;
+    font-size: 15px;
+  }
+}
+
 .subtask-list {
   margin: 0 0 12px;
   padding: 0;

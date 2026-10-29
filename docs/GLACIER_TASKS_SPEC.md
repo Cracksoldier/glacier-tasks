@@ -126,7 +126,7 @@ Local app data directory (standard per-user location only, D16)
 - **[CONFIRMED]** Task attachments support files and images, copied into application-managed local storage.
 - **[ASSUMPTION]** Metadata: `id`, `taskId`, `originalName`, `mimeType`, `byteSize`, `sha256`, `storageKey`, `addedAt`, `removedAt` (nullable). Files are stored under random opaque names; never use the uploaded filename as the storage path.
 - **[ASSUMPTION]** UI supports file picker and drag-and-drop, safe image previews for supported raster formats, open/save-as using OS dialogs, and removal with confirmation. No executable embedding in HTML; images served via a secure custom local protocol or safe IPC-backed method, not unrestricted `file://` access.
-- **[ASSUMPTION]** Default per-file size limit 100 MiB (configurable); reject unsupported/unsafe previews, but permit other file types as downloadable/openable attachments with user confirmation.
+- **[CONFIRMED]** Default per-file size limit 100 MiB, configurable as a device setting (D33, D47); reject unsupported/unsafe previews, but permit other file types as downloadable/openable attachments with user confirmation.
 - **[CONFIRMED]** Removing an attachment requires confirmation, deletes the managed bytes immediately, sets `removedAt` (metadata tombstone) and records a history event. There is no attachment-level trash. Attachments of trashed tasks are kept until the task is permanently deleted (D03).
 - **[REQUIREMENT]** Attachment bytes survive source-file deletion/move and are included in backups. Use a staged-copy → metadata transaction → finalize/cleanup pattern; reconcile incomplete operations (including orphaned bytes of removed attachments) on startup.
 
@@ -148,7 +148,7 @@ Local app data directory (standard per-user location only, D16)
 - `PROJ-03` Edit project name/description and manage project-level statuses and labels.
 - `PROJ-04` Trash, restore, and permanently delete projects according to §4.10.
 - `PROJ-05` Project management never requires internet or authentication.
-- `PROJ-06` Project activity view lists project, status, label and task events for the project (D12).
+- `PROJ-06` Project activity view lists project, status, label and task events for the project (D12). **[CONFIRMED]** It is the Activity tab of the project page (D45).
 
 ### 4.2 Assignee profiles (`USER`)
 
@@ -218,7 +218,7 @@ Local app data directory (standard per-user location only, D16)
 - `AUDIT-02` Present chronological history on task details; historical assignee names must remain intelligible even if profile later changes.
 - `AUDIT-03` **[ASSUMPTION]** Record snapshots of display names at event time rather than requiring joins to the current user or status names.
 - `AUDIT-04` **[CONFIRMED]** Description version browser on task details: list versions from history, view any version rendered or as source, and compare it with the previous version (D11).
-- `AUDIT-05` **[CONFIRMED]** History for projects, statuses, labels and profiles per §3.7 (D12).
+- `AUDIT-05` **[CONFIRMED]** History for projects, statuses, labels and profiles per §3.7 (D12); profile history opens from the profile manager (D46).
 
 ### 4.10 Trash and deletion (`TRASH`)
 

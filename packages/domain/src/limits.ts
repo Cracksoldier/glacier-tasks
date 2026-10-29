@@ -12,6 +12,11 @@ export const LABEL_NAME_MAX_LENGTH = 50;
 
 /** Default per-file attachment limit; configurable (D33). */
 export const DEFAULT_ATTACHMENT_MAX_BYTES = 100 * MIB;
+/** Range of the attachment size device setting in MiB (D47). */
+export const DEFAULT_ATTACHMENT_MAX_MIB = 100;
+export const ATTACHMENT_MAX_MIB_LIMIT = 2048;
+/** Files per drag & drop call. */
+export const ATTACHMENT_DROP_MAX_FILES = 20;
 /** Raster formats rendered inline; SVG is never previewed (D33). */
 export const PREVIEWABLE_IMAGE_MIME_TYPES = [
   'image/png',

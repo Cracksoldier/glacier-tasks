@@ -4,12 +4,17 @@
 export const MEDIA_SCHEME = 'glacier-media';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-const MEDIA_URL = new RegExp(`^${MEDIA_SCHEME}://(avatar)/(${UUID})/?$`);
+const MEDIA_URL = new RegExp(`^${MEDIA_SCHEME}://(avatar|attachment)/(${UUID})/?$`);
 
-export type MediaKind = 'avatar';
+export type MediaKind = 'avatar' | 'attachment';
 
 export function avatarUrl(avatarFileId: string): string {
   return `${MEDIA_SCHEME}://avatar/${avatarFileId}`;
+}
+
+/** Inline preview of a previewable attachment (D10, D33). */
+export function attachmentUrl(attachmentId: string): string {
+  return `${MEDIA_SCHEME}://attachment/${attachmentId}`;
 }
 
 /** Returns the kind and id of a media URL, or undefined for anything else. */

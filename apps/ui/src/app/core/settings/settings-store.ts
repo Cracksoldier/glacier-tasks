@@ -1,5 +1,12 @@
 import { inject, Injectable, signal, type WritableSignal } from '@angular/core';
-import { DEFAULT_THEME, type Language, type ProjectView, type Theme } from '@glacier-tasks/domain';
+import {
+  DEFAULT_ATTACHMENT_MAX_MIB,
+  DEFAULT_THEME,
+  type Language,
+  type ProjectView,
+  type ProjectViewKind,
+  type Theme,
+} from '@glacier-tasks/domain';
 import { GLACIER_API } from '../api/glacier-api';
 
 /** Device settings held as signals; writes go through IPC and roll back on failure. */
@@ -11,8 +18,10 @@ export class SettingsStore {
   readonly language = signal<Language>('en');
   /** Last opened project (PROJ-02); validated by the main process on write. */
   readonly lastProjectId = signal<string | null>(null);
-  /** Board or list on the project page (D17). */
-  readonly lastView = signal<'board' | 'list'>('board');
+  /** Board, list or activity on the project page (D17, D45). */
+  readonly lastView = signal<ProjectViewKind>('board');
+  /** Per-file attachment limit in MiB (D47). */
+  readonly attachmentMaxMiB = signal(DEFAULT_ATTACHMENT_MAX_MIB);
   /** Sort, filters and list columns per project (D42). */
   readonly projectViews = signal<Readonly<Record<string, ProjectView>>>({});
 
@@ -23,6 +32,7 @@ export class SettingsStore {
     this.lastProjectId.set(settings.lastProjectId);
     this.lastView.set(settings.lastView);
     this.projectViews.set(settings.projectViews);
+    this.attachmentMaxMiB.set(settings.attachmentMaxMiB);
   }
 
   setTheme(theme: Theme): Promise<void> {
@@ -42,7 +52,13 @@ export class SettingsStore {
     );
   }
 
-  setLastView(lastView: 'board' | 'list'): Promise<void> {
+  setAttachmentMaxMiB(attachmentMaxMiB: number): Promise<void> {
+    return this.optimistic(this.attachmentMaxMiB, attachmentMaxMiB, () =>
+      this.api.settings.updateDevice({ attachmentMaxMiB }),
+    );
+  }
+
+  setLastView(lastView: ProjectViewKind): Promise<void> {
     return this.optimistic(this.lastView, lastView, () =>
       this.api.settings.updateDevice({ lastView }),
     );

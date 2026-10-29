@@ -16,7 +16,7 @@ import {
   selector: 'app-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <dialog #dialog [attr.aria-labelledby]="titleId" (close)="closed.emit()">
+    <dialog #dialog [class.wide]="wide()" [attr.aria-labelledby]="titleId" (close)="closed.emit()">
       <h2 [id]="titleId">{{ heading() }}</h2>
       <ng-content />
     </dialog>
@@ -30,6 +30,10 @@ import {
       background-color: var(--color-surface);
       color: var(--color-text);
       box-shadow: 0 12px 32px var(--color-shadow);
+
+      &.wide {
+        width: min(1000px, calc(100vw - 48px));
+      }
     }
     dialog::backdrop {
       background-color: var(--color-backdrop);
@@ -45,6 +49,8 @@ export class Dialog {
 
   readonly open = input.required<boolean>();
   readonly heading = input.required<string>();
+  /** For lists, previews and comparisons. */
+  readonly wide = input(false);
   /** Emitted when the dialog closes, including via Esc. */
   readonly closed = output<void>();
 

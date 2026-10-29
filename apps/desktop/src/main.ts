@@ -10,6 +10,7 @@ import {
   app,
   type BrowserWindow,
   dialog,
+  shell,
   ipcMain,
   nativeTheme,
   type OpenDialogOptions,
@@ -18,6 +19,7 @@ import {
 import type { Database } from 'better-sqlite3';
 import {
   ActivityService,
+  AttachmentService,
   createServiceContext,
   LabelService,
   LATEST_SCHEMA_VERSION,
@@ -28,7 +30,8 @@ import {
   UserService,
   WorkflowService,
 } from '@glacier-tasks/data';
-import { AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
+import { AppError, allIpcChannels, MIB, type Theme } from '@glacier-tasks/domain';
+import { AttachmentStore } from './attachment-store.js';
 import { AvatarStore } from './avatar-store.js';
 import { DeviceSettingsStore, languageFromPreferences } from './device-settings.js';
 import { createDispatcher, createSenderCheck, type IpcHandlers } from './ipc.js';
@@ -50,6 +53,7 @@ if (userDataOverride) app.setPath('userData', userDataOverride);
 
 let workspace: Database | undefined;
 let avatarStore: AvatarStore | undefined;
+let attachmentStore: AttachmentStore | undefined;
 let mainWindow: BrowserWindow | undefined;
 // Set as soon as they exist, so a failed start can still log and speak the user's language.
 let startupLogger: Logger | undefined;
@@ -67,6 +71,8 @@ function iconPath(): string | undefined {
 }
 
 const IMAGE_FILTER_NAME = { en: 'Images', de: 'Bilder' } as const;
+/** Any file type may be attached (spec §3.6); several at once. */
+const ATTACHMENT_DIALOG: OpenDialogOptions = { properties: ['openFile', 'multiSelections'] };
 
 /** Native picker for avatar images (D24); the renderer never supplies a path (T5). */
 async function pickAvatarFile(language: 'en' | 'de'): Promise<string | undefined> {
@@ -101,7 +107,11 @@ async function start(): Promise<void> {
   };
   hardenApp(app, securityOptions);
   hardenSession(session.defaultSession, securityOptions);
-  handleMediaProtocol(session.defaultSession, () => avatarStore);
+  handleMediaProtocol(
+    session.defaultSession,
+    () => avatarStore,
+    () => attachmentStore,
+  );
 
   try {
     workspace = (
@@ -129,6 +139,17 @@ async function start(): Promise<void> {
   avatarStore = new AvatarStore({ dir: paths.avatars, users, logger });
   avatarStore.reconcile();
   settings.pruneProjectViews((id) => projects.exists(id));
+  const attachmentService = new AttachmentService(services);
+  const attachments = new AttachmentStore({
+    dir: paths.attachments,
+    openDir: join(app.getPath('temp'), 'glacier-tasks-open'),
+    attachments: attachmentService,
+    logger,
+    maxBytes: () => settings.get().attachmentMaxMiB * MIB,
+  });
+  attachmentStore = attachments;
+  attachments.clearOpenCopies();
+  attachments.reconcile();
   const avatars = avatarStore;
 
   const handlers: IpcHandlers = {
@@ -160,6 +181,38 @@ async function start(): Promise<void> {
         tasks.moveToStory(id, expectedVersion, targetStoryId),
       trash: (id) => tasks.trash(id),
       restore: (id) => tasks.restore(id),
+      descriptionVersions: (id) => {
+        tasks.get(id); // NOT_FOUND for unknown or trashed tasks
+        return activity.descriptionVersions(id);
+      },
+    },
+    attachments: {
+      add: async (taskId) => {
+        attachmentService.list(taskId);
+        const picked = mainWindow
+          ? await dialog.showOpenDialog(mainWindow, ATTACHMENT_DIALOG)
+          : await dialog.showOpenDialog(ATTACHMENT_DIALOG);
+        if (picked.canceled) return [];
+        const added = [];
+        for (const path of picked.filePaths) added.push(await attachments.importFrom(taskId, path));
+        return added;
+      },
+      addFiles: (taskId, files) => attachments.importFiles(taskId, files),
+      list: (taskId) => attachmentService.list(taskId),
+      open: async (id) => {
+        const failure = await shell.openPath(await attachments.openCopy(id));
+        if (failure) throw new AppError('IO', 'errors.attachmentOpenFailed');
+      },
+      saveAs: async (id) => {
+        const options = { defaultPath: attachments.saveName(id) };
+        const target = mainWindow
+          ? await dialog.showSaveDialog(mainWindow, options)
+          : await dialog.showSaveDialog(options);
+        if (target.canceled || !target.filePath) return false;
+        await attachments.saveTo(id, target.filePath);
+        return true;
+      },
+      remove: (id) => attachments.remove(id),
     },
     labels: {
       list: (projectId) => labels.list(projectId),

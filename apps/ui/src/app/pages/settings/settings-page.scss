@@ -106,3 +106,16 @@ h2 {
     font-family: var(--font-mono);
   }
 }
+
+.attachment-limit {
+  margin: 0;
+
+  .inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  input {
+    width: 120px;
+  }
+}

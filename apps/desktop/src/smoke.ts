@@ -12,7 +12,7 @@ import {
   openDatabase,
   snapshotDatabase,
 } from '@glacier-tasks/data';
-import { API_GLOBAL_NAME, avatarUrl } from '@glacier-tasks/domain';
+import { API_GLOBAL_NAME, attachmentUrl, avatarUrl } from '@glacier-tasks/domain';
 import type { AppPaths } from './paths.js';
 
 export interface SmokeContext {
@@ -60,11 +60,15 @@ async function checkBackup(
 }
 
 /** The media protocol answers, and refuses ids it does not know (T10). */
-async function checkMediaProtocol(window: BrowserWindow): Promise<{ mediaStatus: number }> {
-  const response = await window.webContents.session.fetch(
-    avatarUrl('00000000-0000-4000-8000-000000000000'),
-  );
-  return { mediaStatus: response.status };
+async function checkMediaProtocol(
+  window: BrowserWindow,
+): Promise<{ mediaStatus: number; attachmentMediaStatus: number }> {
+  const unknown = '00000000-0000-4000-8000-000000000000';
+  const fetch = (url: string) => window.webContents.session.fetch(url);
+  return {
+    mediaStatus: (await fetch(avatarUrl(unknown))).status,
+    attachmentMediaStatus: (await fetch(attachmentUrl(unknown))).status,
+  };
 }
 
 async function checkRenderer(window: BrowserWindow): Promise<Record<string, unknown>> {
@@ -131,6 +135,7 @@ export async function runSmoke(context: SmokeContext): Promise<boolean> {
       result['backup'] === true &&
       result['integrity'] === 'ok' &&
       result['mediaStatus'] === 404 &&
+      result['attachmentMediaStatus'] === 404 &&
       typeof renderer['projects'] === 'number' &&
       renderer['taskRoundTrip'] === 'SMOKEUI-1' &&
       renderer['shell'] === true &&

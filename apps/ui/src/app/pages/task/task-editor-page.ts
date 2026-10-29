@@ -9,9 +9,12 @@ import {
   resource,
   signal,
   untracked,
+  viewChild,
+  type ElementRef,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
+  type AttachmentMetadata,
   DESCRIPTION_MAX_LENGTH,
   isAppErrorInfo,
   isDateRangeValid,
@@ -26,10 +29,13 @@ import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { PRIORITY_KEYS, TASK_TYPE_KEYS } from '../../core/tasks/task-display';
 import { UsersStore } from '../../core/users/users-store';
+import { ActivityTimeline } from '../../shared/activity-timeline';
 import { Avatar } from '../../shared/avatar';
 import { Dialog } from '../../shared/dialog';
 import { LabelChip } from '../../shared/label-chip';
 import { MarkdownView } from '../../shared/markdown-view';
+import { DescriptionVersions } from './description-versions';
+import { TaskAttachments } from './task-attachments';
 
 /** The user's text at the moment a save was rejected as stale (D05, UJ-09). */
 interface Draft {
@@ -40,12 +46,22 @@ interface Draft {
 /**
  * Story/subtask editor (TASK-03, D40): explicit Save/Cancel (TASK-08), version-checked saves
  * with a conflict banner that keeps the unsaved text visible (TASK-10), Markdown preview,
- * subtasks with quick status changes, move-to-story (D04) and trash.
+ * subtasks with quick status changes, move-to-story (D04), trash, attachments (D03, D10),
+ * the task history (AUDIT-02) and the description version browser (D11).
  */
 @Component({
   selector: 'app-task-editor-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Avatar, Dialog, LabelChip, MarkdownView, RouterLink],
+  imports: [
+    ActivityTimeline,
+    Avatar,
+    DescriptionVersions,
+    Dialog,
+    LabelChip,
+    MarkdownView,
+    RouterLink,
+    TaskAttachments,
+  ],
   templateUrl: './task-editor-page.html',
   styleUrl: './task-editor-page.scss',
 })
@@ -70,6 +86,23 @@ export class TaskEditorPage {
   protected readonly loadError = signal<string | null>(null);
   /** Subtasks and progress refresh on their own so a draft in the form survives. */
   protected readonly subtasks = linkedSignal(() => this.task()?.subtasks ?? []);
+  /** Attachments change without a task save (they don't touch the task version). */
+  protected readonly attachments = linkedSignal<ReadonlyArray<AttachmentMetadata>>(
+    () => this.task()?.attachments ?? [],
+  );
+  /** Bumped by changes that record history without changing the task itself. */
+  private readonly historyBump = signal(0);
+  protected readonly history = resource({
+    params: () => {
+      const task = this.task();
+      return task ? { id: task.id, version: task.version, bump: this.historyBump() } : undefined;
+    },
+    loader: ({ params }) => this.api.activity.forEntity('TASK', params.id),
+  });
+  protected readonly versionsOpen = signal(false);
+  protected readonly versionsEventId = signal<string | null>(null);
+  private readonly descriptionInput =
+    viewChild<ElementRef<HTMLTextAreaElement>>('descriptionInput');
 
   protected readonly statuses = resource({
     params: () => this.projectId(),
@@ -262,7 +295,47 @@ export class TaskEditorPage {
       this.subtaskError.set(this.i18n.errorMessage(error));
     }
     await this.refreshSubtasks();
+    this.historyBump.update((n) => n + 1);
     return ok;
+  }
+
+  // --- Attachments and history ----------------------------------------------------
+
+  protected async attachmentsChanged(): Promise<void> {
+    const task = this.task();
+    if (!task) return;
+    try {
+      this.attachments.set(await this.api.attachments.list(task.id));
+    } catch {
+      // The task vanished; the next save or load reports it.
+    }
+    this.historyBump.update((n) => n + 1);
+  }
+
+  /** D10: adds `![name](attachment:<id>)` at the cursor (or at the end) of the description. */
+  protected insertImage(file: AttachmentMetadata): void {
+    // Brackets and backslashes in the name would break the Markdown image syntax.
+    const alt = file.originalName.replace(/[[\]\\]/g, '');
+    const reference = `![${alt}](attachment:${file.id})`;
+    const text = this.description();
+    const input = this.tab() === 'edit' ? this.descriptionInput()?.nativeElement : undefined;
+    const at = input ? input.selectionStart : text.length;
+    const before = text.slice(0, at);
+    const separator = before === '' || before.endsWith('\n') ? '' : '\n';
+    this.description.set(`${before}${separator}${reference}\n${text.slice(at)}`);
+    this.edited();
+    if (input) {
+      const caret = before.length + separator.length + reference.length + 1;
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(caret, caret);
+      });
+    }
+  }
+
+  protected openVersions(eventId: string | null): void {
+    this.versionsEventId.set(eventId);
+    this.versionsOpen.set(true);
   }
 
   private async refreshSubtasks(): Promise<void> {

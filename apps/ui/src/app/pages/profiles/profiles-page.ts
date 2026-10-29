@@ -1,17 +1,29 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  resource,
+  signal,
+} from '@angular/core';
 import { USER_NAME_MAX_LENGTH, type UserProfile } from '@glacier-tasks/domain';
+import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { UsersStore } from '../../core/users/users-store';
 import { Avatar } from '../../shared/avatar';
+import { ActivityTimeline } from '../../shared/activity-timeline';
 import { Dialog } from '../../shared/dialog';
 
 type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id: string };
 
-/** Profile manager (USER-01, USER-02, USER-05): global profiles, avatars, archiving. */
+/**
+ * Profile manager (USER-01, USER-02, USER-05): global profiles, avatars, archiving, and each
+ * profile's history in a dialog (D12, D46).
+ */
 @Component({
   selector: 'app-profiles-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Avatar, Dialog],
+  imports: [ActivityTimeline, Avatar, Dialog],
   template: `
     <section class="page">
       <header class="page-header">
@@ -77,6 +89,15 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
                   <i class="fa-solid fa-pen" aria-hidden="true"></i>
                   {{ i18n.t('common.edit') }}
                 </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  data-testid="profile-history"
+                  (click)="historyOf.set(user)"
+                >
+                  <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                  {{ i18n.t('activity.profileHistory') }}
+                </button>
                 @if (user.archivedAt === null) {
                   <button
                     type="button"
@@ -113,6 +134,20 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
         </ul>
       }
     </section>
+
+    <app-dialog
+      [open]="historyOf() !== null"
+      [wide]="true"
+      [heading]="i18n.t('activity.profileHistoryTitle', { name: historyOf()?.name ?? '' })"
+      (closed)="historyOf.set(null)"
+    >
+      @if (history.error()) {
+        <p class="error-banner" role="alert">{{ i18n.errorMessage(history.error()) }}</p>
+      }
+      <div class="history" data-testid="profile-history-dialog">
+        <app-activity-timeline [events]="history.value() ?? []" />
+      </div>
+    </app-dialog>
 
     <app-dialog
       [open]="unassigning() !== null"
@@ -212,6 +247,10 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
     </app-dialog>
   `,
   styles: `
+    .history {
+      max-height: 60vh;
+      overflow-y: auto;
+    }
     .notice {
       margin: 0 0 16px;
       color: var(--color-accent);
@@ -276,6 +315,7 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
 export class ProfilesPage {
   protected readonly i18n = inject(I18nService);
   protected readonly store = inject(UsersStore);
+  private readonly api = inject(GLACIER_API);
 
   protected readonly nameMax = USER_NAME_MAX_LENGTH;
   protected readonly showArchived = signal(false);
@@ -285,6 +325,11 @@ export class ProfilesPage {
   protected readonly error = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
   protected readonly unassigning = signal<UserProfile | null>(null);
+  protected readonly historyOf = signal<UserProfile | null>(null);
+  protected readonly history = resource({
+    params: () => this.historyOf()?.id,
+    loader: ({ params }) => this.api.activity.forEntity('USER', params),
+  });
 
   protected readonly editor = signal<EditorState>({ mode: 'closed' });
   protected readonly editing = computed(() => {

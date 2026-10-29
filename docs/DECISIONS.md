@@ -99,3 +99,11 @@ Reference application for visual identity, tooling and release process:
 | D43 | The board and the list share one filter set per project. The board applies it to story fields only (D09) and ignores the status and type filters, because columns are statuses and cards are stories. | BOARD-06, D09 |
 | D44 | List columns: issue key and title are always shown. A "Columns" menu toggles status, priority, assignee, due date and labels (on by default) and type, start date, created, updated and subtasks (off by default). | LIST-02 |
 
+## 2026-10-29 — M6 planning
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D45 | The project activity view is a third tab on the project page (Board, List, Activity), remembered as `lastView`. | PROJ-06, D12, D17 |
+| D46 | Each profile in the profile manager has a "History" button that opens a dialog with the profile's events. | AUDIT-05, D12 |
+| D47 | The attachment size limit (D33) is a device setting on the Settings page: whole MiB from 1 to 2048, default 100, stored outside the workspace (D17). | §3.6, D33 |
+

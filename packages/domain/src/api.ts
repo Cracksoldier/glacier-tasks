@@ -31,6 +31,7 @@ import type {
   CreateTaskInput,
   CreateUserInput,
   DeviceSettingsPatch,
+  DroppedFile,
   ExportOptions,
   LabelInput,
   LabelPatch,
@@ -103,10 +104,17 @@ export interface GlacierTasksAPI {
     removeAndMigrate(statusId: string, replacementStatusId: string): Promise<void>;
   };
   attachments: {
+    /** Native multi-file picker in the main process; resolves [] when cancelled (T5). */
     add(taskId: string): Promise<AttachmentMetadata[]>;
+    /** Drag & drop: the dropped files' bytes, never paths (T5, ADR 0011). */
+    addFiles(taskId: string, files: DroppedFile[]): Promise<AttachmentMetadata[]>;
+    /** Live (not removed) attachments, newest first. */
     list(taskId: string): Promise<AttachmentMetadata[]>;
+    /** Opens a temporary copy with the OS handler; the renderer confirms first (T11). */
     open(id: string): Promise<void>;
-    saveAs(id: string): Promise<void>;
+    /** Native save dialog; resolves false when cancelled. */
+    saveAs(id: string): Promise<boolean>;
+    /** Deletes the bytes and keeps a tombstone plus a history event (D03). */
     remove(id: string): Promise<void>;
   };
   data: {
@@ -159,7 +167,7 @@ export const IPC_CHANNELS = {
   labels: ['list', 'create', 'update', 'remove'],
   trash: ['list'],
   workflows: ['list', 'create', 'update', 'usage', 'removeAndMigrate'],
-  attachments: ['add', 'list', 'open', 'saveAs', 'remove'],
+  attachments: ['add', 'addFiles', 'list', 'open', 'saveAs', 'remove'],
   data: ['backup', 'restore', 'exportJson'],
   settings: ['getDevice', 'updateDevice', 'chooseAutoBackupFolder', 'setProjectView'],
 } as const satisfies { [G in keyof GlacierTasksAPI]: ReadonlyArray<keyof GlacierTasksAPI[G]> };

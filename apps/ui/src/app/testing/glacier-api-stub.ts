@@ -2,7 +2,10 @@
 // reject like the main process does for channels without a handler.
 
 import {
+  type ActivityEvent,
   type AppErrorInfo,
+  type AttachmentMetadata,
+  type DroppedFile,
   type CreateProjectInput,
   type DeviceSettings,
   type DeviceSettingsPatch,
@@ -41,6 +44,13 @@ export interface GlacierApiStub {
   statuses: WorkflowStatus[];
   /** All tasks incl. trashed; `descriptionMarkdown` kept alongside the summary. */
   tasks: Array<TaskSummary & { descriptionMarkdown: string }>;
+  /** All attachments incl. removed tombstones. */
+  attachments: AttachmentMetadata[];
+  /** History served by `activity.*` and `tasks.descriptionVersions`; tests seed it. */
+  events: ActivityEvent[];
+  /** Attachment ids passed to `open` / `saveAs`. */
+  opened: string[];
+  saved: string[];
 }
 
 export function defaultTestSettings(): DeviceSettings {
@@ -51,6 +61,7 @@ export function defaultTestSettings(): DeviceSettings {
     lastView: 'board',
     autoBackup: { enabled: false, folder: null, intervalHours: 24, retention: 7, lastRunAt: null },
     projectViews: {},
+    attachmentMaxMiB: 100,
   };
 }
 
@@ -75,6 +86,10 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     labels: [],
     statuses: [],
     tasks: [],
+    attachments: [],
+    events: [],
+    opened: [],
+    saved: [],
   };
   let nextId = 1;
   const newId = () => `00000000-0000-4000-8000-${String(nextId++).padStart(12, '0')}`;
@@ -212,7 +227,102 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     return structuredClone(stub.settings);
   };
   installTaskApi(stub, api, newId, now);
+  installAttachmentApi(stub, api, newId, now);
   return stub;
+}
+
+/** In-memory attachments and history; previews by file extension (enough for UI tests). */
+function installAttachmentApi(
+  stub: GlacierApiStub,
+  api: Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>>,
+  newId: () => string,
+  now: () => string,
+): void {
+  const fail = (code: string, message: string): AppErrorInfo => ({ code, message }) as AppErrorInfo;
+  const find = (id: string) => {
+    const attachment = stub.attachments.find((a) => a.id === id && !a.removedAt);
+    if (!attachment) throw fail('NOT_FOUND', 'errors.attachmentNotFound');
+    return attachment;
+  };
+  const record = (taskId: string, eventType: string, attachment: AttachmentMetadata) => {
+    const task = stub.tasks.find((t) => t.id === taskId);
+    stub.events.push({
+      id: newId(),
+      entityType: 'TASK',
+      entityId: taskId,
+      projectId: task?.projectId ?? null,
+      eventType,
+      occurredAt: now(),
+      source: 'UI',
+      payload: {
+        issueKey: task?.issueKey,
+        title: task?.title,
+        attachment: { id: attachment.id, name: attachment.originalName },
+      },
+    });
+  };
+  const add = (taskId: string, name: string, byteSize: number): AttachmentMetadata => {
+    if (byteSize > stub.settings.attachmentMaxMiB * 1024 * 1024) {
+      throw fail('VALIDATION', 'errors.attachmentTooLarge');
+    }
+    const previewable = /\.(png|jpe?g|gif|webp)$/i.test(name);
+    const attachment: AttachmentMetadata = {
+      id: newId(),
+      taskId,
+      originalName: name,
+      mimeType: previewable ? 'image/png' : 'application/octet-stream',
+      byteSize,
+      sha256: '0'.repeat(64),
+      addedAt: now(),
+      removedAt: null,
+      previewable,
+    };
+    stub.attachments.push(attachment);
+    record(taskId, 'task.attachmentAdded', attachment);
+    return attachment;
+  };
+  api['attachments']!['add'] = async (taskId) => [add(taskId as string, 'picked.txt', 10)];
+  api['attachments']!['addFiles'] = async (taskId, files) =>
+    (files as DroppedFile[]).map((file) => add(taskId as string, file.name, file.bytes.length));
+  api['attachments']!['list'] = async (taskId) =>
+    stub.attachments.filter((a) => a.taskId === taskId && !a.removedAt).reverse();
+  api['attachments']!['open'] = async (id) => {
+    stub.opened.push(find(id as string).id);
+  };
+  api['attachments']!['saveAs'] = async (id) => {
+    stub.saved.push(find(id as string).id);
+    return true;
+  };
+  api['attachments']!['remove'] = async (id) => {
+    const attachment = find(id as string);
+    attachment.removedAt = now();
+    record(attachment.taskId, 'task.attachmentRemoved', attachment);
+  };
+
+  const newestFirst = (events: ActivityEvent[]) => [...events].reverse();
+  api['activity']!['forEntity'] = async (entityType, entityId) =>
+    newestFirst(stub.events.filter((e) => e.entityType === entityType && e.entityId === entityId));
+  api['activity']!['forProject'] = async (projectId, page) => {
+    const { offset = 0, limit = 100 } = (page as { offset?: number; limit?: number }) ?? {};
+    const items = newestFirst(stub.events.filter((e) => e.projectId === projectId));
+    return { items: items.slice(offset, offset + limit), total: items.length, offset, limit };
+  };
+  api['tasks']!['descriptionVersions'] = async (taskId) =>
+    newestFirst(stub.events.filter((e) => e.entityId === taskId))
+      .map((event) => {
+        const payload = event.payload as {
+          descriptionMarkdown?: string;
+          changes?: { descriptionMarkdown?: { to: string } };
+        };
+        const markdown =
+          event.eventType === 'task.created'
+            ? payload.descriptionMarkdown
+            : payload.changes?.descriptionMarkdown?.to;
+        return markdown === undefined
+          ? null
+          : { eventId: event.id, occurredAt: event.occurredAt, markdown };
+      })
+      .filter((version) => version !== null);
 }
 
 /** In-memory statuses with the D07/D01 rules the UI reacts to. */
@@ -350,7 +460,7 @@ function installTaskApi(
       subtasks: stub.tasks
         .filter((t) => t.parentStoryId === id && !t.trashedAt)
         .map((t) => summary(t)),
-      attachments: [],
+      attachments: stub.attachments.filter((a) => a.taskId === id && !a.removedAt).reverse(),
     };
   };
 

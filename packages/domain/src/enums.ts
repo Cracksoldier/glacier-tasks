@@ -30,6 +30,10 @@ export const LABEL_COLORS = [
 ] as const;
 export type LabelColor = (typeof LABEL_COLORS)[number];
 
+/** Tabs of the project page, remembered as `lastView` (D17, D45). */
+export const PROJECT_VIEWS = ['board', 'list', 'activity'] as const;
+export type ProjectViewKind = (typeof PROJECT_VIEWS)[number];
+
 export const THEMES = ['light', 'dark', 'system'] as const;
 export type Theme = (typeof THEMES)[number];
 export const DEFAULT_THEME: Theme = 'dark'; // D18

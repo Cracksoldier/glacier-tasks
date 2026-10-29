@@ -96,6 +96,9 @@ write transaction.
 | I23 | Avatars PNG/JPEG/WebP ≤ 5 MiB | D24 | F, D, T |
 | I24 | Workspace from a newer schema version is never opened for writing | §11 | T (migrate) |
 | I25 | Every task query has a deterministic order: empty values last, ties broken by project key and issue number | LIST-03 | S |
+| I26 | A removed attachment keeps its row as a tombstone; its bytes are deleted at once (or by startup reconciliation); every live row owns exactly one file | D03 | S, F (reconcile) |
+| I27 | Only PNG/JPEG/GIF/WebP detected by file signature are previewable; the file name never makes a type previewable | D33 | D, F |
+| I28 | Markdown loads images only for live, previewable attachments of the same task | D10, MD-05 | UI |
 
 ## 5. Build and packaging
 

@@ -7,6 +7,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
+import type { AttachmentMetadata } from '@glacier-tasks/domain';
 import { MarkdownService } from '../core/markdown/markdown.service';
 
 /**
@@ -105,6 +106,11 @@ import { MarkdownService } from '../core/markdown/markdown.service';
         border: 0;
         border-top: 1px solid var(--color-border);
       }
+      .md-attachment {
+        max-width: 100%;
+        max-height: 480px;
+        border-radius: var(--radius-sm);
+      }
       .md-image {
         display: inline-block;
         padding: 2px 8px;
@@ -121,7 +127,9 @@ export class MarkdownView {
   private readonly sanitizer = inject(DomSanitizer);
 
   readonly source = input.required<string>();
+  /** Live attachments of the task being shown; previewable ones render inline (D10). */
+  readonly attachments = input<ReadonlyArray<AttachmentMetadata>>([]);
   protected readonly html = computed(() =>
-    this.sanitizer.bypassSecurityTrustHtml(this.markdown.render(this.source())),
+    this.sanitizer.bypassSecurityTrustHtml(this.markdown.render(this.source(), this.attachments())),
   );
 }

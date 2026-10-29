@@ -29,6 +29,8 @@ export const TASK_EVENTS = {
   subtaskRestored: 'task.subtaskRestored',
   subtaskMovedIn: 'task.subtaskMovedIn',
   subtaskMovedOut: 'task.subtaskMovedOut',
+  attachmentAdded: 'task.attachmentAdded',
+  attachmentRemoved: 'task.attachmentRemoved',
 } as const;
 
 export const STATUS_EVENTS = {
@@ -167,6 +169,13 @@ export interface SubtaskEventPayload {
   subtask: TaskRef;
   /** For moves: the other story involved. */
   otherStory?: TaskRef;
+}
+
+/** Attachment added or removed (D03); never contains bytes (§3.7). */
+export interface AttachmentEventPayload {
+  issueKey: string;
+  title: string;
+  attachment: { id: string; name: string; mimeType: string; byteSize: number };
 }
 
 export interface ProjectTrashTogglePayload {

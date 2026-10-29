@@ -4,6 +4,8 @@
 import { existsSync, readFileSync, renameSync } from 'node:fs';
 import { z } from 'zod';
 import {
+  ATTACHMENT_MAX_MIB_LIMIT,
+  DEFAULT_ATTACHMENT_MAX_MIB,
   DEFAULT_AUTO_BACKUP_INTERVAL_HOURS,
   DEFAULT_AUTO_BACKUP_RETENTION,
   DEFAULT_THEME,
@@ -12,6 +14,7 @@ import {
   deviceSettingsPatchSchema,
   LANGUAGES,
   type Language,
+  PROJECT_VIEWS,
   type ProjectView,
   projectViewSchema,
   THEMES,
@@ -33,7 +36,13 @@ const storedSchema = z.object({
   theme: z.enum(THEMES),
   language: z.enum(LANGUAGES),
   lastProjectId: z.uuid().nullable(),
-  lastView: z.enum(['board', 'list']),
+  lastView: z.enum(PROJECT_VIEWS),
+  // Added in M6 (D47); older files get the default.
+  attachmentMaxMiB: z
+    .int()
+    .min(1)
+    .max(ATTACHMENT_MAX_MIB_LIMIT)
+    .default(DEFAULT_ATTACHMENT_MAX_MIB),
   autoBackup: z.object({
     enabled: z.boolean(),
     folder: z.string().nullable(),
@@ -77,6 +86,7 @@ export function defaultDeviceSettings(preferredLanguages: ReadonlyArray<string>)
     language: languageFromPreferences(preferredLanguages),
     lastProjectId: null,
     lastView: 'board',
+    attachmentMaxMiB: DEFAULT_ATTACHMENT_MAX_MIB,
     autoBackup: {
       enabled: false,
       folder: null,

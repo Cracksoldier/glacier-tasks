@@ -7,6 +7,7 @@ import type {
   LabelColor,
   Language,
   Priority,
+  ProjectViewKind,
   StatusCategory,
   TaskType,
   Theme,
@@ -176,7 +177,9 @@ export interface DeviceSettings {
   theme: Theme;
   language: Language;
   lastProjectId: string | null;
-  lastView: 'board' | 'list';
+  lastView: ProjectViewKind;
+  /** Per-file attachment limit in MiB (D33, D47). */
+  attachmentMaxMiB: number;
   autoBackup: AutoBackupSettings;
   /** Sort, filters and list columns per project id (D42). */
   projectViews: Record<string, ProjectView>;

@@ -11,7 +11,7 @@ import {
   untracked,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { TITLE_MAX_LENGTH } from '@glacier-tasks/domain';
+import { type ProjectViewKind, TITLE_MAX_LENGTH } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
@@ -21,6 +21,7 @@ import { Dialog } from '../../shared/dialog';
 import { TaskFilterBar, type TaskSort } from '../../shared/task-filter-bar';
 import { type ListQuery, TaskList } from '../../shared/task-list';
 import { Board } from './board';
+import { ProjectActivity } from './project-activity';
 
 /**
  * Project home (PROJ-02): remembers the project as last opened and shows the board or the
@@ -29,7 +30,7 @@ import { Board } from './board';
 @Component({
   selector: 'app-project-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Board, Dialog, RouterLink, TaskFilterBar, TaskList],
+  imports: [Board, Dialog, ProjectActivity, RouterLink, TaskFilterBar, TaskList],
   template: `
     @if (project(); as project) {
       <section class="page wide">
@@ -75,8 +76,15 @@ import { Board } from './board';
             <i class="fa-solid fa-list" aria-hidden="true"></i>
             {{ i18n.t('board.viewList') }}
           </button>
+          <button type="button" role="tab" class="tab" data-testid="view-activity"
+            [class.active]="view() === 'activity'" [attr.aria-selected]="view() === 'activity'"
+            (click)="setView('activity')">
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+            {{ i18n.t('activity.projectTab') }}
+          </button>
         </div>
 
+        @if (view() !== 'activity') {
         <app-task-filter-bar
           [filters]="projectView().filters"
           [statuses]="statuses.value() ?? []"
@@ -90,7 +98,10 @@ import { Board } from './board';
           (sortChange)="setSort(project.id, $event)"
           (textChange)="text.set($event)"
         />
-        @if (view() === 'board') {
+        }
+        @if (view() === 'activity') {
+          <app-project-activity [projectId]="project.id" />
+        } @else if (view() === 'board') {
           <app-board [projectId]="project.id" [filters]="projectView().filters" />
         } @else {
           <app-task-list
@@ -250,7 +261,7 @@ export class ProjectPage {
     if (sortBy !== 'relevance') this.viewStore.update(projectId, { sortBy, sortDirection });
   }
 
-  protected setView(view: 'board' | 'list'): void {
+  protected setView(view: ProjectViewKind): void {
     void this.settings.setLastView(view).catch(() => undefined);
   }
 

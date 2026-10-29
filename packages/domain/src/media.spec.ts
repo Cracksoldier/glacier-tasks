@@ -14,7 +14,7 @@ describe('media URLs (T10)', () => {
   it.each([
     `glacier-media://avatar/${ID}/../../etc/passwd`,
     `glacier-media://avatar/..%2F..%2Fsecret`,
-    `glacier-media://attachment/${ID}`,
+    `glacier-media://file/${ID}`,
     `glacier-media://avatar/${ID}?x=1`,
     `glacier-media://avatar/not-a-uuid`,
     `file:///C:/avatars/${ID}`,

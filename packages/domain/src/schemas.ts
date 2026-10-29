@@ -10,12 +10,16 @@ import {
   PRIORITIES,
   STATUS_CATEGORIES,
   TASK_SORT_FIELDS,
+  PROJECT_VIEWS,
   TASK_TYPES,
   THEMES,
 } from './enums.js';
+import { FILE_NAME_MAX_LENGTH } from './files.js';
 import { isDateRangeValid, isValidLocalDate, PROJECT_KEY_PATTERN } from './invariants.js';
 import { isValidSortKey } from './sort-key.js';
 import {
+  ATTACHMENT_DROP_MAX_FILES,
+  ATTACHMENT_MAX_MIB_LIMIT,
   DESCRIPTION_MAX_LENGTH,
   LABEL_NAME_MAX_LENGTH,
   PROJECT_DESCRIPTION_MAX_LENGTH,
@@ -183,6 +187,15 @@ export const projectViewSchema = z.strictObject({
   columns: z.array(z.enum(LIST_COLUMNS)).max(LIST_COLUMNS.length),
 });
 
+// --- Attachments ------------------------------------------------------------
+
+/** One dropped file; the byte limit is a device setting, checked in the main process. */
+export const droppedFileSchema = z.strictObject({
+  name: z.string().min(1).max(FILE_NAME_MAX_LENGTH),
+  bytes: z.instanceof(Uint8Array),
+});
+export const droppedFilesSchema = z.array(droppedFileSchema).min(1).max(ATTACHMENT_DROP_MAX_FILES);
+
 // --- Data / settings --------------------------------------------------------
 
 export const exportOptionsSchema = z.strictObject({
@@ -198,7 +211,8 @@ export const deviceSettingsPatchSchema = z
     theme: z.enum(THEMES),
     language: z.enum(LANGUAGES),
     lastProjectId: idSchema.nullable(),
-    lastView: z.enum(['board', 'list']),
+    lastView: z.enum(PROJECT_VIEWS),
+    attachmentMaxMiB: z.int().min(1).max(ATTACHMENT_MAX_MIB_LIMIT),
     autoBackup: z
       .strictObject({
         enabled: z.boolean(),
@@ -225,6 +239,7 @@ export type UpdateTaskInput = z.input<typeof updateTaskInputSchema>;
 export type TaskQuery = z.input<typeof taskQuerySchema>;
 export type ExportOptions = z.input<typeof exportOptionsSchema>;
 export type DeviceSettingsPatch = z.input<typeof deviceSettingsPatchSchema>;
+export type DroppedFile = z.input<typeof droppedFileSchema>;
 
 // Parsed (output) shapes: what main-process services receive after validation.
 export type CreateTaskData = z.output<typeof createTaskInputSchema>;

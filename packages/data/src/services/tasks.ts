@@ -30,6 +30,7 @@ import {
   type UserBulkUnassignedPayload,
 } from '@glacier-tasks/domain';
 import { recordEvent } from './activity.js';
+import { liveAttachments } from './attachments.js';
 import type { ServiceContext } from './context.js';
 import type { ProjectService } from './projects.js';
 import { matchSql, orderSql, STATUS_JOIN, withSql } from './task-query.js';
@@ -139,7 +140,7 @@ export class TaskService {
       ...toSummary(row),
       descriptionMarkdown: row.description_markdown,
       subtasks,
-      attachments: [],
+      attachments: liveAttachments(this.ctx, row.id),
     };
   }
 

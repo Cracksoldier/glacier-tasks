@@ -15,7 +15,7 @@ Development is milestone-driven. Authoritative documents:
 - `docs/GLACIER_TASKS_MILESTONES.md`: M0–M8
 - `docs/DECISIONS.md`: confirmed product decisions `Dnn`
 - `docs/adr/`
-- `docs/architecture.md`: domain invariants I01–I25
+- `docs/architecture.md`: domain invariants I01–I28
 - `docs/threat-model.md`
 
 Don't promote an assumption to a confirmed decision without the product owner. Commit or
@@ -56,7 +56,7 @@ push only when the user asks.
 - `packages/data`: main process only: `openDatabase`, `migrate`, migrations in
   `src/migrations/NNNN-name.ts` (never edit a released migration).
   - `src/services/`: DB-only services (`ProjectService`, `UserService`, `ActivityService`,
-    `TaskService`, `LabelService`, `TrashService`, `WorkflowService`) taking a `ServiceContext` (db, clock, id
+    `TaskService`, `LabelService`, `TrashService`, `WorkflowService`, `AttachmentService`) taking a `ServiceContext` (db, clock, id
     generator). Task writes check `version` (D05) and bump it on every change; see ADR 0008.
     Status rules and board moves: ADR 0009. Filters, search and the list query share one
     SQL builder (`task-query.ts`, ADR 0010). Each write is one transaction that
@@ -73,14 +73,17 @@ push only when the user asks.
   - `logger.ts`
   - `paths.ts`
   - `avatar-store.ts`: avatar import, read and startup reconciliation (ADR 0007)
+  - `attachment-store.ts`: staged attachment import, previews, open/save copies,
+    reconciliation (ADR 0011)
 
   Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts`, `media-protocol.ts`
-  (`glacier-media://avatar/<uuid>`) and `smoke.ts`.
+  (`glacier-media://avatar|attachment/<uuid>`) and `smoke.ts`.
 - `apps/ui`: Angular renderer (standalone, zoneless, OnPush, signals; ADR 0006):
   - `core/api`: `GLACIER_API` token
   - `core/settings`, `core/theme`, `core/i18n`, `core/projects`, `core/users`: signal stores
   - `core/markdown`: `MarkdownService` (marked + DOMPurify, ADR 0008); `core/tasks`: display keys,
-    `ProjectViewStore` (per-project sort/filters/columns, D42), `queryAll`
+    `ProjectViewStore` (per-project sort/filters/columns, D42), `queryAll`; `core/activity`: history
+    formatting and the line diff
   - `shared/`: `<app-avatar>`, `<app-dialog>` (native `<dialog>`), `<app-label-chip>`,
     `<app-markdown-view>`, `<app-multi-select>`, `<app-task-filter-bar>`, `<app-task-list>`
     (virtual-scroll treegrid, ADR 0010); global building blocks

@@ -6,7 +6,7 @@ import {
   resource,
   signal,
 } from '@angular/core';
-import { type Language, type Theme } from '@glacier-tasks/domain';
+import { ATTACHMENT_MAX_MIB_LIMIT, type Language, type Theme } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import { SettingsStore } from '../../core/settings/settings-store';
@@ -43,6 +43,27 @@ export class SettingsPage {
     { value: 'en', label: null, nativeLabel: 'English' },
     { value: 'de', label: null, nativeLabel: 'Deutsch' },
   ];
+
+  protected readonly attachmentMaxLimit = ATTACHMENT_MAX_MIB_LIMIT;
+
+  /** D47: whole MiB within 1–2048; anything else shows the current value again. */
+  protected async setAttachmentMax(input: HTMLInputElement): Promise<void> {
+    const value = Number(input.value);
+    if (!Number.isInteger(value) || value < 1 || value > ATTACHMENT_MAX_MIB_LIMIT) {
+      input.value = String(this.settings.attachmentMaxMiB());
+      this.error.set(
+        this.i18n.t('settings.attachmentMaxInvalid', { max: ATTACHMENT_MAX_MIB_LIMIT }),
+      );
+      return;
+    }
+    this.error.set(null);
+    try {
+      await this.settings.setAttachmentMaxMiB(value);
+    } catch {
+      input.value = String(this.settings.attachmentMaxMiB());
+      this.error.set(this.i18n.t('settings.saveFailed'));
+    }
+  }
 
   protected async selectTheme(theme: Theme): Promise<void> {
     await this.save('theme', () => this.settings.setTheme(theme), this.settings.theme);

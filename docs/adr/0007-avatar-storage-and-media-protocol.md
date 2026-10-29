@@ -53,7 +53,7 @@ On every start, `AvatarStore.reconcile()` compares `avatars/` with the `avatar_f
 - The CSP allows `img-src 'self' data: glacier-media:`. `connect-src` stays `'self'`, so the
   renderer can only use the scheme in `<img>`.
 - M6 extends the parser and the handler with `attachment/<uuid>` for previewable attachments
-  (D33).
+  (D33); see ADR 0011.
 
 ## Consequences
 

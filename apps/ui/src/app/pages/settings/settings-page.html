@@ -49,6 +49,27 @@
     </fieldset>
   </section>
 
+  <section class="card" aria-labelledby="attachments-heading">
+    <h2 id="attachments-heading">{{ i18n.t('settings.attachments') }}</h2>
+    <div class="field attachment-limit">
+      <label for="attachment-max">{{ i18n.t('settings.attachmentMax') }}</label>
+      <div class="inline">
+        <input
+          id="attachment-max"
+          type="number"
+          inputmode="numeric"
+          data-testid="attachment-max"
+          [min]="1"
+          [max]="attachmentMaxLimit"
+          [value]="settings.attachmentMaxMiB()"
+          (change)="setAttachmentMax($any($event.target))"
+        />
+        <span>MiB</span>
+      </div>
+      <p class="field-hint">{{ i18n.t('settings.attachmentMaxHint', { max: attachmentMaxLimit }) }}</p>
+    </div>
+  </section>
+
   <section class="card" aria-labelledby="about-heading">
     <h2 id="about-heading">{{ i18n.t('settings.about') }}</h2>
     <dl class="facts">

@@ -91,14 +91,14 @@
             </button>
           </div>
           @if (tab() === 'edit') {
-            <textarea class="mono description-input" data-testid="task-description" [maxLength]="descriptionMax"
+            <textarea #descriptionInput class="mono description-input" data-testid="task-description" [maxLength]="descriptionMax"
               [attr.aria-label]="i18n.t('task.field.description')" [value]="description()"
               (input)="description.set($any($event.target).value); edited()"></textarea>
             <p class="field-hint">{{ i18n.t('task.markdownHint') }}</p>
           } @else {
             <div class="preview card" data-testid="task-preview">
               @if (description().trim()) {
-                <app-markdown-view [source]="description()" />
+                <app-markdown-view [source]="description()" [attachments]="attachments()" />
               } @else {
                 <p class="muted">{{ i18n.t('task.noDescription') }}</p>
               }
@@ -156,6 +156,24 @@
             </div>
           </section>
         }
+
+        <app-task-attachments [taskId]="task.id" [attachments]="attachments()"
+          (changed)="attachmentsChanged()" (insert)="insertImage($event)" />
+
+        <section class="history" aria-labelledby="history-heading">
+          <div class="history-header">
+            <h2 id="history-heading">{{ i18n.t('activity.taskTitle') }}</h2>
+            <button type="button" class="btn btn-ghost" data-testid="task-versions" (click)="openVersions(null)">
+              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+              {{ i18n.t('versions.open') }}
+            </button>
+          </div>
+          @if (history.error()) {
+            <p class="error-banner" role="alert">{{ i18n.errorMessage(history.error()) }}</p>
+          }
+          <app-activity-timeline [events]="history.value() ?? []" [versionsLink]="true"
+            (openVersions)="openVersions($event)" />
+        </section>
       </div>
 
       <aside class="side card">
@@ -244,6 +262,9 @@
       </aside>
     </form>
   </section>
+
+  <app-description-versions [taskId]="task.id" [open]="versionsOpen()" [initialEventId]="versionsEventId()"
+    [attachments]="attachments()" (closed)="versionsOpen.set(false)" />
 
   <app-dialog [open]="trashOpen()" [heading]="i18n.t('task.trashTitle')" (closed)="trashOpen.set(false)">
     <p>{{ i18n.t(task.type === 'STORY' ? 'task.trashStoryBody' : 'task.trashSubtaskBody') }}</p>

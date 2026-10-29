@@ -93,6 +93,16 @@ describe('DeviceSettingsStore', () => {
     expect(store.get().theme).toBe('dark');
   });
 
+  it('keeps the attachment size limit within 1–2048 MiB (D47)', () => {
+    const store = new DeviceSettingsStore(file, ['en-US'], silentLogger);
+    expect(store.get().attachmentMaxMiB).toBe(100);
+    store.update({ attachmentMaxMiB: 250 });
+    expect(new DeviceSettingsStore(file, ['en-US'], silentLogger).get().attachmentMaxMiB).toBe(250);
+    expect(() => store.update({ attachmentMaxMiB: 0 })).toThrow();
+    expect(() => store.update({ attachmentMaxMiB: 4096 })).toThrow();
+    expect(() => store.update({ attachmentMaxMiB: 1.5 })).toThrow();
+  });
+
   describe('project views (D42)', () => {
     const P1 = '00000000-0000-4000-8000-000000000001';
     const P2 = '00000000-0000-4000-8000-000000000002';
