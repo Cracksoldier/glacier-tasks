@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Database } from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { isValidSortKey } from '@glacier-tasks/domain';
 import {
   currentSchemaVersion,
   integrityCheck,
@@ -33,12 +34,17 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function insertProject(key: string): { projectId: string; todo: string; done: string } {
+function insertProject(
+  key: string,
+  target: Database = db,
+): { projectId: string; todo: string; done: string } {
   const projectId = randomUUID();
-  db.prepare(
-    `INSERT INTO projects (id, project_key, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
-  ).run(projectId, key, `${key} project`, NOW, NOW);
-  const status = db.prepare(
+  target
+    .prepare(
+      `INSERT INTO projects (id, project_key, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+    )
+    .run(projectId, key, `${key} project`, NOW, NOW);
+  const status = target.prepare(
     `INSERT INTO statuses (id, project_id, name, category, position, is_default, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
@@ -64,7 +70,7 @@ function insertTask(
   db.prepare(
     `INSERT INTO tasks (id, project_id, issue_number, type, parent_story_id, title,
        description_markdown, status_id, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'V', ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'a0', ?, ?)`,
   ).run(
     id,
     projectId,
@@ -101,6 +107,70 @@ describe('migrations', () => {
 
   it('enables foreign keys on every connection', () => {
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+  });
+
+  it('re-keys the fraction-only sort keys of 0001 in their current order (0002)', () => {
+    const old = openDatabase(join(dir, 'old.sqlite'), { wal: true });
+    try {
+      migrate(old, MIGRATIONS.slice(0, 1), () => NOW);
+      const { projectId, todo, done } = insertProject('GAME', old);
+      const insert = old.prepare(
+        `INSERT INTO tasks (id, project_id, issue_number, type, parent_story_id, title, status_id,
+           sort_order, created_at, updated_at, trashed_at)
+         VALUES (?, ?, ?, ?, ?, 'Task', ?, ?, ?, ?, ?)`,
+      );
+      let number = 0;
+      const add = (
+        statusId: string,
+        key: string,
+        parent: string | null = null,
+        trashed = false,
+      ) => {
+        const id = randomUUID();
+        insert.run(
+          id,
+          projectId,
+          ++number,
+          parent ? 'SUBTASK' : 'STORY',
+          parent,
+          statusId,
+          key,
+          NOW,
+          NOW,
+          trashed ? NOW : null,
+        );
+        return id;
+      };
+      // To Do column in order 0V < V < V (tie, broken by issue number) < zzV, one trashed.
+      const story = add(todo, 'V');
+      const tie = add(todo, 'V');
+      const top = add(todo, '0V', null, true);
+      const end = add(todo, 'zzV');
+      const sub2 = add(todo, 'k', story);
+      const sub1 = add(todo, 'G', story);
+      const doneOnly = add(done, '1');
+
+      migrate(old, MIGRATIONS, () => NOW);
+      const keys = new Map(
+        (
+          old.prepare('SELECT id, sort_order AS key FROM tasks').all() as {
+            id: string;
+            key: string;
+          }[]
+        ).map((row) => [row.id, row.key]),
+      );
+      expect([top, story, tie, end].map((id) => keys.get(id))).toEqual([
+        'd0000',
+        'd0001',
+        'd0002',
+        'd0003',
+      ]);
+      expect([sub1, sub2].map((id) => keys.get(id))).toEqual(['d0000', 'd0001']);
+      expect(keys.get(doneOnly)).toBe('d0000');
+      for (const key of keys.values()) expect(isValidSortKey(key)).toBe(true);
+    } finally {
+      old.close();
+    }
   });
 });
 

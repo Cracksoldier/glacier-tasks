@@ -30,9 +30,9 @@ import {
 } from '@glacier-tasks/data';
 import { AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
 import { AvatarStore } from './avatar-store.js';
-import { DeviceSettingsStore } from './device-settings.js';
+import { DeviceSettingsStore, languageFromPreferences } from './device-settings.js';
 import { createDispatcher, createSenderCheck, type IpcHandlers } from './ipc.js';
-import { createLogger } from './logger.js';
+import { createLogger, type Logger } from './logger.js';
 import { handleMediaProtocol, registerMediaScheme } from './media-protocol.js';
 import { ensureAppDirectories, resolveAppPaths } from './paths.js';
 import { hardenApp, hardenSession } from './security.js';
@@ -51,6 +51,9 @@ if (userDataOverride) app.setPath('userData', userDataOverride);
 let workspace: Database | undefined;
 let avatarStore: AvatarStore | undefined;
 let mainWindow: BrowserWindow | undefined;
+// Set as soon as they exist, so a failed start can still log and speak the user's language.
+let startupLogger: Logger | undefined;
+let startupSettings: DeviceSettingsStore | undefined;
 const remoteRequests: string[] = [];
 
 function backgroundFor(theme: Theme): string {
@@ -81,6 +84,7 @@ async function start(): Promise<void> {
   const paths = resolveAppPaths(app.getPath('userData'));
   ensureAppDirectories(paths);
   const logger = createLogger(paths.logs, { echo: isDev || isSmoke });
+  startupLogger = logger;
   logger.info('app starting', { version: app.getVersion(), electron: process.versions.electron });
 
   const settings = new DeviceSettingsStore(
@@ -88,6 +92,7 @@ async function start(): Promise<void> {
     app.getPreferredSystemLanguages(),
     logger,
   );
+  startupSettings = settings;
   nativeTheme.themeSource = settings.get().theme;
 
   const securityOptions = {
@@ -108,7 +113,7 @@ async function start(): Promise<void> {
       })
     ).db;
   } catch (error) {
-    await showStartupError(error as AppError, settings.get().language, paths.root);
+    await showStartupError(error, settings.get().language, paths.root);
     app.exit(1);
     return;
   }
@@ -236,6 +241,21 @@ async function start(): Promise<void> {
   }
 }
 
+/**
+ * Any other failure in `start()`: without a window the process would keep running and hold
+ * the single-instance lock, so every later launch would exit at once.
+ */
+async function failStartup(error: unknown): Promise<void> {
+  try {
+    startupLogger?.error('startup failed', { error });
+    const language =
+      startupSettings?.get().language ?? languageFromPreferences(app.getPreferredSystemLanguages());
+    await showStartupError(error, language, app.getPath('userData'));
+  } finally {
+    app.exit(1);
+  }
+}
+
 if (!app.requestSingleInstanceLock()) {
   // A second launch hands over to the running instance and exits (D05).
   app.quit();
@@ -248,7 +268,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   registerMediaScheme();
-  void app.whenReady().then(start);
+  void app.whenReady().then(start).catch(failStartup);
 
   app.on('window-all-closed', () => app.quit());
   app.on('will-quit', () => {

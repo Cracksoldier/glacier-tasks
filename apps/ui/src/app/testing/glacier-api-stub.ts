@@ -11,6 +11,7 @@ import {
   IPC_CHANNELS,
   normalizeProjectKey,
   type ProjectSummary,
+  sortKeyBetween,
   type UpdateProjectInput,
   type CreateTaskInput,
   type Label,
@@ -369,7 +370,13 @@ function installTaskApi(
     const data = input as CreateTaskInput;
     const project = stub.projects.find((p) => p.id === data.projectId);
     if (!project) throw fail('NOT_FOUND', 'errors.projectNotFound');
-    const number = stub.tasks.filter((t) => t.projectId === project.id).length + 1;
+    const siblings = stub.tasks.filter((t) => t.projectId === project.id);
+    const number = siblings.length + 1;
+    const lastKey =
+      siblings
+        .map((t) => t.sortOrder)
+        .sort()
+        .at(-1) ?? null;
     stub.tasks.push({
       id: newId(),
       projectId: project.id,
@@ -386,7 +393,7 @@ function installTaskApi(
       startDate: data.startDate ?? null,
       dueDate: data.dueDate ?? null,
       labelIds: data.labelIds ?? [],
-      sortOrder: String(number),
+      sortOrder: sortKeyBetween(lastKey, null),
       version: 1,
       createdAt: now(),
       updatedAt: now(),
@@ -410,7 +417,7 @@ function installTaskApi(
     const top = column.map((t) => t.sortOrder).sort()[0];
     Object.assign(task, {
       statusId,
-      sortOrder: !columnChanged && sortOrder ? sortOrder : top ? `0${top}` : 'V',
+      sortOrder: !columnChanged && sortOrder ? sortOrder : sortKeyBetween(null, top ?? null),
       version: task.version + 1,
     });
   };

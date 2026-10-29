@@ -47,6 +47,26 @@
 - Board queries order by `position, sort_order, issue_number`, so equal keys still give a stable
   order.
 
+## Sort key format (`packages/domain/src/sort-key.ts`, migration 0002)
+
+Added after the M0–M4 code review. The M3 keys were fractions only, so every move to the top
+of a column and every append to its end added a character about every six operations. Long
+before a busy Done column reached thousands of finished stories, the top key would have passed
+the 256-character limit of `sortKeySchema` and reordering next to it would have failed.
+
+- **Format:** the rocicorp `fractional-indexing` design (CC0), implemented in-house with the
+  same base-62 alphabet, so SQLite BINARY collation and JavaScript comparison still agree. A key
+  is an integer part plus an optional fraction that never ends in `0`. The integer part's head
+  character encodes its length: `a`–`z` for 2–27 characters, `Z`–`A` for negative integers.
+  The first key is `a0`.
+- **Growth:** moving a card to the start or end of a list decrements or increments the integer
+  part, so the key length grows logarithmically there. Fractions appear only between two
+  neighbours. The public API (`sortKeyBetween`, `isValidSortKey`) is unchanged.
+- **Migration 0002** rewrites every existing key in its current order (`sort_order`, then
+  `issue_number`). It covers stories per project and status and subtasks per story, trashed
+  rows included, and produces fixed five-character keys `d` + four digits. It changes the
+  storage format only, so `version`, timestamps and history stay untouched.
+
 ## Board UI (`apps/ui/src/app/pages/projects/board.ts`)
 
 - One `tasks.query` loads all live tasks of the project. Stories become cards in their status

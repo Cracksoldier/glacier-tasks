@@ -96,7 +96,7 @@ describe('ProjectService', () => {
     const [todo, , done] = projects.statuses(project.id);
     const insert = db.prepare(
       `INSERT INTO tasks (id, project_id, issue_number, type, title, status_id, sort_order, created_at, updated_at, trashed_at)
-       VALUES (?, ?, ?, 'STORY', 'Story', ?, 'V', ?, ?, ?)`,
+       VALUES (?, ?, ?, 'STORY', 'Story', ?, 'a0', ?, ?, ?)`,
     );
     const now = ctx.now();
     insert.run(ctx.newId(), project.id, 1, todo?.id, now, now, null);

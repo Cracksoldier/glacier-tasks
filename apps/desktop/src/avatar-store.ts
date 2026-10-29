@@ -82,20 +82,27 @@ export class AvatarStore {
    * imports, failed deletions) and reports rows whose bytes are missing; those profiles fall
    * back to initials in the UI.
    */
-  reconcile(): { removed: number; missing: number } {
+  reconcile(): { removed: number; missing: number; failed: number } {
     const referenced = new Set(this.options.users.avatarStorageKeys());
     const present = new Set(readdirSync(this.options.dir));
     let removed = 0;
+    let failed = 0;
     for (const name of present) {
       if (referenced.has(name)) continue;
-      rmSync(resolveInside(this.options.dir, name), { recursive: true, force: true });
-      removed++;
+      // A locked file (EBUSY/EPERM) or a link out of the folder must not block startup.
+      try {
+        rmSync(resolveInside(this.options.dir, name), { recursive: true, force: true });
+        removed++;
+      } catch (error) {
+        failed++;
+        this.options.logger.warn('orphaned avatar file could not be removed', { name, error });
+      }
     }
     const missing = [...referenced].filter((key) => !present.has(key)).length;
-    if (removed > 0 || missing > 0) {
-      this.options.logger.warn('avatar storage reconciled', { removed, missing });
+    if (removed > 0 || missing > 0 || failed > 0) {
+      this.options.logger.warn('avatar storage reconciled', { removed, missing, failed });
     }
-    return { removed, missing };
+    return { removed, missing, failed };
   }
 
   private deleteFile(storageKey: string | null): void {

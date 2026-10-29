@@ -2,7 +2,7 @@
 
 import type { Database } from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CreateTaskData, WorkflowStatus } from '@glacier-tasks/domain';
+import { type CreateTaskData, sortKeyBetween, type WorkflowStatus } from '@glacier-tasks/domain';
 import { migrate, MIGRATIONS, openDatabase } from '../index.js';
 import { ActivityService } from './activity.js';
 import { createServiceContext, type ServiceContext } from './context.js';
@@ -216,10 +216,23 @@ describe('board moves (BOARD-04/05, D26)', () => {
   it('reorders within a column using the given key without a history event', () => {
     const a = task({ title: 'a' });
     const b = task({ title: 'b' });
-    tasks.move(b.id, 1, todo.id, '0V');
+    tasks.move(b.id, 1, todo.id, sortKeyBetween(null, a.sortOrder));
     expect(tasks.query(queryFor([todo.id])).items.map((t) => t.title)).toEqual(['b', 'a']);
     expect(activity.forEntity('TASK', b.id).map((e) => e.eventType)).toEqual(['task.created']);
-    expect(a.sortOrder > '0V').toBe(true);
+  });
+
+  it('keeps sort keys short when many stories are finished into the same column', () => {
+    for (let i = 0; i < 2_000; i++) {
+      const story = task({ title: `story ${i}` });
+      tasks.move(story.id, 1, done.id);
+    }
+    const column = tasks.query({ ...queryFor([done.id]), page: { offset: 0, limit: 1 } });
+    expect(column.items[0]?.title).toBe('story 1999');
+    expect(column.items[0]?.sortOrder.length).toBeLessThan(8);
+    const longest = db.prepare('SELECT max(length(sort_order)) AS n FROM tasks').get() as {
+      n: number;
+    };
+    expect(longest.n).toBeLessThan(8);
   });
 
   it('refuses subtasks and stale versions', () => {

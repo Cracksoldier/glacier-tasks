@@ -27,7 +27,7 @@
   - A description change stores the full new text. The previous text is in the preceding event,
     which is where M6's version browser will read it from.
   - Subtask create, trash, restore and move events are also recorded on the parent story.
-- **Sort keys (D26).** Keys are fractional (`sortKeyBetween`).
+- **Sort keys (D26).** Keys are fractional (`sortKeyBetween`); the format is in ADR 0009.
   - A new story goes to the end of its status column.
   - A story whose status changes goes to the top of the new column.
   - A new subtask goes to the end of its parent's subtasks.

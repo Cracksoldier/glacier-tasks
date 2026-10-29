@@ -14,6 +14,21 @@ import { AVATAR_MAX_BYTES } from '@glacier-tasks/domain';
 import { AvatarStore } from './avatar-store.js';
 import { silentLogger } from './logger.js';
 
+// Lets a test simulate a file that another process holds open (EBUSY on Windows).
+const fsControl = vi.hoisted(() => ({ lockedName: null as string | null }));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    rmSync: (path: string, options?: Parameters<typeof actual.rmSync>[1]) => {
+      if (fsControl.lockedName && path.endsWith(fsControl.lockedName)) {
+        throw Object.assign(new Error('resource busy or locked'), { code: 'EBUSY' });
+      }
+      actual.rmSync(path, options);
+    },
+  };
+});
+
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 4, 5, 6]);
 const WEBP = Buffer.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 7]);
@@ -42,6 +57,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  fsControl.lockedName = null;
   db.close();
   rmSync(dir, { recursive: true, force: true });
 });
@@ -152,8 +168,17 @@ describe('AvatarStore', () => {
     writeFileSync(join(avatarsDir, 'orphan'), PNG);
     writeFileSync(join(avatarsDir, '.key-3.123.tmp'), PNG);
 
-    expect(store.reconcile()).toEqual({ removed: 2, missing: 1 });
+    expect(store.reconcile()).toEqual({ removed: 2, missing: 1, failed: 0 });
     expect(readdirSync(avatarsDir)).toEqual(['key-1']);
     expect(existsSync(join(avatarsDir, 'key-1'))).toBe(true);
+  });
+
+  it('skips an orphan it cannot remove and still cleans up the others', () => {
+    writeFileSync(join(avatarsDir, 'locked'), PNG);
+    writeFileSync(join(avatarsDir, 'orphan'), PNG);
+    fsControl.lockedName = 'locked';
+
+    expect(store.reconcile()).toEqual({ removed: 1, missing: 0, failed: 1 });
+    expect(readdirSync(avatarsDir)).toEqual(['locked']);
   });
 });

@@ -35,7 +35,7 @@ function checkDatabase(db: Database): { fts5: boolean } {
     ).run(now, now);
     db.prepare(
       `INSERT INTO tasks (id, project_id, issue_number, type, title, status_id, sort_order, created_at, updated_at)
-       VALUES ('smoke-t1', 'smoke-p1', 1, 'STORY', 'Implement inventory', 'smoke-s1', 'V', ?, ?)`,
+       VALUES ('smoke-t1', 'smoke-p1', 1, 'STORY', 'Implement inventory', 'smoke-s1', 'a0', ?, ?)`,
     ).run(now, now);
   })();
   const hits = db

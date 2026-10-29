@@ -29,6 +29,25 @@ const checks = [
     label: 'remote font provider',
     pattern: /fonts\.(?:googleapis|gstatic)\.com|use\.fontawesome\.com|cdnjs\.cloudflare\.com/gi,
   },
+  {
+    // Catches URLs that bundled code could fetch, load or assign at runtime. Every URL in the
+    // bundle must be on the allowlist below.
+    label: 'remote URL in JavaScript',
+    pattern: /https?:\/\/[^\s"'`()<>\\]*/gi,
+    extensions: ['.js'],
+    allow: [
+      // XML namespace identifiers (SVG, MathML, XHTML, XLink, XML) used by Angular and
+      // DOMPurify; they are compared as strings, never requested.
+      /^http:\/\/www\.w3\.org\/(?:2000\/svg|1998\/Math\/MathML|1999\/xhtml|1999\/xlink|XML\/1998\/namespace|2000\/xmlns\/)$/,
+      // Documentation links inside library error messages.
+      /^https:\/\/angular\.dev\//,
+      /^https:\/\/github\.com\/markedjs\/marked\.?$/,
+      // Angular's dummy base for parsing relative URLs, and the scheme marked prefixes to
+      // `www.` autolinks (rendered links are never loaded).
+      /^http:\/\/fake$/,
+      /^http:\/\/$/,
+    ],
+  },
 ];
 
 const failures = [];
@@ -39,7 +58,9 @@ for (const file of files) {
   }
   const source = fs.readFileSync(file, 'utf-8');
   for (const check of checks) {
+    if (check.extensions && !check.extensions.includes(path.extname(file))) continue;
     for (const match of source.matchAll(check.pattern)) {
+      if (check.allow?.some((allowed) => allowed.test(match[0]))) continue;
       failures.push(
         `${path.relative(root, file)}: ${check.label}: ${match[0].replace(/\s+/g, ' ')}`,
       );

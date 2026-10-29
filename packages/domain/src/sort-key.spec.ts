@@ -61,10 +61,42 @@ describe('sortKeyBetween (D26)', () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
+  it('keeps keys short when prepending or appending many times', () => {
+    let top = sortKeyBetween(null, null);
+    let end = top;
+    for (let i = 0; i < 10_000; i++) {
+      const nextTop = sortKeyBetween(null, top);
+      const nextEnd = sortKeyBetween(end, null);
+      expect(nextTop < top && end < nextEnd).toBe(true);
+      top = nextTop;
+      end = nextEnd;
+    }
+    expect(top.length).toBeLessThan(10);
+    expect(end.length).toBeLessThan(10);
+  });
+
+  it('crosses integer lengths in both directions', () => {
+    expect(sortKeyBetween('az', null)).toBe('b00');
+    expect(sortKeyBetween(null, 'b00')).toBe('az');
+    expect(sortKeyBetween(null, 'a0')).toBe('Zz');
+    expect(sortKeyBetween('Zz', null)).toBe('a0');
+    expect(sortKeyBetween('a0', 'a1')).toBe('a0V');
+  });
+
+  it('validates the key format', () => {
+    for (const key of ['a0', 'a0V', 'Zz', 'b00', 'b00V', 'd0001']) {
+      expect(isValidSortKey(key)).toBe(true);
+    }
+    // Old fraction-only keys, short integer parts, trailing zero fractions, foreign characters.
+    for (const key of ['', 'V', '0V', 'zzV', 'b0', 'a00', 'a0V0', 'a-', `A${'0'.repeat(26)}`]) {
+      expect(isValidSortKey(key)).toBe(false);
+    }
+  });
+
   it('rejects invalid or inverted bounds', () => {
-    expect(() => sortKeyBetween('V', 'A')).toThrow();
-    expect(() => sortKeyBetween('V', 'V')).toThrow();
-    expect(() => sortKeyBetween('A0', null)).toThrow();
+    expect(() => sortKeyBetween('a1', 'a0')).toThrow();
+    expect(() => sortKeyBetween('a0', 'a0')).toThrow();
+    expect(() => sortKeyBetween('V', null)).toThrow();
     expect(() => sortKeyBetween('a-b', null)).toThrow();
   });
 });
