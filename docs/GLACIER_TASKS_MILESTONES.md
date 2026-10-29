@@ -102,7 +102,7 @@
 **Deliverables:** usable Kanban planner, workflow editor, end-to-end scenario.  
 **Acceptance:** status changes persist; moving a story does not alter subtasks; deleting used status requires destination and migrates atomically; no subtasks displayed as top-level board cards.  
 **Dependencies:** M3.  
-**Status:** Implemented (2026-10-29); first usable MVP checkpoint reached. See `docs/adr/0009-workflows-and-board.md`.
+**Status:** Done (2026-10-29); CI green on Windows and Linux; first usable MVP checkpoint reached. See `docs/adr/0009-workflows-and-board.md`.
 
 **First usable MVP checkpoint:** M4, with project/story/subtask editing and basic board functionality. This is **not** yet v1-complete without backups and attachments.
 
