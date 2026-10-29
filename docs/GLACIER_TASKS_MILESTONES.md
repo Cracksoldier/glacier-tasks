@@ -163,6 +163,8 @@
 **Acceptance:** complete backup/restore preserves two projects, profiles, statuses, stories, subtasks, history, avatars and attachment bytes; search works immediately after restore; failed restore leaves original data intact; automatic backups keep only the configured number; JSON cannot be mistaken for a full backup.  
 **Dependencies:** M2–M6.
 
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/0012-backup-restore-and-trash.md`. Trash views, typed confirmation and the ZIP libraries confirmed as D48–D50; board grouping by subtasks added as BOARD-07 (D51).
+
 ## M8 — UX polish, reliability and v1 packaging
 
 **Goal:** Release reliable Windows/Linux desktop builds.
