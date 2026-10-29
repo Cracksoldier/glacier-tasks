@@ -346,5 +346,5 @@ describe('scale (A14)', () => {
     expect(page.total).toBe(2_003);
     expect(search.total).toBe(1_000);
     console.info(`[scale] list + search over 10,000 tasks: ${elapsed.toFixed(0)} ms`);
-  });
+  }, 60_000); // seeding 10,000 tasks through the services is slow on CI runners
 });
