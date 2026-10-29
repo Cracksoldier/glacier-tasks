@@ -123,6 +123,8 @@
 **Acceptance:** search finds titles, descriptions and task keys including subtasks; filters/sorts produce deterministic results; no trashed tasks leak into normal results.  
 **Dependencies:** M3–M4.
 
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/0010-list-search-and-filters.md`. Search, remembered views, board filters and list columns confirmed as D41–D44. Also fixed here: the board loaded at most 500 tasks per project.
+
 ## M6 — Attachments and complete activity history
 
 **Goal:** Make tasks useful for local project artifacts and auditable edits.
