@@ -3,6 +3,9 @@
 
 import {
   type ActivityEvent,
+  type AppInfo,
+  type ExportOptions,
+  type RestorePreview,
   type AppErrorInfo,
   type AttachmentMetadata,
   type DroppedFile,
@@ -51,6 +54,13 @@ export interface GlacierApiStub {
   /** Attachment ids passed to `open` / `saveAs`. */
   opened: string[];
   saved: string[];
+  /** Returned by `app.info`. */
+  info: AppInfo;
+  /** Returned by `data.inspectRestore`; null simulates a cancelled dialog. */
+  restorePreview: RestorePreview | null;
+  /** Tokens passed to `data.restore`, and export options passed to `data.exportJson`. */
+  restored: string[];
+  exports: ExportOptions[];
 }
 
 export function defaultTestSettings(): DeviceSettings {
@@ -59,7 +69,14 @@ export function defaultTestSettings(): DeviceSettings {
     language: 'en',
     lastProjectId: null,
     lastView: 'board',
-    autoBackup: { enabled: false, folder: null, intervalHours: 24, retention: 7, lastRunAt: null },
+    autoBackup: {
+      enabled: false,
+      folder: null,
+      intervalHours: 24,
+      retention: 7,
+      lastRunAt: null,
+      lastFailure: null,
+    },
     projectViews: {},
     attachmentMaxMiB: 100,
   };
@@ -90,6 +107,10 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     events: [],
     opened: [],
     saved: [],
+    info: { version: '1.2.3', schemaVersion: 1, lastRestore: null, restoreFailed: false },
+    restorePreview: null,
+    restored: [],
+    exports: [],
   };
   let nextId = 1;
   const newId = () => `00000000-0000-4000-8000-${String(nextId++).padStart(12, '0')}`;
@@ -194,7 +215,27 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     return structuredClone(user);
   };
 
-  api['app']!['info'] = async () => ({ version: '1.2.3', schemaVersion: 1 });
+  api['app']!['info'] = async () => structuredClone(stub.info);
+  api['data']!['backup'] = async () => ({
+    fileName: 'glacier-tasks-2026-10-29.glaciertasks',
+    byteSize: 3 * 1024 * 1024,
+    createdAt: now(),
+  });
+  api['data']!['inspectRestore'] = async () => structuredClone(stub.restorePreview);
+  api['data']!['restore'] = async (token) => {
+    stub.restored.push(token as string);
+  };
+  api['data']!['exportJson'] = async (options) => {
+    stub.exports.push(options as ExportOptions);
+    return { fileName: 'glacier-tasks-workspace-2026-10-29.export.json', byteSize: 1000 };
+  };
+  api['settings']!['chooseAutoBackupFolder'] = async () => {
+    stub.settings = {
+      ...stub.settings,
+      autoBackup: { ...stub.settings.autoBackup, folder: 'D:/Backups' },
+    };
+    return structuredClone(stub.settings);
+  };
   api['settings']!['getDevice'] = async () => structuredClone(stub.settings);
   api['settings']!['updateDevice'] = async (patch) => {
     if (stub.failNextUpdate) {
@@ -626,9 +667,25 @@ function installTaskApi(
     stub.projects = stub.projects.filter((p) => p.id !== id);
     if (stub.settings.lastProjectId === id) stub.settings.lastProjectId = null;
   };
-  api['trash']!['list'] = async () =>
+  const purgeTask = (id: string) => {
+    stub.tasks = stub.tasks.filter((t) => t.id !== id && t.parentStoryId !== id);
+  };
+  api['trash']!['purge'] = async (_kind, id) => {
+    if (!stub.tasks.some((t) => t.id === id && t.trashedAt)) {
+      throw { code: 'NOT_FOUND', message: 'errors.notInTrash' };
+    }
+    purgeTask(id as string);
+  };
+  api['trash']!['empty'] = async (projectId) => {
+    const trashed = stub.tasks.filter(
+      (t) => t.trashedAt && (!projectId || t.projectId === projectId),
+    );
+    for (const task of trashed) purgeTask(task.id);
+    return { deleted: trashed.length };
+  };
+  api['trash']!['list'] = async (projectId) =>
     stub.tasks
-      .filter((t) => t.trashedAt)
+      .filter((t) => t.trashedAt && (!projectId || t.projectId === projectId))
       .map((t) => ({
         kind: t.type,
         id: t.id,

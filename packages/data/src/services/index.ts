@@ -1,6 +1,7 @@
 export * from './activity.js';
 export * from './attachments.js';
 export * from './context.js';
+export * from './export.js';
 export * from './labels.js';
 export * from './projects.js';
 export * from './tasks.js';

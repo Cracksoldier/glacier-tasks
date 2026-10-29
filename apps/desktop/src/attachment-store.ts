@@ -162,6 +162,17 @@ export class AttachmentStore {
     }
   }
 
+  /** Bytes of permanently deleted attachments (TRASH-05); leftovers go at the next start. */
+  deleteFiles(keys: ReadonlyArray<string>): void {
+    for (const key of keys) {
+      try {
+        rmSync(resolveInside(this.options.dir, key), { force: true });
+      } catch (error) {
+        this.options.logger.warn('purged attachment bytes could not be deleted', { error });
+      }
+    }
+  }
+
   /**
    * Startup reconciliation (spec §3.6): finishes staged files whose row was committed,
    * deletes other staged files and every file without a live row (failed imports, bytes of

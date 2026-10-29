@@ -3,6 +3,7 @@ import { migration0002 } from './migrations/0002-sort-keys.js';
 import type { Migration } from './migrate.js';
 
 export * from './connection.js';
+export * from './maintenance.js';
 export * from './migrate.js';
 export * from './services/index.js';
 

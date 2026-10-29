@@ -94,6 +94,18 @@
   }
 }
 
+/* Irreversible actions (permanent deletion, restore). */
+.btn-danger {
+  border-color: var(--color-danger);
+  background-color: var(--color-danger);
+  color: var(--color-danger-contrast);
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-danger-hover);
+  }
+}
+
 .btn-ghost {
   border-color: transparent;
   background-color: transparent;

@@ -5,7 +5,8 @@
 //   GLACIER_USER_DATA=dir  use another app data directory (smoke and E2E runs)
 //   GLACIER_SMOKE=1        run the packaged self-test and exit (see smoke.ts)
 
-import { join } from 'node:path';
+import { statSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import {
   app,
   type BrowserWindow,
@@ -14,12 +15,14 @@ import {
   ipcMain,
   nativeTheme,
   type OpenDialogOptions,
+  type SaveDialogOptions,
   session,
 } from 'electron';
 import type { Database } from 'better-sqlite3';
 import {
   ActivityService,
   AttachmentService,
+  exportWorkspace,
   createServiceContext,
   LabelService,
   LATEST_SCHEMA_VERSION,
@@ -30,13 +33,22 @@ import {
   UserService,
   WorkflowService,
 } from '@glacier-tasks/data';
-import { AppError, allIpcChannels, MIB, type Theme } from '@glacier-tasks/domain';
+import { AppError, allIpcChannels, BACKUP_EXTENSION, MIB, type Theme } from '@glacier-tasks/domain';
 import { AttachmentStore } from './attachment-store.js';
+import {
+  type ActivationOutcome,
+  activatePendingRestore,
+  createBackup,
+  inspectArchive,
+  requestRestore,
+  runAutomaticBackup,
+} from './backup.js';
 import { AvatarStore } from './avatar-store.js';
 import { DeviceSettingsStore, languageFromPreferences } from './device-settings.js';
 import { createDispatcher, createSenderCheck, type IpcHandlers } from './ipc.js';
 import { createLogger, type Logger } from './logger.js';
 import { handleMediaProtocol, registerMediaScheme } from './media-protocol.js';
+import { writeFileAtomic } from './fs-safe.js';
 import { ensureAppDirectories, resolveAppPaths } from './paths.js';
 import { hardenApp, hardenSession } from './security.js';
 import { runSmoke } from './smoke.js';
@@ -50,6 +62,9 @@ const devUrl = isDev ? 'http://localhost:4200' : undefined;
 
 const userDataOverride = process.env['GLACIER_USER_DATA'];
 if (userDataOverride) app.setPath('userData', userDataOverride);
+// E2E only: native dialogs can't be driven, so tests name the file to save or open. Honoured
+// only together with a separate data directory, never in a normal run.
+const testDialogPath = userDataOverride ? process.env['GLACIER_TEST_DIALOG_PATH'] : undefined;
 
 let workspace: Database | undefined;
 let avatarStore: AvatarStore | undefined;
@@ -71,6 +86,31 @@ function iconPath(): string | undefined {
 }
 
 const IMAGE_FILTER_NAME = { en: 'Images', de: 'Bilder' } as const;
+const BACKUP_FILTER_NAME = { en: 'Glacier Tasks backup', de: 'Glacier-Tasks-Backup' } as const;
+const EXPORT_FILTER_NAME = {
+  en: 'JSON export (not a backup)',
+  de: 'JSON-Export (kein Backup)',
+} as const;
+
+async function saveDialog(options: SaveDialogOptions): Promise<string | undefined> {
+  if (testDialogPath) return testDialogPath;
+  const result = mainWindow
+    ? await dialog.showSaveDialog(mainWindow, options)
+    : await dialog.showSaveDialog(options);
+  return result.canceled ? undefined : result.filePath;
+}
+
+async function openDialog(options: OpenDialogOptions): Promise<string | undefined> {
+  if (testDialogPath) return testDialogPath;
+  const result = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, options)
+    : await dialog.showOpenDialog(options);
+  return result.canceled ? undefined : result.filePaths[0];
+}
+
+function dateStamp(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
 /** Any file type may be attached (spec §3.6); several at once. */
 const ATTACHMENT_DIALOG: OpenDialogOptions = { properties: ['openFile', 'multiSelections'] };
 
@@ -113,6 +153,13 @@ async function start(): Promise<void> {
     () => attachmentStore,
   );
 
+  // A confirmed restore is activated before anything opens the workspace (ADR 0012).
+  const restore: ActivationOutcome = await activatePendingRestore({
+    paths,
+    migrations: MIGRATIONS,
+    logger,
+  });
+
   try {
     workspace = (
       await openWorkspace({
@@ -129,6 +176,16 @@ async function start(): Promise<void> {
   }
 
   const services = createServiceContext(workspace);
+  const db = workspace;
+  const backupTo = (target: string, kind: 'manual' | 'automatic' | 'safety') =>
+    createBackup({
+      db,
+      paths,
+      target,
+      kind,
+      appVersion: app.getVersion(),
+      schemaVersion: LATEST_SCHEMA_VERSION,
+    });
   const projects = new ProjectService(services);
   const users = new UserService(services);
   const activity = new ActivityService(services);
@@ -154,7 +211,12 @@ async function start(): Promise<void> {
 
   const handlers: IpcHandlers = {
     app: {
-      info: () => ({ version: app.getVersion(), schemaVersion: LATEST_SCHEMA_VERSION }),
+      info: () => ({
+        version: app.getVersion(),
+        schemaVersion: LATEST_SCHEMA_VERSION,
+        lastRestore: restore.status === 'restored' ? restore.result : null,
+        restoreFailed: restore.status === 'failed',
+      }),
     },
     projects: {
       list: () => projects.list(),
@@ -221,7 +283,70 @@ async function start(): Promise<void> {
       remove: (id) => labels.remove(id),
     },
     trash: {
-      list: () => trash.list(),
+      list: (projectId) => trash.list(projectId ?? null),
+      purge: (kind, id) => attachments.deleteFiles(trash.purge(kind, id)),
+      empty: (projectId) => {
+        const { deleted, storageKeys } = trash.empty(projectId);
+        attachments.deleteFiles(storageKeys);
+        return { deleted };
+      },
+    },
+    data: {
+      backup: async () => {
+        const target = await saveDialog({
+          defaultPath: `glacier-tasks-${dateStamp()}.${BACKUP_EXTENSION}`,
+          filters: [
+            { name: BACKUP_FILTER_NAME[settings.get().language], extensions: [BACKUP_EXTENSION] },
+          ],
+        });
+        return target ? backupTo(target, 'manual') : null;
+      },
+      inspectRestore: async () => {
+        const file = await openDialog({
+          properties: ['openFile'],
+          filters: [
+            { name: BACKUP_FILTER_NAME[settings.get().language], extensions: [BACKUP_EXTENSION] },
+          ],
+        });
+        if (!file) return null;
+        return inspectArchive({ file, paths, latestSchemaVersion: LATEST_SCHEMA_VERSION });
+      },
+      restore: async (token) => {
+        // DATA-06: a complete safety backup of the current data comes first.
+        const safety = await backupTo(
+          join(
+            paths.backups,
+            `pre-restore-${new Date().toISOString().replace(/[:.]/g, '-')}.${BACKUP_EXTENSION}`,
+          ),
+          'safety',
+        );
+        requestRestore(paths, token, safety.fileName);
+        logger.info('restore requested; restarting');
+        // Answer the renderer first, then restart into the activation.
+        setTimeout(() => {
+          // E2E starts the app again itself; it can't follow a relaunched process.
+          if (!testDialogPath) app.relaunch();
+          app.exit(0);
+        }, 200);
+      },
+      exportJson: async (options) => {
+        const scope =
+          options.scope.kind === 'project'
+            ? projects.get(options.scope.projectId).key
+            : 'workspace';
+        const target = await saveDialog({
+          defaultPath: `glacier-tasks-${scope}-${dateStamp()}.export.json`,
+          filters: [{ name: EXPORT_FILTER_NAME[settings.get().language], extensions: ['json'] }],
+        });
+        if (!target) return null;
+        const document = exportWorkspace(services, options, app.getVersion());
+        try {
+          writeFileAtomic(target, `${JSON.stringify(document, null, 2)}\n`);
+        } catch {
+          throw new AppError('IO', 'errors.exportFailed');
+        }
+        return { fileName: basename(target), byteSize: statSync(target).size };
+      },
     },
     users: {
       list: (includeArchived) => users.list(includeArchived),
@@ -261,6 +386,10 @@ async function start(): Promise<void> {
         }
         return updated;
       },
+      chooseAutoBackupFolder: async () => {
+        const folder = await openDialog({ properties: ['openDirectory', 'createDirectory'] });
+        return folder ? settings.setAutoBackupFolder(folder) : settings.get();
+      },
       setProjectView: (projectId, view) => {
         if (!projects.isLive(projectId)) throw new AppError('NOT_FOUND', 'errors.projectNotFound');
         return settings.setProjectView(projectId, view);
@@ -291,6 +420,29 @@ async function start(): Promise<void> {
   mainWindow.on('closed', () => {
     mainWindow = undefined;
   });
+
+  if (!isSmoke) {
+    // D13: never blocks startup; a failure is shown as a warning in the app.
+    const now = new Date();
+    void runAutomaticBackup(
+      settings.get().autoBackup,
+      (target) => backupTo(target, 'automatic'),
+      now,
+    )
+      .then((outcome) => {
+        if (outcome.status === 'created') {
+          settings.recordAutoBackup({ ranAt: now.toISOString() });
+          logger.info('automatic backup created', { deleted: outcome.deleted.length });
+        } else if (outcome.status === 'failed') {
+          settings.recordAutoBackup({
+            failedAt: now.toISOString(),
+            messageKey: outcome.messageKey,
+          });
+          logger.warn('automatic backup failed', { messageKey: outcome.messageKey });
+        }
+      })
+      .catch((error: unknown) => logger.error('automatic backup crashed', { error }));
+  }
 
   if (isSmoke) {
     const ok = await runSmoke({ window: mainWindow, db: workspace, paths, remoteRequests });

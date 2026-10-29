@@ -1,8 +1,9 @@
 // Packaged self-test (GLACIER_SMOKE=1): SQLite + FTS5 + backup API in the main process,
-// renderer isolation, the preload API end to end, and zero network requests (UJ-08).
+// a complete backup archive, renderer isolation, the preload API end to end, and zero
+// network requests (UJ-08).
 // Prints one `[smoke] {...}` line and writes it to GLACIER_SMOKE_RESULT if set.
 
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import type { Database } from 'better-sqlite3';
@@ -13,6 +14,7 @@ import {
   snapshotDatabase,
 } from '@glacier-tasks/data';
 import { API_GLOBAL_NAME, attachmentUrl, avatarUrl } from '@glacier-tasks/domain';
+import { createBackup, inspectArchive } from './backup.js';
 import type { AppPaths } from './paths.js';
 
 export interface SmokeContext {
@@ -56,6 +58,30 @@ async function checkBackup(
     return { backup: rows === 1, integrity: integrityCheck(snapshot) };
   } finally {
     snapshot.close();
+  }
+}
+
+/** A complete `.glaciertasks` archive is written, validated and staged (yazl/yauzl bundled). */
+async function checkArchive(db: Database, paths: AppPaths): Promise<{ archive: boolean }> {
+  const target = join(paths.backups, 'smoke.glaciertasks');
+  try {
+    await createBackup({
+      db,
+      paths,
+      target,
+      kind: 'manual',
+      appVersion: 'smoke',
+      schemaVersion: LATEST_SCHEMA_VERSION,
+    });
+    const preview = await inspectArchive({
+      file: target,
+      paths,
+      latestSchemaVersion: LATEST_SCHEMA_VERSION,
+    });
+    return { archive: preview.counts.tasks === 1 };
+  } finally {
+    rmSync(target, { force: true });
+    rmSync(paths.restoreStaging, { recursive: true, force: true });
   }
 }
 
@@ -123,6 +149,7 @@ export async function runSmoke(context: SmokeContext): Promise<boolean> {
   try {
     Object.assign(result, checkDatabase(context.db));
     Object.assign(result, await checkBackup(context.db, context.paths));
+    Object.assign(result, await checkArchive(context.db, context.paths));
     Object.assign(result, await checkMediaProtocol(context.window));
     const renderer = await checkRenderer(context.window);
     result['renderer'] = renderer;
@@ -133,6 +160,7 @@ export async function runSmoke(context: SmokeContext): Promise<boolean> {
       context.remoteRequests.length === 0 &&
       result['fts5'] === true &&
       result['backup'] === true &&
+      result['archive'] === true &&
       result['integrity'] === 'ok' &&
       result['mediaStatus'] === 404 &&
       result['attachmentMediaStatus'] === 404 &&

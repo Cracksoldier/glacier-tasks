@@ -245,6 +245,7 @@ export type DroppedFile = z.input<typeof droppedFileSchema>;
 export type CreateTaskData = z.output<typeof createTaskInputSchema>;
 export type UpdateTaskData = z.output<typeof updateTaskInputSchema>;
 export type TaskQueryData = z.output<typeof taskQuerySchema>;
+export type ExportOptionsData = z.output<typeof exportOptionsSchema>;
 export type TaskFilters = z.output<typeof taskFiltersSchema>;
 export type ProjectView = z.output<typeof projectViewSchema>;
 export type LabelData = z.output<typeof labelInputSchema>;

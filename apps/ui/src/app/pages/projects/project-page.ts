@@ -40,6 +40,13 @@ import { ProjectActivity } from './project-activity';
             <h1 data-testid="project-title">{{ project.name }}</h1>
           </div>
           <div class="page-actions">
+            @if (trashCount() > 0) {
+              <a class="btn btn-ghost" data-testid="project-trash-link" [routerLink]="['/trash']"
+                [queryParams]="{ project: project.id }">
+                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                {{ i18n.t('trash.projectLink', { count: trashCount() }) }}
+              </a>
+            }
             <a
               class="btn"
               [routerLink]="['/projects', project.id, 'settings']"
@@ -233,6 +240,13 @@ export class ProjectPage {
     params: () => (this.project() ? this.projectId() : undefined),
     loader: ({ params }) => this.api.labels.list(params),
   });
+
+  /** D49: link to this project's trash, shown when it has trashed items. */
+  private readonly trash = resource({
+    params: () => (this.project() ? this.projectId() : undefined),
+    loader: ({ params }) => this.api.trash.list(params),
+  });
+  protected readonly trashCount = computed(() => this.trash.value()?.length ?? 0);
 
   protected readonly createOpen = signal(false);
   protected readonly newTitle = signal('');

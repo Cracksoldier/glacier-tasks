@@ -137,3 +137,28 @@
   min-width: 0;
   overflow: auto;
 }
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 32px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-elevated);
+
+  span {
+    flex: 1;
+  }
+  &.notice-success i:first-child {
+    color: var(--category-done);
+  }
+  &.notice-danger {
+    border-color: var(--color-danger);
+
+    i:first-child {
+      color: var(--color-danger-text);
+    }
+  }
+}

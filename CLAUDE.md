@@ -15,7 +15,7 @@ Development is milestone-driven. Authoritative documents:
 - `docs/GLACIER_TASKS_MILESTONES.md`: M0–M8
 - `docs/DECISIONS.md`: confirmed product decisions `Dnn`
 - `docs/adr/`
-- `docs/architecture.md`: domain invariants I01–I28
+- `docs/architecture.md`: domain invariants I01–I31
 - `docs/threat-model.md`
 
 Don't promote an assumption to a confirmed decision without the product owner. Commit or
@@ -32,7 +32,9 @@ push only when the user asks.
   changes need an app restart.
 - `npm run build`: domain → data → ui → desktop (order of the `workspaces` array)
 - `npm test`: Vitest in all workspaces (UI via `ng test`)
-- `npm run e2e`: Playwright drives the built, unpackaged app (`tests/e2e`); run `npm run build` first
+- `npm run e2e`: Playwright drives the built, unpackaged app (`tests/e2e`); run `npm run build` first.
+  `GLACIER_TEST_DIALOG_PATH` (only honoured with `GLACIER_USER_DATA`) replaces the native
+  save/open dialogs and makes a confirmed restore exit instead of relaunching
 - `node scripts/generate-icons.mjs`: re-render icons after changing `apps/desktop/build/icon.svg`
 - `npm run format` / `npm run format:check`: Biome; Markdown and YAML are formatted by hand
 - `npm run verify:offline`: fails if the renderer build references remote resources
@@ -75,6 +77,8 @@ push only when the user asks.
   - `avatar-store.ts`: avatar import, read and startup reconciliation (ADR 0007)
   - `attachment-store.ts`: staged attachment import, previews, open/save copies,
     reconciliation (ADR 0011)
+  - `backup.ts`: `.glaciertasks` backups (yazl/yauzl), archive validation and staging, restore
+    activation with rollback at startup, automatic backups (ADR 0012)
 
   Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts`, `media-protocol.ts`
   (`glacier-media://avatar|attachment/<uuid>`) and `smoke.ts`.

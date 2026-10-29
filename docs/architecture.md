@@ -99,6 +99,9 @@ write transaction.
 | I26 | A removed attachment keeps its row as a tombstone; its bytes are deleted at once (or by startup reconciliation); every live row owns exactly one file | D03 | S, F (reconcile) |
 | I27 | Only PNG/JPEG/GIF/WebP detected by file signature are previewable; the file name never makes a type previewable | D33 | D, F |
 | I28 | Markdown loads images only for live, previewable attachments of the same task | D10, MD-05 | UI |
+| I29 | Permanent deletion removes the item with all dependent rows (tasks, labels links, attachments, events) and the managed bytes | TRASH-05 | S, F |
+| I30 | A restore replaces the whole workspace or nothing: staged, validated, activated before the workspace opens, rolled back on failure; device settings are never touched | DATA-06/07/10 | F |
+| I31 | Automatic backup retention deletes only files named like automatic backups | D13 | F |
 
 ## 5. Build and packaging
 

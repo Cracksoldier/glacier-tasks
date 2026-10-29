@@ -77,6 +77,19 @@
   </aside>
 
   <main class="content">
+    @for (notice of notices(); track notice.id) {
+      <div class="notice notice-{{ notice.tone }}" role="status" [attr.data-testid]="'notice-' + notice.id">
+        <i class="fa-solid {{ notice.icon }}" aria-hidden="true"></i>
+        <span>{{ notice.text }}</span>
+        @if (notice.id === 'auto-backup') {
+          <a routerLink="/settings">{{ i18n.t('nav.settings') }}</a>
+        }
+        <button type="button" class="btn btn-ghost btn-icon" [attr.aria-label]="i18n.t('common.close')"
+          (click)="dismiss(notice.id)">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    }
     <router-outlet />
   </main>
 </div>

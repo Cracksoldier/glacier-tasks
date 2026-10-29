@@ -170,6 +170,8 @@ export interface AutoBackupSettings {
   intervalHours: number;
   retention: number;
   lastRunAt: string | null;
+  /** Set when the last automatic backup failed; shown as a non-blocking warning (D13). */
+  lastFailure: { at: string; messageKey: string } | null;
 }
 
 /** Stored outside the workspace database; never replaced by restore (D17). */
@@ -193,8 +195,29 @@ export interface BackupResult {
 
 export interface RestoreResult {
   restoredAt: string;
+  /** Schema version of the backup before migration (D28). */
   schemaVersion: number;
   safetyBackupFileName: string | null;
+}
+
+/** A validated, staged backup waiting for confirmation (DATA-06/07). */
+export interface RestorePreview {
+  /** Identifies the staged archive for `data.restore`. */
+  token: string;
+  fileName: string;
+  createdAt: string;
+  appVersion: string;
+  schemaVersion: number;
+  counts: { projects: number; users: number; tasks: number; attachments: number; avatars: number };
+}
+
+export interface AppInfo {
+  version: string;
+  schemaVersion: number;
+  /** Present after a restore was activated on this start. */
+  lastRestore: RestoreResult | null;
+  /** A confirmed restore could not be activated; the previous workspace was kept (T9). */
+  restoreFailed: boolean;
 }
 
 export interface ExportResult {

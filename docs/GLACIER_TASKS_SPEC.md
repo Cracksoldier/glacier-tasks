@@ -224,9 +224,9 @@ Local app data directory (standard per-user location only, D16)
 
 - `TRASH-01` Deleting a story or project moves it to trash; user can restore or permanently delete it.
 - `TRASH-02` Trashing a story includes its subtasks, task history, attachments and labels; trashing a project includes all contained task data. Children trashed by the cascade get `trashCascadeRootId` set to the trashed parent; already-trashed children keep their own trash state (D02).
-- `TRASH-03` **[ASSUMPTION]** Project-specific and global trash views; no automatic expiry in v1.
+- `TRASH-03` **[CONFIRMED]** Global trash view with a project filter, linked from each project (D49); no automatic expiry in v1.
 - `TRASH-04` On restore, validate project dependencies; restore parent before child. Restoring a parent restores exactly the children whose `trashCascadeRootId` points to it (D02). No status mapping is needed because status removal migrates trashed tasks (D01).
-- `TRASH-05` Permanent deletion requires a strong confirmation and permanently removes dependent records and managed attachment bytes. Warn that only backups can recover such content.
+- `TRASH-05` Permanent deletion requires a strong confirmation and permanently removes dependent records and managed attachment bytes. Warn that only backups can recover such content. **[CONFIRMED]** The confirmation is typing the key or a confirmation word (D50).
 - `TRASH-06` A subtask can be independently trashed/restored, provided its story is not in trash; if parent is trashed, restore parent first.
 
 ### 4.11 Backup, restore and JSON export (`DATA`)
@@ -234,7 +234,7 @@ Local app data directory (standard per-user location only, D16)
 - `DATA-01` Full backup and restore, including database, attachment bytes, avatars, and manifest/schema-version metadata.
 - `DATA-02` JSON export is **export-only**; **no JSON import** in v1. Only full backup restoration imports application data.
 - `DATA-03` Export creates structured JSON containing project/user/story/subtask/status/label/history metadata and attachment descriptors, but **not** binary attachment/avatar data. **[CONFIRMED]** Scope is selectable (whole workspace or one project); trashed items excluded by default with an option to include them (D14). User-facing warning explains that JSON is not a restorable complete backup.
-- `DATA-04` **[ASSUMPTION]** Use a versioned `.glaciertasks` archive (ZIP with `manifest.json`, consistent SQLite snapshot, and managed file entries); include checksums and validate archive paths and size limits on restore.
+- `DATA-04` **[CONFIRMED]** (D34, D48) Use a versioned `.glaciertasks` archive (ZIP with `manifest.json`, consistent SQLite snapshot, and managed file entries); include checksums and validate archive paths and size limits on restore.
 - `DATA-05` Backups are captured from a consistent database snapshot (SQLite backup API or equivalent) while protecting attachment consistency; never ZIP a live WAL database directory without coordination.
 - `DATA-06` Before destructive restore, automatically create a safety backup of the current workspace when possible; stage and validate restored data before atomic activation, with rollback on failure.
 - `DATA-07` Restore replaces the **entire** workspace, rather than merges with it. Warn user that current data will be replaced and obtain explicit confirmation.

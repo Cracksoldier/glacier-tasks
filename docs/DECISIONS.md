@@ -107,3 +107,11 @@ Reference application for visual identity, tooling and release process:
 | D46 | Each profile in the profile manager has a "History" button that opens a dialog with the profile's events. | AUDIT-05, D12 |
 | D47 | The attachment size limit (D33) is a device setting on the Settings page: whole MiB from 1 to 2048, default 100, stored outside the workspace (D17). | §3.6, D33 |
 
+## 2026-10-29 — M7 planning
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D48 | The `.glaciertasks` archive (D34) is written and read with **yazl** and **yauzl** (streaming, ZIP64), pinned exactly. See `docs/adr/0012-backup-restore-and-trash.md`. | DATA-04, T14 |
+| D49 | The global Trash page has a project filter; each project page links to its own trash ("Trash (n)"), which opens the Trash page filtered to that project. | TRASH-03 |
+| D50 | Permanent deletion is confirmed by typing the project or issue key; "Empty trash" by typing a localized confirmation word. Both warn that only a backup can bring the data back. | TRASH-05 |
+

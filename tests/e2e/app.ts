@@ -23,8 +23,12 @@ export function appEnv(userDataDir: string): Record<string, string> {
 
 export async function launchApp(
   userDataDir: string,
+  extraEnv: Record<string, string> = {},
 ): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({ args: [APP_DIR], env: appEnv(userDataDir) });
+  const app = await electron.launch({
+    args: [APP_DIR],
+    env: { ...appEnv(userDataDir), ...extraEnv },
+  });
   try {
     const page = await app.firstWindow();
     await page.getByTestId('app-shell').waitFor();

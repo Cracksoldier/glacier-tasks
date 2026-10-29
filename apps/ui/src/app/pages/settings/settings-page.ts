@@ -10,6 +10,7 @@ import { ATTACHMENT_MAX_MIB_LIMIT, type Language, type Theme } from '@glacier-ta
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import { SettingsStore } from '../../core/settings/settings-store';
+import { DataSection } from './data-section';
 
 interface Choice<T> {
   value: T;
@@ -22,6 +23,7 @@ interface Choice<T> {
 @Component({
   selector: 'app-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DataSection],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.scss',
 })

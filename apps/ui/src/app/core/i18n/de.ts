@@ -164,7 +164,7 @@ export const de = {
     '„{name}“ als Zuständige(n) von allen Aufgaben entfernen, auch im Papierkorb?',
   'profiles.unassignedCount': 'Von {count} Aufgaben entfernt.',
   'trash.intro':
-    'Beim Wiederherstellen einer Story kommen auch die Unteraufgaben zurück, die mit ihr gelöscht wurden. Endgültiges Löschen folgt in einer späteren Version.',
+    'Beim Wiederherstellen einer Story kommen auch die Unteraufgaben zurück, die mit ihr gelöscht wurden. Endgültiges Löschen entfernt einen Eintrag mit allem, was er enthält.',
   'trash.emptyTitle': 'Der Papierkorb ist leer',
   'trash.emptyBody': 'Gelöschte Projekte, Stories und Unteraufgaben erscheinen hier.',
   'trash.restore': 'Wiederherstellen',
@@ -392,4 +392,82 @@ export const de = {
     'Die Datei ist größer als die in den Einstellungen festgelegte Maximalgröße.',
   'errors.attachmentUnreadable': 'Die Datei konnte nicht gelesen werden.',
   'errors.attachmentOpenFailed': 'Die Datei konnte nicht mit einer System-App geöffnet werden.',
+
+  'trash.filter': 'Projekt',
+  'trash.allProjects': 'Alle Projekte',
+  'trash.projectLink': 'Papierkorb ({count})',
+  'trash.purge': 'Endgültig löschen',
+  'trash.purgeTitle': 'Endgültig löschen?',
+  'trash.purgeWarning':
+    'Das kann nicht rückgängig gemacht werden. Nur ein Backup kann es zurückbringen.',
+  'trash.purgeProjectBody':
+    'Das Projekt „{name}“ wird mit allen Stories, Unteraufgaben, Status, Labels, Anhängen und dem Verlauf gelöscht. Sein Schlüssel wird wieder frei.',
+  'trash.purgeTaskBody':
+    '„{name}“ wird mit seinen Unteraufgaben, Anhängen und dem Verlauf gelöscht.',
+  'trash.empty': 'Papierkorb leeren',
+  'trash.emptyTitleDialog': 'Papierkorb leeren?',
+  'trash.emptyProjectBody':
+    'Alle {count} Einträge im Papierkorb dieses Projekts werden mit allem Inhalt endgültig gelöscht.',
+  'trash.emptyAllBody':
+    'Alle {count} Einträge im Papierkorb werden mit allem Inhalt endgültig gelöscht.',
+  'trash.typeToConfirm': 'Zum Bestätigen {word} eingeben',
+  'trash.emptyWord': 'löschen',
+  'data.title': 'Daten',
+  'data.backupTitle': 'Backup und Wiederherstellung',
+  'data.backupBody':
+    'Ein Backup enthält alle Projekte, Profile, Aufgaben, den Verlauf, Anhänge und Bilder. Beim Wiederherstellen wird alles durch den Inhalt des Backups ersetzt. Einstellungen auf diesem Computer gehören nicht zum Backup.',
+  'data.backupNow': 'Backup erstellen…',
+  'data.backupDone': 'Backup gespeichert: {name} ({size}).',
+  'data.restore': 'Aus Backup wiederherstellen…',
+  'data.restoreTitle': 'Dieses Backup wiederherstellen?',
+  'data.file': 'Datei',
+  'data.createdAt': 'Erstellt',
+  'data.contents': 'Inhalt',
+  'data.counts':
+    '{projects} Projekte, {tasks} Aufgaben, {users} Profile, {attachments} Anhänge, {avatars} Bilder',
+  'data.versions': 'Version',
+  'data.schema': 'Datenformat {version}',
+  'data.restoreWarning':
+    'Alle aktuellen Projekte, Profile, Aufgaben, der Verlauf und alle Dateien werden durch dieses Backup ersetzt.',
+  'data.restoreSafety':
+    'Vorher wird ein Sicherheits-Backup der aktuellen Daten gespeichert. Danach startet die App neu, um die Wiederherstellung abzuschließen.',
+  'data.restoreConfirm': 'Ersetzen und neu starten',
+  'data.restarting': 'Neustart, um die Wiederherstellung abzuschließen…',
+  'data.restored':
+    'Das Backup wurde wiederhergestellt. Ein Sicherheits-Backup der vorherigen Daten liegt im Ordner „backups“: {safety}.',
+  'data.restoreFailed':
+    'Die Wiederherstellung konnte nicht abgeschlossen werden. Deine vorherigen Daten sind unverändert.',
+  'data.autoTitle': 'Automatische Backups',
+  'data.autoBody':
+    'Wenn aktiviert, wird beim Start der App ein Backup erstellt, höchstens einmal pro Intervall. Nur die neuesten Backups bleiben erhalten; andere Dateien im Ordner werden nie angefasst.',
+  'data.noFolder': 'Kein Ordner gewählt',
+  'data.chooseFolder': 'Ordner wählen…',
+  'data.autoEnabled': 'Automatische Backups erstellen',
+  'data.interval': 'Alle (Stunden)',
+  'data.retention': 'Neueste behalten',
+  'data.lastRun': 'Letztes automatisches Backup: {date}',
+  'data.neverRun': 'Noch kein automatisches Backup.',
+  'data.autoFailed': 'Das automatische Backup am {date} ist fehlgeschlagen.',
+  'data.numberInvalid': 'Gib eine ganze Zahl zwischen 1 und {max} ein.',
+  'data.exportTitle': 'Als JSON exportieren',
+  'data.exportNotice':
+    'Der JSON-Export ist zum Lesen oder für andere Werkzeuge gedacht. Er ist KEIN Backup: Er kann nicht wiederhergestellt werden und enthält keine Anhänge oder Bilder.',
+  'data.exportScope': 'Umfang des Exports',
+  'data.exportWorkspace': 'Alle Projekte',
+  'data.exportTrashed': 'Einträge im Papierkorb einschließen',
+  'data.exportNow': 'Exportieren…',
+  'data.exportDone': 'Export gespeichert: {name}.',
+  'errors.notInTrash': 'Dieser Eintrag ist nicht (mehr) im Papierkorb.',
+  'errors.backupFailed':
+    'Das Backup konnte nicht geschrieben werden. Prüfe den Zielordner und den freien Speicherplatz.',
+  'errors.backupChanged':
+    'Während das Backup geschrieben wurde, haben sich Daten geändert. Bitte versuche es erneut.',
+  'errors.backupInvalid':
+    'Diese Datei ist kein gültiges Glacier-Tasks-Backup oder sie ist beschädigt. Es wurde nichts geändert.',
+  'errors.backupFromNewerVersion':
+    'Dieses Backup wurde mit einer neueren Version von Glacier Tasks erstellt. Installiere die neuere Version, um es wiederherzustellen.',
+  'errors.restoreExpired':
+    'Die vorbereitete Wiederherstellung ist nicht mehr verfügbar. Bitte wähle das Backup erneut.',
+  'errors.exportFailed': 'Der Export konnte nicht geschrieben werden.',
+  'errors.autoBackupFolderUnavailable': 'Der Ordner für automatische Backups ist nicht verfügbar.',
 } as const satisfies Record<TranslationKey, string>;

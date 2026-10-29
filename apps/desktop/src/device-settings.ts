@@ -49,6 +49,8 @@ const storedSchema = z.object({
     intervalHours: z.int().min(1),
     retention: z.int().min(1),
     lastRunAt: z.string().nullable(),
+    // Added in M7 (D13).
+    lastFailure: z.object({ at: z.string(), messageKey: z.string() }).nullable().default(null),
   }),
   // Added in M5 (D42). One unreadable view is dropped instead of resetting every setting.
   projectViews: z
@@ -93,6 +95,7 @@ export function defaultDeviceSettings(preferredLanguages: ReadonlyArray<string>)
       intervalHours: DEFAULT_AUTO_BACKUP_INTERVAL_HOURS,
       retention: DEFAULT_AUTO_BACKUP_RETENTION,
       lastRunAt: null,
+      lastFailure: null,
     },
     projectViews: {},
     window: null,
@@ -127,6 +130,26 @@ export class DeviceSettingsStore {
     };
     this.persist();
     return this.get();
+  }
+
+  /** Folder chosen in the main-process dialog; never a path from the renderer (D13, T5). */
+  setAutoBackupFolder(folder: string): DeviceSettings {
+    this.current = { ...this.current, autoBackup: { ...this.current.autoBackup, folder } };
+    this.persist();
+    return this.get();
+  }
+
+  /** Outcome of an automatic backup run (D13). */
+  recordAutoBackup(outcome: { ranAt: string } | { failedAt: string; messageKey: string }): void {
+    const autoBackup =
+      'ranAt' in outcome
+        ? { ...this.current.autoBackup, lastRunAt: outcome.ranAt, lastFailure: null }
+        : {
+            ...this.current.autoBackup,
+            lastFailure: { at: outcome.failedAt, messageKey: outcome.messageKey },
+          };
+    this.current = { ...this.current, autoBackup };
+    this.persist();
   }
 
   /** Stores a project's sort, filters and columns, or forgets them with `null` (D42). */

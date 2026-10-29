@@ -1,5 +1,6 @@
 export * from './activity-events.js';
 export * from './api.js';
+export * from './backup-format.js';
 export * from './enums.js';
 export * from './errors.js';
 export * from './files.js';

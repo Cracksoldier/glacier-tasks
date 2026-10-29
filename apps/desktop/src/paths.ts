@@ -14,6 +14,11 @@ export interface AppPaths {
   backups: string;
   /** Device settings; never part of the workspace or backups (D17). */
   deviceSettings: string;
+  /** Validated backups waiting for activation, the previous data during activation, and the
+   * marker that asks the next start to activate (ADR 0012). */
+  restoreStaging: string;
+  restoreRollback: string;
+  restorePending: string;
 }
 
 export function resolveAppPaths(root: string): AppPaths {
@@ -25,6 +30,9 @@ export function resolveAppPaths(root: string): AppPaths {
     logs: join(root, 'logs'),
     backups: join(root, 'backups'),
     deviceSettings: join(root, 'device-settings.json'),
+    restoreStaging: join(root, 'restore-staging'),
+    restoreRollback: join(root, 'restore-rollback'),
+    restorePending: join(root, 'restore-pending.json'),
   };
 }
 

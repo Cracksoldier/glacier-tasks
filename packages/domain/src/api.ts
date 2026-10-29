@@ -7,6 +7,7 @@
 import type { EntityType } from './enums.js';
 import type {
   ActivityEvent,
+  AppInfo,
   AttachmentMetadata,
   BackupResult,
   DescriptionVersion,
@@ -17,7 +18,7 @@ import type {
   PageRequest,
   Project,
   ProjectSummary,
-  RestoreResult,
+  RestorePreview,
   StatusUsage,
   TaskDetail,
   TaskListRow,
@@ -46,7 +47,7 @@ import type {
 
 export interface GlacierTasksAPI {
   app: {
-    info(): Promise<{ version: string; schemaVersion: number }>;
+    info(): Promise<AppInfo>;
   };
   projects: {
     list(): Promise<ProjectSummary[]>;
@@ -92,8 +93,12 @@ export interface GlacierTasksAPI {
     remove(id: string): Promise<void>;
   };
   trash: {
-    /** Directly trashed projects and tasks, newest first (D39). */
-    list(): Promise<TrashItem[]>;
+    /** Directly trashed projects and tasks, newest first (D39); optionally one project (D49). */
+    list(projectId?: string | null): Promise<TrashItem[]>;
+    /** Permanently deletes a directly trashed item with everything it contains (TRASH-05). */
+    purge(kind: TrashItem['kind'], id: string): Promise<void>;
+    /** Purges every directly trashed item, of one project or all. */
+    empty(projectId: string | null): Promise<{ deleted: number }>;
   };
   workflows: {
     list(projectId: string): Promise<WorkflowStatus[]>;
@@ -118,13 +123,19 @@ export interface GlacierTasksAPI {
     remove(id: string): Promise<void>;
   };
   data: {
-    backup(): Promise<BackupResult>;
-    restore(): Promise<RestoreResult>;
-    exportJson(options: ExportOptions): Promise<ExportResult>;
+    /** Save dialog, then a complete `.glaciertasks` backup; null when cancelled (DATA-01). */
+    backup(): Promise<BackupResult | null>;
+    /** Open dialog, then validation and staging; null when cancelled (DATA-04/08). */
+    inspectRestore(): Promise<RestorePreview | null>;
+    /** Replaces the workspace with a staged backup: safety backup, then restart (DATA-06/07). */
+    restore(token: string): Promise<void>;
+    /** Export-only JSON (DATA-02/03, D14); null when cancelled. */
+    exportJson(options: ExportOptions): Promise<ExportResult | null>;
   };
   settings: {
     getDevice(): Promise<DeviceSettings>;
     updateDevice(patch: DeviceSettingsPatch): Promise<DeviceSettings>;
+    /** Folder picker for automatic backups; unchanged settings when cancelled (D13). */
     chooseAutoBackupFolder(): Promise<DeviceSettings>;
     /** Stores (or with `null` forgets) a project's sort, filters and columns (D42). */
     setProjectView(projectId: string, view: ProjectView | null): Promise<DeviceSettings>;
@@ -165,10 +176,10 @@ export const IPC_CHANNELS = {
   ],
   activity: ['forEntity', 'forProject'],
   labels: ['list', 'create', 'update', 'remove'],
-  trash: ['list'],
+  trash: ['list', 'purge', 'empty'],
   workflows: ['list', 'create', 'update', 'usage', 'removeAndMigrate'],
   attachments: ['add', 'addFiles', 'list', 'open', 'saveAs', 'remove'],
-  data: ['backup', 'restore', 'exportJson'],
+  data: ['backup', 'inspectRestore', 'restore', 'exportJson'],
   settings: ['getDevice', 'updateDevice', 'chooseAutoBackupFolder', 'setProjectView'],
 } as const satisfies { [G in keyof GlacierTasksAPI]: ReadonlyArray<keyof GlacierTasksAPI[G]> };
 

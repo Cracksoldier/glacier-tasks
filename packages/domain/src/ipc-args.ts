@@ -66,7 +66,9 @@ export const IPC_ARGS = {
   'labels:update': z.tuple([idSchema, labelPatchSchema]),
   'labels:remove': byId,
 
-  'trash:list': none,
+  'trash:list': z.tuple([idSchema.nullable().optional()]),
+  'trash:purge': z.tuple([z.enum(['PROJECT', 'STORY', 'SUBTASK']), idSchema]),
+  'trash:empty': z.tuple([idSchema.nullable()]),
 
   'workflows:list': byId,
   'workflows:create': z.tuple([idSchema, statusInputSchema]),
@@ -82,7 +84,8 @@ export const IPC_ARGS = {
   'attachments:remove': byId,
 
   'data:backup': none,
-  'data:restore': none,
+  'data:inspectRestore': none,
+  'data:restore': z.tuple([z.string().regex(/^[0-9a-f-]{36}$/)]),
   'data:exportJson': z.tuple([exportOptionsSchema]),
 
   'settings:getDevice': none,

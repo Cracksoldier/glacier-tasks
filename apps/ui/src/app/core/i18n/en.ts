@@ -157,7 +157,7 @@ export const en = {
     'Remove "{name}" as assignee from all tasks, including tasks in the trash?',
   'profiles.unassignedCount': 'Removed from {count} tasks.',
   'trash.intro':
-    'Restoring a story also restores the subtasks that were trashed with it. Permanent deletion follows in a later version.',
+    'Restoring a story also restores the subtasks that were trashed with it. Deleting permanently removes an item with everything it contains.',
   'trash.emptyTitle': 'The trash is empty',
   'trash.emptyBody': 'Trashed projects, stories and subtasks appear here.',
   'trash.restore': 'Restore',
@@ -381,6 +381,81 @@ export const en = {
   'errors.attachmentTooLarge': 'The file is larger than the maximum size set in Settings.',
   'errors.attachmentUnreadable': 'The file could not be read.',
   'errors.attachmentOpenFailed': 'The file could not be opened with a system app.',
+
+  'trash.filter': 'Project',
+  'trash.allProjects': 'All projects',
+  'trash.projectLink': 'Trash ({count})',
+  'trash.purge': 'Delete permanently',
+  'trash.purgeTitle': 'Delete permanently?',
+  'trash.purgeWarning': 'This cannot be undone. Only a backup can bring it back.',
+  'trash.purgeProjectBody':
+    'The project "{name}" will be deleted with all its stories, subtasks, statuses, labels, attachments and history. Its key becomes free again.',
+  'trash.purgeTaskBody': '"{name}" will be deleted with its subtasks, attachments and history.',
+  'trash.empty': 'Empty trash',
+  'trash.emptyTitleDialog': 'Empty the trash?',
+  'trash.emptyProjectBody':
+    "All {count} items in this project's trash will be deleted permanently, with everything they contain.",
+  'trash.emptyAllBody':
+    'All {count} items in the trash will be deleted permanently, with everything they contain.',
+  'trash.typeToConfirm': 'Type {word} to confirm',
+  'trash.emptyWord': 'delete',
+  'data.title': 'Data',
+  'data.backupTitle': 'Backup and restore',
+  'data.backupBody':
+    "A backup contains all projects, profiles, tasks, history, attachments and pictures. Restoring replaces everything with the backup's content. Settings on this computer are not part of backups.",
+  'data.backupNow': 'Create backup…',
+  'data.backupDone': 'Backup saved: {name} ({size}).',
+  'data.restore': 'Restore from backup…',
+  'data.restoreTitle': 'Restore this backup?',
+  'data.file': 'File',
+  'data.createdAt': 'Created',
+  'data.contents': 'Contents',
+  'data.counts':
+    '{projects} projects, {tasks} tasks, {users} profiles, {attachments} attachments, {avatars} pictures',
+  'data.versions': 'Version',
+  'data.schema': 'data format {version}',
+  'data.restoreWarning':
+    'All current projects, profiles, tasks, history and files will be replaced by this backup.',
+  'data.restoreSafety':
+    'A safety backup of the current data is saved first. The app then restarts to finish the restore.',
+  'data.restoreConfirm': 'Replace and restart',
+  'data.restarting': 'Restarting to finish the restore…',
+  'data.restored':
+    'The backup was restored. A safety backup of the previous data is in the backups folder: {safety}.',
+  'data.restoreFailed':
+    'The restore could not be completed. Your previous data was kept unchanged.',
+  'data.autoTitle': 'Automatic backups',
+  'data.autoBody':
+    'When enabled, a backup is created when the app starts, at most once per interval. Only the newest backups are kept; other files in the folder are never touched.',
+  'data.noFolder': 'No folder chosen',
+  'data.chooseFolder': 'Choose folder…',
+  'data.autoEnabled': 'Create automatic backups',
+  'data.interval': 'Every (hours)',
+  'data.retention': 'Keep newest',
+  'data.lastRun': 'Last automatic backup: {date}',
+  'data.neverRun': 'No automatic backup yet.',
+  'data.autoFailed': 'The automatic backup on {date} failed.',
+  'data.numberInvalid': 'Enter a whole number between 1 and {max}.',
+  'data.exportTitle': 'Export as JSON',
+  'data.exportNotice':
+    'The JSON export is for reading or other tools. It is NOT a backup: it cannot be restored and contains no attachments or pictures.',
+  'data.exportScope': 'Export scope',
+  'data.exportWorkspace': 'All projects',
+  'data.exportTrashed': 'Include items in the trash',
+  'data.exportNow': 'Export…',
+  'data.exportDone': 'Export saved: {name}.',
+  'errors.notInTrash': 'This item is not in the trash (any more).',
+  'errors.backupFailed':
+    'The backup could not be written. Check the target folder and free disk space.',
+  'errors.backupChanged': 'Data changed while the backup was being written. Please try again.',
+  'errors.backupInvalid':
+    'This file is not a valid Glacier Tasks backup, or it is damaged. Nothing was changed.',
+  'errors.backupFromNewerVersion':
+    'This backup was created by a newer version of Glacier Tasks. Install the newer version to restore it.',
+  'errors.restoreExpired':
+    'The prepared restore is no longer available. Please choose the backup again.',
+  'errors.exportFailed': 'The export could not be written.',
+  'errors.autoBackupFolderUnavailable': 'The folder for automatic backups is not available.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

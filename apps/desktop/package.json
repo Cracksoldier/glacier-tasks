@@ -20,11 +20,15 @@
     "dev": "node scripts/dev.mjs"
   },
   "dependencies": {
-    "better-sqlite3": "13.0.3"
+    "better-sqlite3": "13.0.3",
+    "yauzl": "3.4.0",
+    "yazl": "3.3.1"
   },
   "devDependencies": {
     "@glacier-tasks/data": "0.0.0",
     "@glacier-tasks/domain": "0.0.0",
+    "@types/yauzl": "3.4.0",
+    "@types/yazl": "3.3.1",
     "electron": "45.1.0",
     "electron-builder": "26.18.0",
     "esbuild": "0.28.2",
