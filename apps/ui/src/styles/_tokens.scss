@@ -27,6 +27,25 @@
   --avatar-5: #b7791f;
   --avatar-6: #2c7a7b;
   --avatar-text: #ffffff;
+  // Label palette (D25): background/foreground pairs per palette id.
+  --label-slate-bg: #334155;
+  --label-slate-fg: #e2e8f0;
+  --label-blue-bg: #1e3a8a;
+  --label-blue-fg: #bfdbfe;
+  --label-teal-bg: #134e4a;
+  --label-teal-fg: #99f6e4;
+  --label-green-bg: #14532d;
+  --label-green-fg: #bbf7d0;
+  --label-yellow-bg: #713f12;
+  --label-yellow-fg: #fef08a;
+  --label-orange-bg: #7c2d12;
+  --label-orange-fg: #fed7aa;
+  --label-red-bg: #7f1d1d;
+  --label-red-fg: #fecaca;
+  --label-purple-bg: #4c1d95;
+  --label-purple-fg: #ddd6fe;
+  --label-none-bg: #243447;
+  --label-none-fg: #e0e6ed;
 }
 
 .theme-light {
@@ -54,6 +73,24 @@
   --avatar-5: #c05621;
   --avatar-6: #319795;
   --avatar-text: #ffffff;
+  --label-slate-bg: #e2e8f0;
+  --label-slate-fg: #334155;
+  --label-blue-bg: #dbeafe;
+  --label-blue-fg: #1e40af;
+  --label-teal-bg: #ccfbf1;
+  --label-teal-fg: #115e59;
+  --label-green-bg: #dcfce7;
+  --label-green-fg: #166534;
+  --label-yellow-bg: #fef9c3;
+  --label-yellow-fg: #854d0e;
+  --label-orange-bg: #ffedd5;
+  --label-orange-fg: #9a3412;
+  --label-red-bg: #fee2e2;
+  --label-red-fg: #991b1b;
+  --label-purple-bg: #ede9fe;
+  --label-purple-fg: #5b21b6;
+  --label-none-bg: #e8eef5;
+  --label-none-fg: #1b263b;
 }
 
 :root {

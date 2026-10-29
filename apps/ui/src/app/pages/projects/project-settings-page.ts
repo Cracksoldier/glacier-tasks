@@ -8,7 +8,7 @@ import {
   resource,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   isAppErrorInfo,
   isValidProjectKey,
@@ -20,12 +20,16 @@ import {
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
+import { SettingsStore } from '../../core/settings/settings-store';
+import { CATEGORY_KEYS } from '../../core/tasks/task-display';
+import { Dialog } from '../../shared/dialog';
+import { LabelManager } from './label-manager';
 
 /** Edit name, key and description (PROJ-03); statuses are read-only until M4. */
 @Component({
   selector: 'app-project-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [Dialog, LabelManager, RouterLink],
   template: `
     @if (project(); as project) {
       <section class="page narrow">
@@ -118,10 +122,66 @@ import { ProjectsStore } from '../../core/projects/projects-store';
           </ol>
           <p class="field-hint">{{ i18n.t('projectSettings.statusesHint') }}</p>
         </section>
+
+        <app-label-manager class="block" [projectId]="project.id" />
+
+        <section class="card danger-zone" aria-labelledby="trash-heading">
+          <h2 id="trash-heading">{{ i18n.t('projectSettings.trashTitle') }}</h2>
+          <p class="field-hint">{{ i18n.t('projectSettings.trashBody') }}</p>
+          <button
+            type="button"
+            class="btn"
+            data-testid="project-trash"
+            (click)="trashOpen.set(true)"
+          >
+            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+            {{ i18n.t('projectSettings.trashAction') }}
+          </button>
+        </section>
       </section>
+
+      <app-dialog
+        [open]="trashOpen()"
+        [heading]="i18n.t('projectSettings.trashTitle')"
+        (closed)="trashOpen.set(false)"
+      >
+        <p>{{ i18n.t('projectSettings.trashConfirm', { name: project.name }) }}</p>
+        <div class="page-actions dialog-actions">
+          <button type="button" class="btn" (click)="trashOpen.set(false)">
+            {{ i18n.t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-testid="project-trash-confirm"
+            (click)="trashProject()"
+          >
+            {{ i18n.t('projectSettings.trashAction') }}
+          </button>
+        </div>
+      </app-dialog>
     }
   `,
   styles: `
+    .block {
+      display: block;
+      margin-top: 20px;
+    }
+    .danger-zone {
+      margin-top: 20px;
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      p {
+        margin-bottom: 12px;
+      }
+    }
+    .dialog-actions {
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
     .narrow {
       max-width: 720px;
     }
@@ -182,23 +242,22 @@ export class ProjectSettingsPage {
   protected readonly i18n = inject(I18nService);
   private readonly store = inject(ProjectsStore);
   private readonly api = inject(GLACIER_API);
+  private readonly router = inject(Router);
+  private readonly settings = inject(SettingsStore);
 
   readonly projectId = input.required<string>();
   protected readonly project = computed(() => this.store.find(this.projectId()));
 
   protected readonly nameMax = PROJECT_NAME_MAX_LENGTH;
   protected readonly descriptionMax = PROJECT_DESCRIPTION_MAX_LENGTH;
-  protected readonly categoryKey = {
-    TODO: 'status.category.TODO',
-    IN_PROGRESS: 'status.category.IN_PROGRESS',
-    DONE: 'status.category.DONE',
-  } as const;
+  protected readonly categoryKey = CATEGORY_KEYS;
 
   // Form fields start from the stored project and reset when it changes (e.g. after saving).
   protected readonly name = linkedSignal(() => this.project()?.name ?? '');
   protected readonly key = linkedSignal(() => this.project()?.key ?? '');
   protected readonly description = linkedSignal(() => this.project()?.description ?? '');
   protected readonly saving = signal(false);
+  protected readonly trashOpen = signal(false);
   protected readonly saved = signal(false);
   protected readonly error = signal<string | null>(null);
   private readonly keyTaken = signal(false);
@@ -232,6 +291,21 @@ export class ProjectSettingsPage {
     field.set(value);
     this.saved.set(false);
     this.keyTaken.set(false);
+  }
+
+  /** TRASH-01: the project and its tasks go to the trash; restore from the Trash page. */
+  protected async trashProject(): Promise<void> {
+    this.trashOpen.set(false);
+    this.error.set(null);
+    try {
+      await this.api.projects.trash(this.projectId());
+      // The main process cleared the stored last project; mirror that locally.
+      if (this.settings.lastProjectId() === this.projectId()) await this.settings.load();
+      await this.store.load();
+      await this.router.navigate(['/projects']);
+    } catch (error) {
+      this.error.set(this.i18n.errorMessage(error));
+    }
   }
 
   protected async save(): Promise<void> {

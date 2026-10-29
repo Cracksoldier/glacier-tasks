@@ -4,6 +4,7 @@
 import type {
   ActivitySource,
   EntityType,
+  LabelColor,
   Language,
   Priority,
   StatusCategory,
@@ -53,7 +54,9 @@ export interface Label {
   projectId: string;
   name: string;
   /** Palette color id (D25), not a free-form CSS color. */
-  color: string | null;
+  color: LabelColor | null;
+  /** Live and trashed tasks carrying the label. */
+  taskCount: number;
 }
 
 export interface TaskSummary {
@@ -67,6 +70,8 @@ export interface TaskSummary {
   priority: Priority;
   statusId: string;
   assigneeUserId: string | null;
+  /** The assignee is archived; it stays until explicitly changed (spec §3.2). */
+  assigneeArchived: boolean;
   startDate: string | null;
   dueDate: string | null;
   labelIds: string[];
@@ -77,6 +82,18 @@ export interface TaskSummary {
   trashedAt: string | null;
   /** Stories only: subtask progress by status category DONE (TASK-06). */
   subtaskProgress: { done: number; total: number } | null;
+}
+
+export interface TrashItem {
+  kind: 'PROJECT' | 'STORY' | 'SUBTASK';
+  id: string;
+  projectId: string;
+  projectKey: string;
+  /** Tasks only. */
+  issueKey: string | null;
+  /** Project name or task title. */
+  title: string;
+  trashedAt: string;
 }
 
 export interface AttachmentMetadata {

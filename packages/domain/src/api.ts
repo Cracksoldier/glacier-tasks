@@ -12,6 +12,7 @@ import type {
   DescriptionVersion,
   DeviceSettings,
   ExportResult,
+  Label,
   PagedResult,
   PageRequest,
   Project,
@@ -19,6 +20,7 @@ import type {
   RestoreResult,
   TaskDetail,
   TaskSummary,
+  TrashItem,
   UserProfile,
   WorkflowStatus,
 } from './models.js';
@@ -28,6 +30,8 @@ import type {
   CreateUserInput,
   DeviceSettingsPatch,
   ExportOptions,
+  LabelInput,
+  LabelPatch,
   StatusInput,
   StatusPatch,
   TaskQuery,
@@ -56,6 +60,8 @@ export interface GlacierTasksAPI {
     /** Opens a native file picker in the main process; resolves null when cancelled (D24). */
     chooseAvatar(id: string): Promise<UserProfile | null>;
     removeAvatar(id: string): Promise<UserProfile>;
+    /** Clears this profile as assignee on all live and trashed tasks (USER-05). */
+    unassignAll(id: string): Promise<{ unassigned: number }>;
   };
   tasks: {
     query(input: TaskQuery): Promise<PagedResult<TaskSummary>>;
@@ -71,6 +77,16 @@ export interface GlacierTasksAPI {
   activity: {
     forEntity(entityType: EntityType, entityId: string): Promise<ActivityEvent[]>;
     forProject(projectId: string, page?: PageRequest): Promise<PagedResult<ActivityEvent>>;
+  };
+  labels: {
+    list(projectId: string): Promise<Label[]>;
+    create(projectId: string, input: LabelInput): Promise<Label>;
+    update(id: string, patch: LabelPatch): Promise<Label>;
+    remove(id: string): Promise<void>;
+  };
+  trash: {
+    /** Directly trashed projects and tasks, newest first (D39). */
+    list(): Promise<TrashItem[]>;
   };
   workflows: {
     list(projectId: string): Promise<WorkflowStatus[]>;
@@ -107,7 +123,16 @@ export const API_GLOBAL_NAME = 'glacierTasks';
 export const IPC_CHANNELS = {
   app: ['info'],
   projects: ['list', 'create', 'update', 'trash', 'restore'],
-  users: ['list', 'create', 'update', 'archive', 'unarchive', 'chooseAvatar', 'removeAvatar'],
+  users: [
+    'list',
+    'create',
+    'update',
+    'archive',
+    'unarchive',
+    'chooseAvatar',
+    'removeAvatar',
+    'unassignAll',
+  ],
   tasks: [
     'query',
     'get',
@@ -120,6 +145,8 @@ export const IPC_CHANNELS = {
     'descriptionVersions',
   ],
   activity: ['forEntity', 'forProject'],
+  labels: ['list', 'create', 'update', 'remove'],
+  trash: ['list'],
   workflows: ['list', 'create', 'update', 'removeAndMigrate'],
   attachments: ['add', 'list', 'open', 'saveAs', 'remove'],
   data: ['backup', 'restore', 'exportJson'],

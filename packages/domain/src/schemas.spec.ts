@@ -4,6 +4,8 @@ import {
   createProjectInputSchema,
   createTaskInputSchema,
   exportOptionsSchema,
+  labelInputSchema,
+  labelPatchSchema,
   updateTaskInputSchema,
 } from './schemas.js';
 
@@ -111,5 +113,15 @@ describe('IPC channels', () => {
     expect(new Set(channels).size).toBe(channels.length);
     expect(channels).toContain(ipcChannel('tasks', 'moveToStory'));
     for (const channel of channels) expect(channel).toMatch(/^[a-z]+:[A-Za-z]+$/);
+  });
+});
+
+describe('label schemas (D25)', () => {
+  it('accepts palette colors only', () => {
+    expect(labelInputSchema.parse({ name: ' Bug ' })).toEqual({ name: 'Bug', color: null });
+    expect(labelInputSchema.safeParse({ name: 'Bug', color: 'red' }).success).toBe(true);
+    expect(labelInputSchema.safeParse({ name: 'Bug', color: '#ff0000' }).success).toBe(false);
+    expect(labelPatchSchema.safeParse({ color: null }).success).toBe(true);
+    expect(labelPatchSchema.safeParse({ name: '' }).success).toBe(false);
   });
 });

@@ -1,0 +1,257 @@
+@if (loadError(); as message) {
+  <section class="page">
+    <p class="error-banner" role="alert">{{ message }}</p>
+    <a class="btn" [routerLink]="['/projects', projectId()]">{{ i18n.t('task.backToProject') }}</a>
+  </section>
+}
+
+@if (task(); as task) {
+  <section class="page editor">
+    <nav class="breadcrumb" [attr.aria-label]="i18n.t('task.breadcrumb')">
+      <a [routerLink]="['/projects', task.projectId]">{{ i18n.t('task.backToProject') }}</a>
+      @if (parent.value(); as story) {
+        <span aria-hidden="true">/</span>
+        <a [routerLink]="['/projects', task.projectId, 'tasks', story.id]" data-testid="parent-link">
+          {{ story.issueKey }} {{ story.title }}
+        </a>
+      }
+    </nav>
+
+    <header class="page-header">
+      <div class="heading">
+        <span class="issue-key mono" data-testid="task-issue-key">{{ task.issueKey }}</span>
+        <span class="type-badge">{{ i18n.t(typeKey[task.type]) }}</span>
+      </div>
+      <div class="page-actions">
+        <button type="button" class="btn btn-ghost" data-testid="task-trash" (click)="trashOpen.set(true)">
+          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+          {{ i18n.t('task.trash') }}
+        </button>
+      </div>
+    </header>
+
+    @if (conflict(); as draft) {
+      <div class="conflict" role="alert" data-testid="task-conflict">
+        <p>
+          <strong>{{ i18n.t('task.conflict.title') }}</strong>
+          {{ i18n.t('task.conflict.body') }}
+        </p>
+        <div class="page-actions">
+          <button type="button" class="btn btn-primary" data-testid="task-reload" (click)="reloadAfterConflict()">
+            {{ i18n.t('task.conflict.reload') }}
+          </button>
+          <button type="button" class="btn btn-ghost" (click)="conflict.set(null)">
+            {{ i18n.t('task.conflict.dismiss') }}
+          </button>
+        </div>
+        <details open>
+          <summary>{{ i18n.t('task.conflict.draft') }}</summary>
+          <dl class="draft" data-testid="task-draft">
+            <dt>{{ i18n.t('task.field.title') }}</dt>
+            <dd>{{ draft.title }}</dd>
+            <dt>
+              {{ i18n.t('task.field.description') }}
+              <button type="button" class="btn btn-ghost btn-icon" (click)="copyDraft(draft.descriptionMarkdown)"
+                [attr.aria-label]="i18n.t('task.conflict.copy')" [title]="i18n.t('task.conflict.copy')">
+                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+              </button>
+            </dt>
+            <dd><pre>{{ draft.descriptionMarkdown }}</pre></dd>
+          </dl>
+        </details>
+      </div>
+    }
+
+    @if (error(); as message) {
+      <p class="error-banner" role="alert">{{ message }}</p>
+    }
+
+    <form class="layout" (submit)="$event.preventDefault(); save()" novalidate>
+      <div class="main">
+        <div class="field">
+          <label for="task-title">{{ i18n.t('task.field.title') }}</label>
+          <input id="task-title" class="title-input" data-testid="task-title" [maxLength]="titleMax"
+            [value]="title()" (input)="title.set($any($event.target).value); edited()"
+            [attr.aria-invalid]="!titleValid()" />
+          @if (!titleValid()) {
+            <p class="field-error">{{ i18n.t('validation.required') }}</p>
+          }
+        </div>
+
+        <div class="field description">
+          <div class="tabs" role="tablist" [attr.aria-label]="i18n.t('task.field.description')">
+            <span class="tabs-label">{{ i18n.t('task.field.description') }}</span>
+            <button type="button" role="tab" class="tab" [class.active]="tab() === 'edit'"
+              [attr.aria-selected]="tab() === 'edit'" data-testid="tab-edit" (click)="tab.set('edit')">
+              {{ i18n.t('task.tab.edit') }}
+            </button>
+            <button type="button" role="tab" class="tab" [class.active]="tab() === 'preview'"
+              [attr.aria-selected]="tab() === 'preview'" data-testid="tab-preview" (click)="tab.set('preview')">
+              {{ i18n.t('task.tab.preview') }}
+            </button>
+          </div>
+          @if (tab() === 'edit') {
+            <textarea class="mono description-input" data-testid="task-description" [maxLength]="descriptionMax"
+              [attr.aria-label]="i18n.t('task.field.description')" [value]="description()"
+              (input)="description.set($any($event.target).value); edited()"></textarea>
+            <p class="field-hint">{{ i18n.t('task.markdownHint') }}</p>
+          } @else {
+            <div class="preview card" data-testid="task-preview">
+              @if (description().trim()) {
+                <app-markdown-view [source]="description()" />
+              } @else {
+                <p class="muted">{{ i18n.t('task.noDescription') }}</p>
+              }
+            </div>
+          }
+        </div>
+
+        @if (task.type === 'STORY') {
+          <section class="subtasks" aria-labelledby="subtasks-heading">
+            <h2 id="subtasks-heading">
+              {{ i18n.t('task.subtasks') }}
+              <span class="muted" data-testid="subtask-progress">{{ progress().done }}/{{ progress().total }}</span>
+            </h2>
+            @if (subtaskError(); as message) {
+              <p class="error-banner" role="alert">{{ message }}</p>
+            }
+            <ul class="subtask-list" data-testid="subtask-list">
+              @for (subtask of subtasks(); track subtask.id) {
+                <li [attr.data-issue-key]="subtask.issueKey">
+                  <a class="mono issue-key" [routerLink]="['/projects', task.projectId, 'tasks', subtask.id]">
+                    {{ subtask.issueKey }}
+                  </a>
+                  <a class="subtask-title" [routerLink]="['/projects', task.projectId, 'tasks', subtask.id]">
+                    {{ subtask.title }}
+                  </a>
+                  @if (subtask.assigneeUserId) {
+                    @for (user of users.all(); track user.id) {
+                      @if (user.id === subtask.assigneeUserId) {
+                        <app-avatar [userId]="user.id" [name]="user.name" [avatarFileId]="user.avatarFileId"
+                          [archived]="user.archivedAt !== null" [size]="22" [title]="user.name" />
+                      }
+                    }
+                  }
+                  <select class="compact" data-testid="subtask-status" [attr.aria-label]="i18n.t('task.field.status')"
+                    (change)="setSubtaskStatus(subtask, $any($event.target))">
+                    @for (status of statuses.value() ?? []; track status.id) {
+                      <option [value]="status.id" [selected]="status.id === subtask.statusId">{{ status.name }}</option>
+                    }
+                  </select>
+                </li>
+              } @empty {
+                <li class="muted">{{ i18n.t('task.noSubtasks') }}</li>
+              }
+            </ul>
+            <div class="add-subtask">
+              <input data-testid="subtask-new-title" [placeholder]="i18n.t('task.newSubtaskPlaceholder')"
+                [attr.aria-label]="i18n.t('task.newSubtaskPlaceholder')" [maxLength]="titleMax"
+                [value]="newSubtaskTitle()" (input)="newSubtaskTitle.set($any($event.target).value)"
+                (keydown.enter)="$event.preventDefault(); addSubtask()" />
+              <button type="button" class="btn" data-testid="subtask-add" [disabled]="!newSubtaskTitle().trim()"
+                (click)="addSubtask()">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                {{ i18n.t('task.addSubtask') }}
+              </button>
+            </div>
+          </section>
+        }
+      </div>
+
+      <aside class="side card">
+        <div class="field">
+          <label for="task-status">{{ i18n.t('task.field.status') }}</label>
+          <select id="task-status" data-testid="task-status" (change)="statusId.set($any($event.target).value); edited()">
+            @for (status of statuses.value() ?? []; track status.id) {
+              <option [value]="status.id" [selected]="status.id === statusId()">{{ status.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="task-priority">{{ i18n.t('task.field.priority') }}</label>
+          <select id="task-priority" data-testid="task-priority"
+            (change)="priority.set($any($event.target).value); edited()">
+            @for (value of priorities; track value) {
+              <option [value]="value" [selected]="value === priority()">{{ i18n.t(priorityKey[value]) }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="task-assignee">{{ i18n.t('task.field.assignee') }}</label>
+          <select id="task-assignee" data-testid="task-assignee"
+            (change)="assigneeUserId.set($any($event.target).value || null); edited()">
+            <option value="" [selected]="assigneeUserId() === null">{{ i18n.t('task.unassigned') }}</option>
+            @for (user of assigneeOptions(); track user.id) {
+              <option [value]="user.id" [selected]="user.id === assigneeUserId()">
+                {{ user.name }}{{ user.archivedAt ? ' (' + i18n.t('profiles.archived') + ')' : '' }}
+              </option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="task-start">{{ i18n.t('task.field.startDate') }}</label>
+          <input id="task-start" type="date" data-testid="task-start" [value]="startDate() ?? ''"
+            (change)="startDate.set($any($event.target).value || null); edited()" [attr.aria-invalid]="!datesValid()" />
+        </div>
+        <div class="field">
+          <label for="task-due">{{ i18n.t('task.field.dueDate') }}</label>
+          <input id="task-due" type="date" data-testid="task-due" [value]="dueDate() ?? ''"
+            (change)="dueDate.set($any($event.target).value || null); edited()" [attr.aria-invalid]="!datesValid()" />
+          @if (!datesValid()) {
+            <p class="field-error" data-testid="date-error">{{ i18n.t('errors.invalidDateRange') }}</p>
+          }
+        </div>
+        <fieldset class="field labels">
+          <legend>{{ i18n.t('task.field.labels') }}</legend>
+          @for (label of labels.value() ?? []; track label.id) {
+            <label class="label-toggle" [class.selected]="labelIds().includes(label.id)">
+              <input type="checkbox" [checked]="labelIds().includes(label.id)" (change)="toggleLabel(label.id)"
+                [attr.data-testid]="'label-toggle-' + label.name" />
+              <app-label-chip [name]="label.name" [color]="label.color" />
+            </label>
+          } @empty {
+            <p class="field-hint">{{ i18n.t('task.noLabels') }}</p>
+          }
+        </fieldset>
+
+        @if (task.type === 'SUBTASK') {
+          <div class="field move">
+            <label for="task-move">{{ i18n.t('task.moveToStory') }}</label>
+            <select id="task-move" data-testid="task-move-target" (change)="moveTarget.set($any($event.target).value)">
+              <option value="" [selected]="moveTarget() === ''">—</option>
+              @for (story of moveTargets(); track story.id) {
+                <option [value]="story.id">{{ story.issueKey }} {{ story.title }}</option>
+              }
+            </select>
+            <button type="button" class="btn" data-testid="task-move" [disabled]="!moveTarget()" (click)="moveToStory()">
+              {{ i18n.t('task.move') }}
+            </button>
+          </div>
+        }
+
+        <div class="save-bar">
+          @if (saved() && !dirty()) {
+            <span class="saved" role="status" data-testid="task-saved">{{ i18n.t('common.saved') }}</span>
+          }
+          <button type="button" class="btn" data-testid="task-cancel" [disabled]="!dirty() || saving()" (click)="cancel()">
+            {{ i18n.t('common.cancel') }}
+          </button>
+          <button type="submit" class="btn btn-primary" data-testid="task-save"
+            [disabled]="!dirty() || !titleValid() || !datesValid() || saving()">
+            {{ i18n.t('common.save') }}
+          </button>
+        </div>
+      </aside>
+    </form>
+  </section>
+
+  <app-dialog [open]="trashOpen()" [heading]="i18n.t('task.trashTitle')" (closed)="trashOpen.set(false)">
+    <p>{{ i18n.t(task.type === 'STORY' ? 'task.trashStoryBody' : 'task.trashSubtaskBody') }}</p>
+    <div class="page-actions dialog-actions">
+      <button type="button" class="btn" (click)="trashOpen.set(false)">{{ i18n.t('common.cancel') }}</button>
+      <button type="button" class="btn btn-primary" data-testid="task-trash-confirm" (click)="trash()">
+        {{ i18n.t('task.trash') }}
+      </button>
+    </div>
+  </app-dialog>
+}

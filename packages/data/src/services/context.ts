@@ -30,3 +30,8 @@ export function isUniqueViolation(error: unknown): boolean {
     (error as { code?: unknown }).code === 'SQLITE_CONSTRAINT_UNIQUE'
   );
 }
+
+/** Before/after pair for a changed field; undefined when `to` is absent or equal. */
+export function fieldChange<T>(from: T, to: T | undefined): { from: T; to: T } | undefined {
+  return to !== undefined && to !== from ? { from, to } : undefined;
+}

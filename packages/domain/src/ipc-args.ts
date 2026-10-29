@@ -11,6 +11,8 @@ import {
   entityTypeSchema,
   exportOptionsSchema,
   idSchema,
+  labelInputSchema,
+  labelPatchSchema,
   pageRequestSchema,
   sortKeySchema,
   statusInputSchema,
@@ -41,6 +43,7 @@ export const IPC_ARGS = {
   'users:unarchive': byId,
   'users:chooseAvatar': byId,
   'users:removeAvatar': byId,
+  'users:unassignAll': byId,
 
   'tasks:query': z.tuple([taskQuerySchema]),
   'tasks:get': byId,
@@ -54,6 +57,13 @@ export const IPC_ARGS = {
 
   'activity:forEntity': z.tuple([entityTypeSchema, idSchema]),
   'activity:forProject': z.tuple([idSchema, pageRequestSchema.optional()]),
+
+  'labels:list': byId,
+  'labels:create': z.tuple([idSchema, labelInputSchema]),
+  'labels:update': z.tuple([idSchema, labelPatchSchema]),
+  'labels:remove': byId,
+
+  'trash:list': none,
 
   'workflows:list': byId,
   'workflows:create': z.tuple([idSchema, statusInputSchema]),

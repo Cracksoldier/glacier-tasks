@@ -1,22 +1,22 @@
 // Projects (spec §3.1, PROJ-01..03): key rules (D08, D30), default workflow (D32) and
-// project activity events (D12). Trash/restore follows with the trash service in M3.
+// project activity events (D12), trash/restore with task cascade (D02, TRASH-02/04).
 
 import {
   AppError,
   type CreateProjectInput,
   DEFAULT_STATUSES,
-  type FieldChange,
   normalizeProjectKey,
   type Project,
   PROJECT_EVENTS,
   type ProjectCreatedPayload,
   type ProjectSummary,
+  type ProjectTrashTogglePayload,
   type ProjectUpdatedPayload,
   type UpdateProjectInput,
   type WorkflowStatus,
 } from '@glacier-tasks/domain';
 import { recordEvent } from './activity.js';
-import { isUniqueViolation, type ServiceContext } from './context.js';
+import { fieldChange, isUniqueViolation, type ServiceContext } from './context.js';
 
 interface ProjectRow {
   id: string;
@@ -73,10 +73,6 @@ function toStatus(row: StatusRow): WorkflowStatus {
 
 const keyTaken = () => new AppError('CONFLICT', 'errors.projectKeyTaken');
 const notFound = () => new AppError('NOT_FOUND', 'errors.projectNotFound');
-
-function change<T>(from: T, to: T | undefined): FieldChange<T> | undefined {
-  return to !== undefined && to !== from ? { from, to } : undefined;
-}
 
 export class ProjectService {
   constructor(private readonly ctx: ServiceContext) {}
@@ -165,9 +161,9 @@ export class ProjectService {
     const update = this.ctx.db.transaction((): void => {
       const row = this.requireLive(id);
       const changes: ProjectUpdatedPayload['changes'] = {};
-      const key = change(row.project_key, patch.key && normalizeProjectKey(patch.key));
-      const name = change(row.name, patch.name?.trim());
-      const description = change(row.description, patch.description);
+      const key = fieldChange(row.project_key, patch.key && normalizeProjectKey(patch.key));
+      const name = fieldChange(row.name, patch.name?.trim());
+      const description = fieldChange(row.description, patch.description);
       if (key) {
         // D30: the key is part of every issued task id and is frozen once one exists.
         if (row.next_issue_number > 1) throw new AppError('CONFLICT', 'errors.projectKeyLocked');
@@ -203,6 +199,50 @@ export class ProjectService {
     return this.get(id);
   }
 
+  /**
+   * Moves a project to the trash (D02): its live tasks follow with the project as cascade
+   * root; tasks already in the trash keep their own state. The key stays reserved (D08).
+   */
+  trash(id: string): void {
+    this.ctx.db.transaction(() => {
+      const row = this.requireLive(id);
+      const now = this.ctx.now();
+      const { changes } = this.ctx.db
+        .prepare(
+          `UPDATE tasks SET trashed_at = ?, trash_cascade_root_id = ?, version = version + 1,
+             updated_at = ?
+           WHERE project_id = ? AND trashed_at IS NULL`,
+        )
+        .run(now, id, now, id);
+      this.ctx.db
+        .prepare(`UPDATE projects SET trashed_at = ?, updated_at = ? WHERE id = ?`)
+        .run(now, now, id);
+      this.recordTrashToggle(row, PROJECT_EVENTS.trashed, changes);
+    })();
+  }
+
+  /** Restores a project and exactly the tasks it took into the trash (D02, TRASH-04). */
+  restore(id: string): Project {
+    this.ctx.db.transaction(() => {
+      const row = this.findRow(id);
+      if (!row) throw notFound();
+      if (row.trashed_at === null) throw new AppError('CONFLICT', 'errors.notTrashed');
+      const now = this.ctx.now();
+      const { changes } = this.ctx.db
+        .prepare(
+          `UPDATE tasks SET trashed_at = NULL, trash_cascade_root_id = NULL,
+             version = version + 1, updated_at = ?
+           WHERE trash_cascade_root_id = ?`,
+        )
+        .run(now, id);
+      this.ctx.db
+        .prepare(`UPDATE projects SET trashed_at = NULL, updated_at = ? WHERE id = ?`)
+        .run(now, id);
+      this.recordTrashToggle(row, PROJECT_EVENTS.restored, changes);
+    })();
+    return this.get(id);
+  }
+
   /** Workflow statuses of a live project in board order. */
   statuses(projectId: string): WorkflowStatus[] {
     this.requireLive(projectId);
@@ -231,6 +271,21 @@ export class ProjectService {
       .get(projectId);
     if (!row) throw notFound();
     return row.issue_number;
+  }
+
+  private recordTrashToggle(row: ProjectRow, eventType: string, cascadedTaskCount: number): void {
+    const payload: ProjectTrashTogglePayload = {
+      key: row.project_key,
+      name: row.name,
+      cascadedTaskCount,
+    };
+    recordEvent(this.ctx, {
+      entityType: 'PROJECT',
+      entityId: row.id,
+      projectId: row.id,
+      eventType,
+      payload,
+    });
   }
 
   private findRow(id: string): ProjectRow | undefined {

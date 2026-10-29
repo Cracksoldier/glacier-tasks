@@ -313,6 +313,7 @@ interface GlacierTasksAPI {
     unarchive(id: string): Promise<void>;
     chooseAvatar(id: string): Promise<UserProfile | null>; // native picker in main; null = cancelled
     removeAvatar(id: string): Promise<UserProfile>;
+    unassignAll(id: string): Promise<{ unassigned: number }>; // USER-05, live and trashed tasks
   };
   tasks: {
     query(input: TaskQuery): Promise<PagedResult<TaskSummary>>;
@@ -328,6 +329,15 @@ interface GlacierTasksAPI {
   activity: {
     forEntity(entityType: EntityType, entityId: string): Promise<ActivityEvent[]>;
     forProject(projectId: string, page?: PageRequest): Promise<PagedResult<ActivityEvent>>;
+  };
+  labels: {
+    list(projectId: string): Promise<Label[]>;
+    create(projectId: string, input: LabelInput): Promise<Label>;
+    update(id: string, patch: LabelPatch): Promise<Label>;
+    remove(id: string): Promise<void>;
+  };
+  trash: {
+    list(): Promise<TrashItem[]>; // directly trashed projects and tasks (D39); purge follows in M7
   };
   workflows: {
     list(projectId: string): Promise<WorkflowStatus[]>;

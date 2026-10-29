@@ -19,9 +19,12 @@ import type { Database } from 'better-sqlite3';
 import {
   ActivityService,
   createServiceContext,
+  LabelService,
   LATEST_SCHEMA_VERSION,
   MIGRATIONS,
   ProjectService,
+  TaskService,
+  TrashService,
   UserService,
 } from '@glacier-tasks/data';
 import { AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
@@ -113,6 +116,9 @@ async function start(): Promise<void> {
   const projects = new ProjectService(services);
   const users = new UserService(services);
   const activity = new ActivityService(services);
+  const tasks = new TaskService(services, projects);
+  const labels = new LabelService(services);
+  const trash = new TrashService(services);
   avatarStore = new AvatarStore({ dir: paths.avatars, users, logger });
   avatarStore.reconcile();
   const avatars = avatarStore;
@@ -125,6 +131,33 @@ async function start(): Promise<void> {
       list: () => projects.list(),
       create: (input) => projects.create(input),
       update: (id, patch) => projects.update(id, patch),
+      trash: (id) => {
+        projects.trash(id);
+        // A trashed project can no longer be the start page (PROJ-02).
+        if (settings.get().lastProjectId === id) settings.update({ lastProjectId: null });
+      },
+      restore: (id) => {
+        projects.restore(id);
+      },
+    },
+    tasks: {
+      query: (input) => tasks.query(input),
+      get: (id) => tasks.get(id),
+      create: (input) => tasks.create(input),
+      update: (id, expectedVersion, patch) => tasks.update(id, expectedVersion, patch),
+      moveToStory: (id, expectedVersion, targetStoryId) =>
+        tasks.moveToStory(id, expectedVersion, targetStoryId),
+      trash: (id) => tasks.trash(id),
+      restore: (id) => tasks.restore(id),
+    },
+    labels: {
+      list: (projectId) => labels.list(projectId),
+      create: (projectId, input) => labels.create(projectId, input),
+      update: (id, patch) => labels.update(id, patch),
+      remove: (id) => labels.remove(id),
+    },
+    trash: {
+      list: () => trash.list(),
     },
     users: {
       list: (includeArchived) => users.list(includeArchived),
@@ -138,6 +171,7 @@ async function start(): Promise<void> {
         return path === undefined ? null : avatars.importFrom(id, path);
       },
       removeAvatar: (id) => avatars.remove(id),
+      unassignAll: (id) => tasks.unassignAll(id),
     },
     activity: {
       forEntity: (entityType, entityId) => activity.forEntity(entityType, entityId),

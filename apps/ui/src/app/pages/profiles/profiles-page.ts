@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { USER_NAME_MAX_LENGTH } from '@glacier-tasks/domain';
+import { USER_NAME_MAX_LENGTH, type UserProfile } from '@glacier-tasks/domain';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { UsersStore } from '../../core/users/users-store';
 import { Avatar } from '../../shared/avatar';
@@ -40,6 +40,9 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
 
       @if (error(); as message) {
         <p class="error-banner" role="alert">{{ message }}</p>
+      }
+      @if (notice(); as message) {
+        <p class="notice" role="status" data-testid="profiles-notice">{{ message }}</p>
       }
 
       @if (visible().length === 0) {
@@ -94,6 +97,15 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
                     <i class="fa-solid fa-box-open" aria-hidden="true"></i>
                     {{ i18n.t('profiles.unarchive') }}
                   </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost"
+                    data-testid="profile-unassign-all"
+                    (click)="unassigning.set(user)"
+                  >
+                    <i class="fa-solid fa-user-slash" aria-hidden="true"></i>
+                    {{ i18n.t('profiles.unassignAll') }}
+                  </button>
                 }
               </span>
             </li>
@@ -101,6 +113,29 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
         </ul>
       }
     </section>
+
+    <app-dialog
+      [open]="unassigning() !== null"
+      [heading]="i18n.t('profiles.unassignAll')"
+      (closed)="unassigning.set(null)"
+    >
+      @if (unassigning(); as user) {
+        <p>{{ i18n.t('profiles.unassignAllConfirm', { name: user.name }) }}</p>
+        <div class="page-actions dialog-actions">
+          <button type="button" class="btn" (click)="unassigning.set(null)">
+            {{ i18n.t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-testid="profile-unassign-confirm"
+            (click)="unassignAll(user.id)"
+          >
+            {{ i18n.t('profiles.unassignAll') }}
+          </button>
+        </div>
+      }
+    </app-dialog>
 
     <app-dialog
       [open]="editor().mode !== 'closed'"
@@ -177,6 +212,10 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
     </app-dialog>
   `,
   styles: `
+    .notice {
+      margin: 0 0 16px;
+      color: var(--color-accent);
+    }
     .toggle {
       display: inline-flex;
       align-items: center;
@@ -244,6 +283,8 @@ export class ProfilesPage {
     this.showArchived() ? this.store.all() : this.store.active(),
   );
   protected readonly error = signal<string | null>(null);
+  protected readonly notice = signal<string | null>(null);
+  protected readonly unassigning = signal<UserProfile | null>(null);
 
   protected readonly editor = signal<EditorState>({ mode: 'closed' });
   protected readonly editing = computed(() => {
@@ -258,6 +299,19 @@ export class ProfilesPage {
 
   constructor() {
     void this.run(this.store.load());
+  }
+
+  /** USER-05: removes an archived profile from all its tasks at once. */
+  protected async unassignAll(id: string): Promise<void> {
+    this.unassigning.set(null);
+    this.notice.set(null);
+    this.error.set(null);
+    try {
+      const { unassigned } = await this.store.unassignAll(id);
+      this.notice.set(this.i18n.t('profiles.unassignedCount', { count: unassigned }));
+    } catch (error) {
+      this.error.set(this.i18n.errorMessage(error));
+    }
   }
 
   protected openCreate(): void {

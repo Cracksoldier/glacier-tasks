@@ -55,8 +55,9 @@ push only when the user asks.
   - activity event types and payloads (`activity-events.ts`), media URLs (`media.ts`)
 - `packages/data`: main process only: `openDatabase`, `migrate`, migrations in
   `src/migrations/NNNN-name.ts` (never edit a released migration).
-  - `src/services/`: DB-only services (`ProjectService`, `UserService`, `ActivityService`)
-    taking a `ServiceContext` (db, clock, id generator). Each write is one transaction that
+  - `src/services/`: DB-only services (`ProjectService`, `UserService`, `ActivityService`,
+    `TaskService`, `LabelService`, `TrashService`) taking a `ServiceContext` (db, clock, id
+    generator). Task writes check `version` (D05) and bump it on every change; see ADR 0008. Each write is one transaction that
     also records its activity event (D12). Services never touch the file system.
   - Services throw `AppError` with an `errors.*` message key; every key needs EN/DE text.
 - `apps/desktop`: Electron main + preload, bundled by esbuild into CJS (`scripts/build.mjs`);
@@ -76,7 +77,9 @@ push only when the user asks.
 - `apps/ui`: Angular renderer (standalone, zoneless, OnPush, signals; ADR 0006):
   - `core/api`: `GLACIER_API` token
   - `core/settings`, `core/theme`, `core/i18n`, `core/projects`, `core/users`: signal stores
-  - `shared/`: `<app-avatar>`, `<app-dialog>` (native `<dialog>`); global building blocks
+  - `core/markdown`: `MarkdownService` (marked + DOMPurify, ADR 0008); `core/tasks`: display keys
+  - `shared/`: `<app-avatar>`, `<app-dialog>` (native `<dialog>`), `<app-label-chip>`,
+    `<app-markdown-view>`; global building blocks
     (`.btn`, `.field`, `.card`, …) in `styles/_components.scss`
   - `shell/`, `pages/`
   - `testing/`: API stub (in-memory projects/users) and providers
@@ -99,6 +102,8 @@ desktop picks them up.
   sender check).
 - **Text:** every user-facing string needs an entry in `core/i18n/en.ts` *and* `de.ts`.
   Use `i18n.t(key)`, never literal text in templates.
+- **Markdown:** render only through `<app-markdown-view>` / `MarkdownService`. Never bind other
+  HTML with `[innerHTML]` or `bypassSecurityTrust*`; never let rendered Markdown load images.
 - **Styles:** use the CSS custom properties from `styles/_tokens.scss`, never literal colours.
 - **E2E:** the UI language follows the OS on first launch (D15), so E2E tests select by
   `data-testid`, not by visible text.

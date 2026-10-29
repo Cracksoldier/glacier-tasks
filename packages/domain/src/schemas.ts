@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import {
   ENTITY_TYPES,
+  LABEL_COLORS,
   LANGUAGES,
   PRIORITIES,
   STATUS_CATEGORIES,
@@ -85,10 +86,19 @@ export const statusPatchSchema = z
 
 // --- Labels -----------------------------------------------------------------
 
+export const labelColorSchema = z.enum(LABEL_COLORS);
+
 export const labelInputSchema = z.strictObject({
   name: requiredName(LABEL_NAME_MAX_LENGTH),
-  color: z.string().max(32).nullable().default(null),
+  color: labelColorSchema.nullable().default(null),
 });
+
+export const labelPatchSchema = z
+  .strictObject({
+    name: requiredName(LABEL_NAME_MAX_LENGTH),
+    color: labelColorSchema.nullable(),
+  })
+  .partial();
 
 // --- Tasks ------------------------------------------------------------------
 
@@ -198,8 +208,16 @@ export type UpdateUserInput = z.input<typeof updateUserInputSchema>;
 export type StatusInput = z.input<typeof statusInputSchema>;
 export type StatusPatch = z.input<typeof statusPatchSchema>;
 export type LabelInput = z.input<typeof labelInputSchema>;
+export type LabelPatch = z.input<typeof labelPatchSchema>;
 export type CreateTaskInput = z.input<typeof createTaskInputSchema>;
 export type UpdateTaskInput = z.input<typeof updateTaskInputSchema>;
 export type TaskQuery = z.input<typeof taskQuerySchema>;
 export type ExportOptions = z.input<typeof exportOptionsSchema>;
 export type DeviceSettingsPatch = z.input<typeof deviceSettingsPatchSchema>;
+
+// Parsed (output) shapes: what main-process services receive after validation.
+export type CreateTaskData = z.output<typeof createTaskInputSchema>;
+export type UpdateTaskData = z.output<typeof updateTaskInputSchema>;
+export type TaskQueryData = z.output<typeof taskQuerySchema>;
+export type LabelData = z.output<typeof labelInputSchema>;
+export type LabelPatchData = z.output<typeof labelPatchSchema>;

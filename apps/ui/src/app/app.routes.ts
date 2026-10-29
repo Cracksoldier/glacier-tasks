@@ -10,7 +10,6 @@ import {
 } from '@angular/router';
 import { ProjectsStore } from './core/projects/projects-store';
 import { SettingsStore } from './core/settings/settings-store';
-import { PlaceholderPage } from './pages/placeholder-page';
 import { ProjectPage } from './pages/projects/project-page';
 import { ProjectsPage } from './pages/projects/projects-page';
 
@@ -27,6 +26,14 @@ export const routes: Routes = [
   { path: 'projects', component: ProjectsPage },
   { path: 'projects/:projectId', component: ProjectPage },
   {
+    path: 'projects/:projectId/tasks/:taskId',
+    loadComponent: () => import('./pages/task/task-editor-page').then((m) => m.TaskEditorPage),
+    canDeactivate: [
+      (page: import('./pages/task/task-editor-page').TaskEditorPage) =>
+        !page.dirty() || window.confirm(page.discardMessage()),
+    ],
+  },
+  {
     path: 'projects/:projectId/settings',
     loadComponent: () =>
       import('./pages/projects/project-settings-page').then((m) => m.ProjectSettingsPage),
@@ -35,7 +42,10 @@ export const routes: Routes = [
     path: 'profiles',
     loadComponent: () => import('./pages/profiles/profiles-page').then((m) => m.ProfilesPage),
   },
-  { path: 'trash', component: PlaceholderPage, data: { titleKey: 'trash.title' } },
+  {
+    path: 'trash',
+    loadComponent: () => import('./pages/trash/trash-page').then((m) => m.TrashPage),
+  },
   {
     path: 'settings',
     loadComponent: () => import('./pages/settings/settings-page').then((m) => m.SettingsPage),

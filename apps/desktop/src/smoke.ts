@@ -86,8 +86,14 @@ async function checkRenderer(window: BrowserWindow): Promise<Record<string, unkn
       let info = null;
       let invalidCall = null;
       let projects = null;
+      let taskRoundTrip = null;
       try { info = await api.app.info(); } catch (error) { info = { error }; }
       try { projects = (await api.projects.list()).length; } catch (error) { projects = { error }; }
+      try {
+        const project = await api.projects.create({ key: 'SMOKEUI', name: 'Smoke UI' });
+        const created = await api.tasks.create({ projectId: project.id, type: 'STORY', title: 'Smoke story' });
+        taskRoundTrip = (await api.tasks.get(created.id)).issueKey;
+      } catch (error) { taskRoundTrip = { error }; }
       try { await api.tasks.get('not-a-uuid'); invalidCall = 'resolved'; }
       catch (error) { invalidCall = error && error.code; }
       return {
@@ -102,6 +108,7 @@ async function checkRenderer(window: BrowserWindow): Promise<Record<string, unkn
         info,
         invalidCall,
         projects,
+        taskRoundTrip,
       };
     })()
   `)) as Record<string, unknown>;
@@ -125,6 +132,7 @@ export async function runSmoke(context: SmokeContext): Promise<boolean> {
       result['integrity'] === 'ok' &&
       result['mediaStatus'] === 404 &&
       typeof renderer['projects'] === 'number' &&
+      renderer['taskRoundTrip'] === 'SMOKEUI-1' &&
       renderer['shell'] === true &&
       String(renderer['href']).includes('index.html#/') &&
       renderer['nodeRequire'] === 'undefined' &&

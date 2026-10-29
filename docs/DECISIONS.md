@@ -82,3 +82,10 @@ Reference application for visual identity, tooling and release process:
 | D36 | Renderer navigation uses the Angular Router with hash URLs (`index.html#/settings`), so routes work over `file://` and support back/forward and deep links. See `docs/adr/0006-renderer-architecture.md`. | UX-02 |
 | D37 | A full Glacier Notes-style release workflow ships from M1: manual dispatch or `v*` tag → version stamping, quality gate, Windows NSIS + Linux AppImage/deb builds with packaged smoke tests, GitHub Release (pre-release for `-` versions). | D21, M8 |
 | D38 | No native application menu bar on Windows/Linux. All actions live in the app UI; standard text-editing shortcuts keep working; DevTools only in development. | UX-02 |
+
+## 2026-10-29 — M3 planning
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D39 | M3 ships a minimal Trash page: directly trashed projects, stories and subtasks with a Restore action (items trashed by a cascade come back with their parent). Permanent deletion, filters and per-project trash views remain in M7. Refines D19. | TRASH-01..06, D19 |
+| D40 | The story/subtask editor is a full-page route (`#/projects/:projectId/tasks/:taskId`) with explicit Save/Cancel. Until the M4 board, the project page lists the project's stories. See `docs/adr/0008-task-service-and-markdown.md`. | TASK-03, TASK-08 |

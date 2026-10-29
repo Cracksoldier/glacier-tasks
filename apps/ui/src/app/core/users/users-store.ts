@@ -42,6 +42,10 @@ export class UsersStore {
     return this.reloadAfter(this.api.users.removeAvatar(id));
   }
 
+  unassignAll(id: string): Promise<{ unassigned: number }> {
+    return this.api.users.unassignAll(id);
+  }
+
   private async reloadAfter<T>(write: Promise<T>): Promise<T> {
     const result = await write;
     await this.load();

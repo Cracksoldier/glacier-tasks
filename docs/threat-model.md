@@ -30,7 +30,7 @@ untrusted content ──► renderer (sandbox) ──IPC──► main process �
 | ID | Threat | Mitigation | Milestone |
 |---|---|---|---|
 | T1 | **Renderer gains Node/OS access** (XSS → `require`, file system) | `contextIsolation`, `sandbox`, `nodeIntegration: false`; preload exposes only a frozen typed API; no `ipcRenderer`, no generic invoke. Smoke test asserts `typeof require/process === 'undefined'` | M0 ✔ / M1 ✔ |
-| T2 | **Malicious Markdown** (scripts, event handlers, `javascript:` URLs, remote images, CSS exfiltration) | `marked` → DOMPurify with allow-list; forbid style/form/input/iframe; images only via `attachment:<id>` of the same task (D10); links opened only via explicit user action → `shell.openExternal` (http/https only). CSP as backstop | M3, M6 |
+| T2 | **Malicious Markdown** (scripts, event handlers, `javascript:` URLs, remote images, CSS exfiltration) | `marked` → DOMPurify with allow-list; forbid style/form/input/iframe; images only via `attachment:<id>` of the same task (D10); links opened only via explicit user action → `shell.openExternal` (http/https only). CSP as backstop | M3 ✔ (sanitizer, link handling, no image loads; ADR 0008) / M6 (attachment images) |
 | T3 | **Script injection despite sanitizer** | Strict CSP meta tag: `script-src 'self'`, `object-src 'none'`, `frame-src 'none'`, `form-action 'none'`; no `unsafe-eval`; Angular `inlineCritical` disabled to avoid inline handlers | M0 ✔ / M1 ✔ |
 | T4 | **IPC abuse** (malformed or hostile arguments from a compromised renderer) | Zod strict schemas on every argument; UUID IDs only; channel allow-list from `IPC_CHANNELS`; services re-check DB invariants; errors never contain paths/stack traces; only the bundled renderer (or dev server) may call (sender check) (ADR 0004) | M1 ✔ (+ per feature) |
 | T5 | **Path traversal via names/IDs** (`../`, absolute paths, symlinks) | Managed files stored under random opaque IDs (never original names); paths built only in main from validated IDs; resolved path must stay inside the managed directory (realpath check); the original name is metadata only, sanitized when saving out | M2 ✔ (avatars, renderer never sends paths; ADR 0007) / M6 |
@@ -56,6 +56,13 @@ untrusted content ──► renderer (sandbox) ──IPC──► main process �
 - Avatar files are typed by their signature (PNG/JPEG/WebP), never by name or extension, and
   capped at 5 MiB before they are read completely (D24).
 - The CSP admits `glacier-media:` for images only (`img-src`); `connect-src` stays `'self'`.
+
+## Additional hardening (M3)
+
+- Rendered Markdown is the only HTML marked trusted in the renderer (`<app-markdown-view>`);
+  raw HTML in descriptions is escaped and shown as text.
+- New task, label and trash channels validate UUIDs and payloads with strict Zod schemas;
+  label colors are a fixed palette (D25), never free CSS.
 
 ## Out of scope
 
