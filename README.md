@@ -106,4 +106,4 @@ Pushing a `vX.Y.Z` tag, or running the **Release builds** workflow manually, doe
 
 ## License
 
-All rights reserved. The packages are marked `UNLICENSED`; no license has been granted yet.
+[MIT](LICENSE) © 2026 Cracksoldier

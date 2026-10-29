@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Glacier Tasks — offline Jira-inspired desktop task planner (Electron + Angular)",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "packageManager": "npm@11.12.1",
   "engines": {
     "node": ">=24"
