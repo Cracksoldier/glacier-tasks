@@ -47,6 +47,17 @@
         }
       </div>
     </fieldset>
+    @if (loaded(info); as appInfo) {
+      @if (appInfo.startLanguage !== settings.language()) {
+        <p class="restart-hint" role="status" data-testid="restart-hint">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          <span>{{ i18n.t('settings.restartForDates') }}</span>
+          <button type="button" class="btn" data-testid="restart-now" (click)="restart()">
+            {{ i18n.t('settings.restartNow') }}
+          </button>
+        </p>
+      }
+    }
   </section>
 
   <section class="card" aria-labelledby="attachments-heading">
@@ -76,9 +87,9 @@
     <h2 id="about-heading">{{ i18n.t('settings.about') }}</h2>
     <dl class="facts">
       <dt>{{ i18n.t('settings.version') }}</dt>
-      <dd data-testid="app-version">{{ info.value()?.version ?? '…' }}</dd>
+      <dd data-testid="app-version">{{ loaded(info)?.version ?? '…' }}</dd>
       <dt>{{ i18n.t('settings.schemaVersion') }}</dt>
-      <dd>{{ info.value()?.schemaVersion ?? '…' }}</dd>
+      <dd>{{ loaded(info)?.schemaVersion ?? '…' }}</dd>
     </dl>
   </section>
 </section>

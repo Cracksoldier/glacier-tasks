@@ -45,5 +45,10 @@ describe('I18nService (D15)', () => {
       en['errors.unexpected'],
     );
     expect(i18n.errorMessage(new Error('boom'))).toBe(en['errors.unexpected']);
+    // Angular resources wrap IPC errors (plain objects) in an Error with `cause`.
+    const wrapped = new Error('Resource returned an error', {
+      cause: { code: 'NOT_FOUND', message: 'errors.projectNotFound' },
+    });
+    expect(i18n.errorMessage(wrapped)).toBe(en['errors.projectNotFound']);
   });
 });

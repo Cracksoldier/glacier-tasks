@@ -1,3 +1,4 @@
+import { loaded } from '../core/api/loaded';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -50,7 +51,7 @@ export class Shell {
   /** Restore outcome after the restart and a failed automatic backup (DATA-06, D13). */
   protected readonly notices = computed<Notice[]>(() => {
     const notices: Notice[] = [];
-    const info = this.info.value();
+    const info = loaded(this.info);
     if (info?.lastRestore) {
       notices.push({
         id: 'restored',

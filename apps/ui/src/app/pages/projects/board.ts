@@ -26,6 +26,7 @@ import {
   type WorkflowStatus,
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import { EMPTY_FILTERS, queryAll } from '../../core/tasks/project-view';
 import { PRIORITY_KEYS } from '../../core/tasks/task-display';
@@ -55,6 +56,9 @@ interface Lane {
 
 export type BoardGroup = 'stories' | 'subtasks';
 
+/** Board cards rendered per column before "Show more" (ADR 0013). */
+const CARDS_PER_PAGE = 100;
+
 /**
  * Kanban board (BOARD-01..06): one column per status, story cards only, expandable subtasks
  * with status changes (D06), drag & drop with fractional sort keys (D26) and a status select
@@ -79,6 +83,8 @@ export type BoardGroup = 'stories' | 'subtasks';
   styleUrl: './board.scss',
 })
 export class Board {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
   protected readonly users = inject(UsersStore);
@@ -125,22 +131,22 @@ export class Board {
 
   /** Local, optimistically updated columns; reset whenever the server data arrives. */
   protected readonly columns = linkedSignal<Column[]>(() => {
-    const stories = this.tasks.value()?.stories ?? [];
-    return (this.statuses.value() ?? []).map((status) => ({
+    const stories = loaded(this.tasks)?.stories ?? [];
+    return (loaded(this.statuses) ?? []).map((status) => ({
       status,
       stories: stories.filter((t) => t.statusId === status.id),
     }));
   });
   protected readonly subtasksByStory = computed(() => {
     const map = new Map<string, TaskSummary[]>();
-    for (const task of this.tasks.value()?.subtasks ?? []) {
+    for (const task of loaded(this.tasks)?.subtasks ?? []) {
       if (task.parentStoryId)
         map.set(task.parentStoryId, [...(map.get(task.parentStoryId) ?? []), task]);
     }
     return map;
   });
   protected readonly labelsById = computed(
-    () => new Map((this.labels.value() ?? []).map((label) => [label.id, label])),
+    () => new Map((loaded(this.labels) ?? []).map((label) => [label.id, label])),
   );
   protected readonly usersById = computed(() => new Map(this.users.all().map((u) => [u.id, u])));
 
@@ -149,9 +155,9 @@ export class Board {
    * their story's order inside a column. Moves are shown at once and confirmed by the reload.
    */
   protected readonly lanes = linkedSignal<Lane[]>(() => {
-    const statuses = this.statuses.value() ?? [];
+    const statuses = loaded(this.statuses) ?? [];
     const position = new Map(statuses.map((s) => [s.id, s.position]));
-    const stories = [...(this.tasks.value()?.stories ?? [])].sort(
+    const stories = [...(loaded(this.tasks)?.stories ?? [])].sort(
       (a, b) => (position.get(a.statusId) ?? 0) - (position.get(b.statusId) ?? 0),
     );
     const subtasks = this.subtasksByStory();
@@ -176,6 +182,22 @@ export class Board {
     }
     return lanes;
   });
+  /**
+   * Cards rendered per column (M8 performance): long columns show the first ones and grow
+   * with "Show more". Drops stay correct because the visible cards are the column's start.
+   */
+  private readonly shown = signal<ReadonlyMap<string, number>>(new Map());
+
+  protected limit(columnKey: string): number {
+    return this.shown().get(columnKey) ?? CARDS_PER_PAGE;
+  }
+
+  protected showMore(columnKey: string): void {
+    this.shown.update((shown) =>
+      new Map(shown).set(columnKey, this.limit(columnKey) + CARDS_PER_PAGE),
+    );
+  }
+
   /** Collapsed swimlanes; not remembered (D51). */
   protected readonly collapsed = signal<ReadonlySet<string>>(new Set());
 
@@ -286,7 +308,7 @@ export class Board {
   }
 
   protected statusOf(id: string): WorkflowStatus | undefined {
-    return this.statuses.value()?.find((status) => status.id === id);
+    return loaded(this.statuses)?.find((status) => status.id === id);
   }
 
   private replaceColumn(statusId: string, stories: TaskSummary[]): void {

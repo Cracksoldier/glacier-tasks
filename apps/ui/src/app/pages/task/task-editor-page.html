@@ -9,7 +9,7 @@
   <section class="page editor">
     <nav class="breadcrumb" [attr.aria-label]="i18n.t('task.breadcrumb')">
       <a [routerLink]="['/projects', task.projectId]">{{ i18n.t('task.backToProject') }}</a>
-      @if (parent.value(); as story) {
+      @if (loaded(parent); as story) {
         <span aria-hidden="true">/</span>
         <a [routerLink]="['/projects', task.projectId, 'tasks', story.id]" data-testid="parent-link">
           {{ story.issueKey }} {{ story.title }}
@@ -134,7 +134,7 @@
                   }
                   <select class="compact" data-testid="subtask-status" [attr.aria-label]="i18n.t('task.field.status')"
                     (change)="setSubtaskStatus(subtask, $any($event.target))">
-                    @for (status of statuses.value() ?? []; track status.id) {
+                    @for (status of loaded(statuses) ?? []; track status.id) {
                       <option [value]="status.id" [selected]="status.id === subtask.statusId">{{ status.name }}</option>
                     }
                   </select>
@@ -171,7 +171,7 @@
           @if (history.error()) {
             <p class="error-banner" role="alert">{{ i18n.errorMessage(history.error()) }}</p>
           }
-          <app-activity-timeline [events]="history.value() ?? []" [versionsLink]="true"
+          <app-activity-timeline [events]="loaded(history) ?? []" [versionsLink]="true"
             (openVersions)="openVersions($event)" />
         </section>
       </div>
@@ -180,7 +180,7 @@
         <div class="field">
           <label for="task-status">{{ i18n.t('task.field.status') }}</label>
           <select id="task-status" data-testid="task-status" (change)="statusId.set($any($event.target).value); edited()">
-            @for (status of statuses.value() ?? []; track status.id) {
+            @for (status of loaded(statuses) ?? []; track status.id) {
               <option [value]="status.id" [selected]="status.id === statusId()">{{ status.name }}</option>
             }
           </select>
@@ -221,7 +221,7 @@
         </div>
         <fieldset class="field labels">
           <legend>{{ i18n.t('task.field.labels') }}</legend>
-          @for (label of labels.value() ?? []; track label.id) {
+          @for (label of loaded(labels) ?? []; track label.id) {
             <label class="label-toggle" [class.selected]="labelIds().includes(label.id)">
               <input type="checkbox" [checked]="labelIds().includes(label.id)" (change)="toggleLabel(label.id)"
                 [attr.data-testid]="'label-toggle-' + label.name" />

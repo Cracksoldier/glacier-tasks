@@ -98,6 +98,9 @@ function hardenCheckbox(input: HTMLInputElement): void {
     return;
   }
   input.setAttribute('disabled', '');
+  // Screen readers announce the checklist item with its state.
+  const text = input.closest('li')?.textContent?.trim();
+  if (text) input.setAttribute('aria-label', text);
 }
 
 /**

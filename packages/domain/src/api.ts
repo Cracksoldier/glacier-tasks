@@ -48,6 +48,8 @@ import type {
 export interface GlacierTasksAPI {
   app: {
     info(): Promise<AppInfo>;
+    /** Restarts the app, e.g. so date fields follow a new UI language (D52). */
+    restart(): Promise<void>;
   };
   projects: {
     list(): Promise<ProjectSummary[]>;
@@ -150,7 +152,7 @@ export const API_GLOBAL_NAME = 'glacierTasks';
  * Only channels listed here may be registered or invoked.
  */
 export const IPC_CHANNELS = {
-  app: ['info'],
+  app: ['info', 'restart'],
   projects: ['list', 'create', 'update', 'trash', 'restore'],
   users: [
     'list',

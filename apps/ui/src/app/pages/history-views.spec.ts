@@ -138,3 +138,19 @@ describe('attachment size setting (D47)', () => {
     expect(root.querySelector('[role="alert"]')?.textContent).toContain('between 1 and 2048');
   });
 });
+
+describe('date field language (D52)', () => {
+  it('offers a restart when the UI language differs from the start language', async () => {
+    await TestBed.inject(SettingsStore).load();
+    const harness = await RouterTestingHarness.create('/settings');
+    await settle(harness);
+    const root = harness.routeNativeElement as HTMLElement;
+    expect(root.querySelector('[data-testid="restart-hint"]')).toBeNull();
+
+    (root.querySelector('[data-testid="language-de"]') as HTMLInputElement).click();
+    await settle(harness);
+    (root.querySelector('[data-testid="restart-now"]') as HTMLElement).click();
+    await settle(harness);
+    expect(stub.restarts).toBe(1);
+  });
+});

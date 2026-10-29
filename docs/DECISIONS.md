@@ -115,3 +115,13 @@ Reference application for visual identity, tooling and release process:
 | D49 | The global Trash page has a project filter; each project page links to its own trash ("Trash (n)"), which opens the Trash page filtered to that project. | TRASH-03 |
 | D50 | Permanent deletion is confirmed by typing the project or issue key; "Empty trash" by typing a localized confirmation word. Both warn that only a backup can bring the data back. | TRASH-05 |
 | D51 | The board can be grouped by subtasks (Jira-style swimlanes): every story with subtasks gets a row with the status columns, its subtasks are cards that can be dragged into another status on their own (status only, D06; no reordering within a column), and stories without subtasks follow in an "Other stories" row. The grouping is remembered per project like the other view settings (D42). | BOARD-07 |
+
+## 2026-10-29 — M8 planning
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D52 | Native date fields follow the UI language: Chromium starts with the chosen language (`--lang`). After a language change, Settings offers "Restart now" so date fields switch too. | UX-06, D15 |
+| D53 | v1.0.0 is published by pushing the `v1.0.0` tag after green CI; the existing release workflow builds and publishes the installers. | D37, M8 |
+| D54 | The user guide and release notes are in English and German; the technical README is English. | M8 |
+| D55 | Release builds stay unsigned. Each release publishes `SHA256SUMS.txt`, and the user guide explains the SmartScreen warning and checksum verification. | D21, M8 |
+

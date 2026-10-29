@@ -38,10 +38,6 @@ export const de = {
     '2–10 Zeichen: ein Großbuchstabe, gefolgt von Großbuchstaben oder Ziffern.',
   'projects.field.description': 'Beschreibung',
 
-  'project.boardSoonTitle': 'Das Board ist in Arbeit',
-  'project.boardSoonBody':
-    'Stories, Unteraufgaben und das Kanban-Board folgen in den nächsten Versionen.',
-
   'projectSettings.title': 'Projekteinstellungen',
   'projectSettings.keyLocked':
     'Der Schlüssel ist festgelegt, weil dieses Projekt bereits Vorgangs-IDs vergeben hat.',
@@ -478,5 +474,9 @@ export const de = {
   'board.collapseLane': 'Einklappen',
   'board.expandLane': 'Ausklappen',
   'board.laneCount': '{done}/{total} Unteraufgaben erledigt',
+  'board.showMore': 'Mehr anzeigen ({count})',
   'board.noLanes': 'Keine Stories passen zu den Filtern.',
+
+  'settings.restartForDates': 'Datumsfelder wechseln nach einem Neustart in die neue Sprache.',
+  'settings.restartNow': 'Jetzt neu starten',
 } as const satisfies Record<TranslationKey, string>;

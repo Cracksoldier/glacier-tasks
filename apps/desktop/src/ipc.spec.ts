@@ -14,7 +14,13 @@ function dispatcher(handlers: IpcHandlers, logger = silentLogger) {
 
 describe('createDispatcher (ADR 0004)', () => {
   it('passes validated arguments and wraps the value', async () => {
-    const value = { version: '1.0.0', schemaVersion: 1, lastRestore: null, restoreFailed: false };
+    const value = {
+      version: '1.0.0',
+      schemaVersion: 1,
+      lastRestore: null,
+      restoreFailed: false,
+      startLanguage: 'en' as const,
+    };
     const info = vi.fn(() => value);
     const result = await dispatcher({ app: { info } })('app:info', TRUSTED, []);
     expect(result).toEqual({ ok: true, value });

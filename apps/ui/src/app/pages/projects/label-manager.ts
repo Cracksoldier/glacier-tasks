@@ -7,6 +7,7 @@ import {
   type LabelColor,
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { LABEL_COLOR_KEYS } from '../../core/tasks/task-display';
 import { Dialog } from '../../shared/dialog';
@@ -20,11 +21,14 @@ import { LabelChip } from '../../shared/label-chip';
   template: `
     <section class="card" aria-labelledby="labels-heading">
       <h2 id="labels-heading">{{ i18n.t('labels.title') }}</h2>
+      @if (labels.error()) {
+        <p class="error-banner" role="alert" data-testid="labels-load-error">{{ i18n.errorMessage(labels.error()) }}</p>
+      }
       @if (error(); as message) {
         <p class="error-banner" role="alert">{{ message }}</p>
       }
       <ul class="labels" data-testid="label-list">
-        @for (label of labels.value() ?? []; track label.id) {
+        @for (label of loaded(labels) ?? []; track label.id) {
           <li [attr.data-label-name]="label.name">
             @if (editingId() === label.id) {
               <input
@@ -191,6 +195,8 @@ import { LabelChip } from '../../shared/label-chip';
   `,
 })
 export class LabelManager {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
 

@@ -8,6 +8,18 @@ npmRebuild: false
 nodeGypRebuild: false
 buildDependenciesFromSource: false
 
+# Electron fuses (M8 security review, docs/security-review.md): the packaged binary can't be
+# turned into a plain Node.js runtime or debugger, and only loads the app from its own,
+# integrity-checked asar. File-protocol privileges stay at Electron's default because the
+# renderer's ES modules load from file://.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableCookieEncryption: true
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+
 directories:
   output: release
   buildResources: build

@@ -38,6 +38,10 @@ export class I18nService {
 
   /** Translates an AppErrorInfo message key, falling back to a generic message. */
   errorMessage(error: unknown): string {
+    // Resources wrap rejections that are not Error instances (our IPC errors) in `cause`.
+    if (!isAppErrorInfo(error) && error instanceof Error && isAppErrorInfo(error.cause)) {
+      return this.errorMessage(error.cause);
+    }
     if (isAppErrorInfo(error) && error.message in en) {
       return this.t(error.message as TranslationKey);
     }

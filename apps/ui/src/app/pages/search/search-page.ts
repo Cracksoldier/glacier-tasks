@@ -14,6 +14,7 @@ import {
 import { Router } from '@angular/router';
 import { DEFAULT_LIST_COLUMNS, type ListColumn, type TaskFilters } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
 import { SettingsStore } from '../../core/settings/settings-store';
@@ -59,8 +60,8 @@ type Scope = 'project' | 'all';
 
       <app-task-filter-bar
         [filters]="filters()"
-        [statuses]="statuses.value() ?? []"
-        [labels]="labels.value() ?? []"
+        [statuses]="loaded(statuses) ?? []"
+        [labels]="loaded(labels) ?? []"
         [text]="text()"
         [sort]="sort()"
         [allProjects]="effectiveScope() === 'all'"
@@ -105,6 +106,8 @@ type Scope = 'project' | 'all';
   `,
 })
 export class SearchPage {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
   private readonly router = inject(Router);

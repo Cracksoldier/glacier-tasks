@@ -82,6 +82,30 @@ export function languageFromPreferences(preferredLanguages: ReadonlyArray<string
   return preferredLanguages[0]?.toLowerCase().startsWith('de') ? 'de' : 'en';
 }
 
+/**
+ * The UI language before the app is ready (D52): Chromium's own language decides how native
+ * date fields look, and it can only be set at startup. Reads without writing; anything
+ * unreadable falls back to the OS preference, like the store does.
+ */
+export function readStartLanguage(
+  filePath: string,
+  preferredLanguages: ReadonlyArray<string>,
+): Language {
+  try {
+    const language = (JSON.parse(readFileSync(filePath, 'utf-8')) as { language?: unknown })
+      .language;
+    if (LANGUAGES.includes(language as Language)) return language as Language;
+  } catch {
+    // Missing or corrupt: the store handles it once the app is ready.
+  }
+  return languageFromPreferences(preferredLanguages);
+}
+
+/** Chromium locale for a UI language. */
+export function chromiumLocale(language: Language): string {
+  return language === 'de' ? 'de-DE' : 'en-US';
+}
+
 export function defaultDeviceSettings(preferredLanguages: ReadonlyArray<string>): StoredSettings {
   return {
     theme: DEFAULT_THEME,

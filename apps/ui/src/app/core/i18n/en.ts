@@ -36,9 +36,6 @@ export const en = {
     'Use 2–10 characters: an uppercase letter followed by letters or digits.',
   'projects.field.description': 'Description',
 
-  'project.boardSoonTitle': 'The board is on its way',
-  'project.boardSoonBody': 'Stories, subtasks and the Kanban board arrive in the next versions.',
-
   'projectSettings.title': 'Project settings',
   'projectSettings.keyLocked': 'The key is fixed because this project has already issued task IDs.',
   'projectSettings.statuses': 'Workflow statuses',
@@ -464,7 +461,11 @@ export const en = {
   'board.collapseLane': 'Collapse',
   'board.expandLane': 'Expand',
   'board.laneCount': '{done}/{total} subtasks done',
+  'board.showMore': 'Show more ({count})',
   'board.noLanes': 'No stories match the filters.',
+
+  'settings.restartForDates': 'Date fields switch to the new language after a restart.',
+  'settings.restartNow': 'Restart now',
 } as const;
 
 export type TranslationKey = keyof typeof en;

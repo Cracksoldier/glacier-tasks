@@ -13,6 +13,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { type ProjectViewKind, TITLE_MAX_LENGTH } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
 import { SettingsStore } from '../../core/settings/settings-store';
@@ -94,8 +95,8 @@ import { ProjectActivity } from './project-activity';
         @if (view() !== 'activity') {
         <app-task-filter-bar
           [filters]="projectView().filters"
-          [statuses]="statuses.value() ?? []"
-          [labels]="labels.value() ?? []"
+          [statuses]="loaded(statuses) ?? []"
+          [labels]="loaded(labels) ?? []"
           [text]="text()"
           [sort]="projectView()"
           [showText]="view() === 'list'"
@@ -207,6 +208,8 @@ import { ProjectActivity } from './project-activity';
   `,
 })
 export class ProjectPage {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
   private readonly store = inject(ProjectsStore);
@@ -248,7 +251,7 @@ export class ProjectPage {
     params: () => (this.project() ? this.projectId() : undefined),
     loader: ({ params }) => this.api.trash.list(params),
   });
-  protected readonly trashCount = computed(() => this.trash.value()?.length ?? 0);
+  protected readonly trashCount = computed(() => loaded(this.trash)?.length ?? 0);
 
   protected readonly createOpen = signal(false);
   protected readonly newTitle = signal('');

@@ -93,6 +93,12 @@ jobs:
             prerelease=true
           fi
 
+          # Stable releases ship hand-written EN/DE release notes (D54).
+          if [[ "$prerelease" == 'false' && ! -f "docs/release-notes/v$release_version.md" ]]; then
+            echo "::error::Missing docs/release-notes/v$release_version.md for a stable release."
+            exit 1
+          fi
+
           {
             echo "version=$release_version"
             echo "tag=v$release_version"
@@ -184,6 +190,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: docs/release-notes
       - uses: actions/download-artifact@v8
         with:
           pattern: glacier-tasks-*-x64
@@ -214,6 +223,13 @@ jobs:
             exit 1
           fi
           printf 'Release asset: %s\n' "${assets[@]}"
+      - name: Write checksums
+        # Builds are unsigned (D55); the checksums let users verify their download.
+        shell: bash
+        working-directory: release-assets
+        run: |
+          sha256sum -- *.AppImage *.deb *-Setup.exe > SHA256SUMS.txt
+          cat SHA256SUMS.txt
       - name: Create GitHub Release
         shell: bash
         env:
@@ -224,10 +240,13 @@ jobs:
         run: |
           shopt -s nullglob
           assets=(release-assets/*)
-          release_options=(
-            --title "Glacier Tasks $RELEASE_TAG"
-            --generate-notes
-          )
+          release_options=(--title "Glacier Tasks $RELEASE_TAG")
+          notes="docs/release-notes/$RELEASE_TAG.md"
+          if [[ -f "$notes" ]]; then
+            release_options+=(--notes-file "$notes")
+          else
+            release_options+=(--generate-notes)
+          fi
 
           if [[ "$GITHUB_EVENT_NAME" == 'push' ]]; then
             release_options+=(--verify-tag)

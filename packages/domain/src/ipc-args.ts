@@ -31,6 +31,7 @@ const byId = z.tuple([idSchema]);
 
 export const IPC_ARGS = {
   'app:info': none,
+  'app:restart': none,
 
   'projects:list': none,
   'projects:create': z.tuple([createProjectInputSchema]),

@@ -1,6 +1,13 @@
 @if (error(); as message) {
   <p class="error-banner" role="alert" data-testid="board-error">{{ message }}</p>
 }
+@if (tasks.error() || statuses.error()) {
+  <p class="error-banner" role="alert" data-testid="board-load-error">
+    {{ i18n.errorMessage(tasks.error() ?? statuses.error()) }}
+  </p>
+} @else if (!tasks.hasValue() || !statuses.hasValue()) {
+  <p class="loading" role="status" data-testid="board-loading">{{ i18n.t('common.loading') }}</p>
+}
 
 <div class="group-toggle" role="radiogroup" [attr.aria-label]="i18n.t('board.group')">
   <span class="group-label">{{ i18n.t('board.group') }}</span>
@@ -27,7 +34,7 @@
 
       <ol class="cards" cdkDropList [cdkDropListData]="column" (cdkDropListDropped)="drop($event)"
         [attr.aria-label]="column.status.name">
-        @for (story of column.stories; track story.id) {
+        @for (story of column.stories.slice(0, limit(column.status.id)); track story.id) {
           <li class="card-item" cdkDrag [cdkDragData]="story" [attr.data-issue-key]="story.issueKey">
             <article class="story-card">
               <div class="card-top">
@@ -58,7 +65,8 @@
                   @if (progress.total > 0) {
                     <button type="button" class="progress" data-testid="card-progress"
                       [attr.aria-expanded]="expanded().has(story.id)"
-                      [attr.aria-label]="i18n.t('board.toggleSubtasks')" (click)="toggle(story.id)">
+                      [attr.aria-label]="progress.done + '/' + progress.total + ' – ' + i18n.t('board.toggleSubtasks')"
+                      (click)="toggle(story.id)">
                       <i class="fa-solid" [class.fa-chevron-down]="!expanded().has(story.id)"
                         [class.fa-chevron-up]="expanded().has(story.id)" aria-hidden="true"></i>
                       {{ progress.done }}/{{ progress.total }}
@@ -69,7 +77,7 @@
                 <!-- Keyboard alternative to dragging (M4 task 5). -->
                 <select class="card-status" data-testid="card-status" (change)="moveTo(story, $any($event.target))"
                   [attr.aria-label]="i18n.t('board.moveTo') + ': ' + story.issueKey" [title]="i18n.t('board.moveTo')">
-                  @for (status of statuses.value() ?? []; track status.id) {
+                  @for (status of loaded(statuses) ?? []; track status.id) {
                     <option [value]="status.id" [selected]="status.id === story.statusId">{{ status.name }}</option>
                   }
                 </select>
@@ -88,7 +96,7 @@
                       </a>
                       <select data-testid="card-subtask-status" [attr.aria-label]="i18n.t('task.field.status') + ': ' + subtask.title"
                         (change)="setSubtaskStatus(subtask, $any($event.target))">
-                        @for (status of statuses.value() ?? []; track status.id) {
+                        @for (status of loaded(statuses) ?? []; track status.id) {
                           <option [value]="status.id" [selected]="status.id === subtask.statusId">{{ status.name }}</option>
                         }
                       </select>
@@ -104,6 +112,12 @@
           <li class="empty">{{ i18n.t('board.emptyColumn') }}</li>
         }
       </ol>
+      @if (column.stories.length > limit(column.status.id)) {
+        <button type="button" class="btn btn-ghost show-more" data-testid="column-show-more"
+          (click)="showMore(column.status.id)">
+          {{ i18n.t('board.showMore', { count: column.stories.length - limit(column.status.id) }) }}
+        </button>
+      }
     </section>
   }
 </div>
@@ -125,7 +139,7 @@
             <a class="lane-title" [routerLink]="['/projects', story.projectId, 'tasks', story.id]">{{ story.title }}</a>
             <select class="card-status" data-testid="lane-story-status" (change)="moveTo(story, $any($event.target))"
               [attr.aria-label]="i18n.t('board.moveTo') + ': ' + story.issueKey">
-              @for (status of statuses.value() ?? []; track status.id) {
+              @for (status of loaded(statuses) ?? []; track status.id) {
                 <option [value]="status.id" [selected]="status.id === story.statusId">{{ status.name }}</option>
               }
             </select>
@@ -152,7 +166,7 @@
                 </div>
                 <ol class="lane-cards" cdkDropList [cdkDropListData]="column" (cdkDropListDropped)="dropInLane($event)"
                   [attr.aria-label]="column.status.name">
-                  @for (task of column.tasks; track task.id) {
+                  @for (task of column.tasks.slice(0, limit(lane.id + column.status.id)); track task.id) {
                     <li class="lane-card" cdkDrag [cdkDragData]="task" [attr.data-issue-key]="task.issueKey"
                       data-testid="lane-card">
                       <a class="title" [routerLink]="['/projects', task.projectId, 'tasks', task.id]">{{ task.title }}</a>
@@ -163,14 +177,14 @@
                           <select class="card-status" data-testid="card-subtask-status"
                             [attr.aria-label]="i18n.t('task.field.status') + ': ' + task.title"
                             (change)="setSubtaskStatus(task, $any($event.target))">
-                            @for (status of statuses.value() ?? []; track status.id) {
+                            @for (status of loaded(statuses) ?? []; track status.id) {
                               <option [value]="status.id" [selected]="status.id === task.statusId">{{ status.name }}</option>
                             }
                           </select>
                         } @else {
                           <select class="card-status" data-testid="card-status" (change)="moveTo(task, $any($event.target))"
                             [attr.aria-label]="i18n.t('board.moveTo') + ': ' + task.issueKey">
-                            @for (status of statuses.value() ?? []; track status.id) {
+                            @for (status of loaded(statuses) ?? []; track status.id) {
                               <option [value]="status.id" [selected]="status.id === task.statusId">{{ status.name }}</option>
                             }
                           </select>
@@ -184,6 +198,12 @@
                     </li>
                   }
                 </ol>
+                @if (column.tasks.length > limit(lane.id + column.status.id)) {
+                  <button type="button" class="btn btn-ghost show-more" data-testid="column-show-more"
+                    (click)="showMore(lane.id + column.status.id)">
+                    {{ i18n.t('board.showMore', { count: column.tasks.length - limit(lane.id + column.status.id) }) }}
+                  </button>
+                }
               </div>
             }
           </div>

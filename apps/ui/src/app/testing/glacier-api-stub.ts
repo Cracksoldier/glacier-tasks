@@ -58,6 +58,8 @@ export interface GlacierApiStub {
   info: AppInfo;
   /** Returned by `data.inspectRestore`; null simulates a cancelled dialog. */
   restorePreview: RestorePreview | null;
+  /** Calls of `app.restart`. */
+  restarts: number;
   /** Tokens passed to `data.restore`, and export options passed to `data.exportJson`. */
   restored: string[];
   exports: ExportOptions[];
@@ -107,7 +109,14 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     events: [],
     opened: [],
     saved: [],
-    info: { version: '1.2.3', schemaVersion: 1, lastRestore: null, restoreFailed: false },
+    info: {
+      version: '1.2.3',
+      schemaVersion: 1,
+      lastRestore: null,
+      restoreFailed: false,
+      startLanguage: 'en',
+    },
+    restarts: 0,
     restorePreview: null,
     restored: [],
     exports: [],
@@ -216,6 +225,9 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
   };
 
   api['app']!['info'] = async () => structuredClone(stub.info);
+  api['app']!['restart'] = async () => {
+    stub.restarts++;
+  };
   api['data']!['backup'] = async () => ({
     fileName: 'glacier-tasks-2026-10-29.glaciertasks',
     byteSize: 3 * 1024 * 1024,

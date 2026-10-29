@@ -26,6 +26,7 @@ import {
   type UpdateTaskInput,
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { PRIORITY_KEYS, TASK_TYPE_KEYS } from '../../core/tasks/task-display';
 import { UsersStore } from '../../core/users/users-store';
@@ -66,6 +67,8 @@ interface Draft {
   styleUrl: './task-editor-page.scss',
 })
 export class TaskEditorPage {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
   private readonly router = inject(Router);
@@ -159,12 +162,12 @@ export class TaskEditorPage {
     return this.users.all().filter((user) => user.archivedAt === null || user.id === current);
   });
   protected readonly moveTargets = computed(() =>
-    (this.stories.value()?.items ?? []).filter((story) => story.id !== this.task()?.parentStoryId),
+    (loaded(this.stories)?.items ?? []).filter((story) => story.id !== this.task()?.parentStoryId),
   );
   protected readonly progress = computed(() => {
     const items = this.subtasks();
     const done = new Set(
-      (this.statuses.value() ?? []).filter((s) => s.category === 'DONE').map((s) => s.id),
+      (loaded(this.statuses) ?? []).filter((s) => s.category === 'DONE').map((s) => s.id),
     );
     return { done: items.filter((s) => done.has(s.statusId)).length, total: items.length };
   });
@@ -388,6 +391,6 @@ export class TaskEditorPage {
   }
 
   protected statusName(id: string): string {
-    return this.statuses.value()?.find((status) => status.id === id)?.name ?? '';
+    return loaded(this.statuses)?.find((status) => status.id === id)?.name ?? '';
   }
 }

@@ -44,7 +44,12 @@ import {
   runAutomaticBackup,
 } from './backup.js';
 import { AvatarStore } from './avatar-store.js';
-import { DeviceSettingsStore, languageFromPreferences } from './device-settings.js';
+import {
+  chromiumLocale,
+  DeviceSettingsStore,
+  languageFromPreferences,
+  readStartLanguage,
+} from './device-settings.js';
 import { createDispatcher, createSenderCheck, type IpcHandlers } from './ipc.js';
 import { createLogger, type Logger } from './logger.js';
 import { handleMediaProtocol, registerMediaScheme } from './media-protocol.js';
@@ -65,6 +70,13 @@ if (userDataOverride) app.setPath('userData', userDataOverride);
 // E2E only: native dialogs can't be driven, so tests name the file to save or open. Honoured
 // only together with a separate data directory, never in a normal run.
 const testDialogPath = userDataOverride ? process.env['GLACIER_TEST_DIALOG_PATH'] : undefined;
+
+// D52: native date fields follow Chromium's language, which can only be set before ready.
+const startLanguage = readStartLanguage(
+  resolveAppPaths(app.getPath('userData')).deviceSettings,
+  app.getPreferredSystemLanguages(),
+);
+app.commandLine.appendSwitch('lang', chromiumLocale(startLanguage));
 
 let workspace: Database | undefined;
 let avatarStore: AvatarStore | undefined;
@@ -216,7 +228,15 @@ async function start(): Promise<void> {
         schemaVersion: LATEST_SCHEMA_VERSION,
         lastRestore: restore.status === 'restored' ? restore.result : null,
         restoreFailed: restore.status === 'failed',
+        startLanguage,
       }),
+      restart: () => {
+        // Answer the renderer first; E2E starts the app again itself (like restore).
+        setTimeout(() => {
+          if (!testDialogPath) app.relaunch();
+          app.exit(0);
+        }, 200);
+      },
     },
     projects: {
       list: () => projects.list(),

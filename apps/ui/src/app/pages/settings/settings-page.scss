@@ -119,3 +119,16 @@ h2 {
     width: 120px;
   }
 }
+
+.restart-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+
+  button {
+    margin-left: auto;
+  }
+}

@@ -10,6 +10,7 @@ import {
 import { Router } from '@angular/router';
 import type { TrashItem } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
 import { Dialog } from '../../shared/dialog';
@@ -47,7 +48,7 @@ type Confirmation = { kind: 'purge'; item: TrashItem } | { kind: 'empty' };
               }
             </select>
           </label>
-          @if ((items.value() ?? []).length > 0) {
+          @if ((loaded(items) ?? []).length > 0) {
             <button type="button" class="btn btn-danger" data-testid="trash-empty" (click)="confirm({ kind: 'empty' })">
               <i class="fa-solid fa-dumpster" aria-hidden="true"></i>
               {{ i18n.t('trash.empty') }}
@@ -59,15 +60,14 @@ type Confirmation = { kind: 'purge'; item: TrashItem } | { kind: 'empty' };
 
       @if (items.error()) {
         <p class="error-banner" role="alert">{{ i18n.errorMessage(items.error()) }}</p>
-      }
-      @if ((items.value() ?? []).length === 0 && !items.isLoading()) {
+      } @else if ((loaded(items) ?? []).length === 0 && !items.isLoading()) {
         <div class="empty-state">
           <h2>{{ i18n.t('trash.emptyTitle') }}</h2>
           <p>{{ i18n.t('trash.emptyBody') }}</p>
         </div>
       } @else {
         <ul class="card list" data-testid="trash-list">
-          @for (item of items.value() ?? []; track item.id) {
+          @for (item of loaded(items) ?? []; track item.id) {
             <li [attr.data-trash-title]="item.title">
               <i class="fa-solid {{ kind[item.kind].icon }} kind-icon" aria-hidden="true"></i>
               <span class="kind">{{ i18n.t(kind[item.kind].label) }}</span>
@@ -105,7 +105,7 @@ type Confirmation = { kind: 'purge'; item: TrashItem } | { kind: 'empty' };
           @if (pending.kind === 'purge') {
             <p>{{ i18n.t(pending.item.kind === 'PROJECT' ? 'trash.purgeProjectBody' : 'trash.purgeTaskBody', { name: pending.item.title }) }}</p>
           } @else {
-            <p>{{ i18n.t(project() ? 'trash.emptyProjectBody' : 'trash.emptyAllBody', { count: (items.value() ?? []).length }) }}</p>
+            <p>{{ i18n.t(project() ? 'trash.emptyProjectBody' : 'trash.emptyAllBody', { count: (loaded(items) ?? []).length }) }}</p>
           }
           <div class="field">
             <label for="confirm-text">{{ i18n.t('trash.typeToConfirm', { word: expected() }) }}</label>
@@ -199,6 +199,8 @@ type Confirmation = { kind: 'purge'; item: TrashItem } | { kind: 'empty' };
   `,
 })
 export class TrashPage {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
   private readonly router = inject(Router);
@@ -218,7 +220,7 @@ export class TrashPage {
     const options = new Map(
       this.projects.projects().map((p) => [p.id, { id: p.id, key: p.key, name: p.name }]),
     );
-    for (const item of this.allItems.value() ?? []) {
+    for (const item of loaded(this.allItems) ?? []) {
       if (item.kind === 'PROJECT' && !options.has(item.id)) {
         options.set(item.id, { id: item.id, key: item.projectKey, name: item.title });
       }

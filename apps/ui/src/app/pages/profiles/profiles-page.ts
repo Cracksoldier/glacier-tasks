@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { USER_NAME_MAX_LENGTH, type UserProfile } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { UsersStore } from '../../core/users/users-store';
 import { Avatar } from '../../shared/avatar';
@@ -145,7 +146,7 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
         <p class="error-banner" role="alert">{{ i18n.errorMessage(history.error()) }}</p>
       }
       <div class="history" data-testid="profile-history-dialog">
-        <app-activity-timeline [events]="history.value() ?? []" />
+        <app-activity-timeline [events]="loaded(history) ?? []" />
       </div>
     </app-dialog>
 
@@ -313,6 +314,8 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
   `,
 })
 export class ProfilesPage {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   protected readonly store = inject(UsersStore);
   private readonly api = inject(GLACIER_API);

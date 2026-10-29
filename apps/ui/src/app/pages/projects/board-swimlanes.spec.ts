@@ -160,3 +160,35 @@ describe('board grouped by subtasks (BOARD-07, D51)', () => {
     expect(changes).toEqual(['stories']);
   });
 });
+
+describe('board load states (M8)', () => {
+  it('reports a failed load instead of showing an empty board', async () => {
+    stub.api.workflows.list = async () => {
+      throw { code: 'NOT_FOUND', message: 'errors.projectNotFound' };
+    };
+    const { root } = await render();
+    expect(root.querySelector('[data-testid="board-load-error"]')?.textContent).toContain(
+      'project',
+    );
+  });
+});
+
+describe('long columns (M8 performance)', () => {
+  it('renders the first 100 cards per column and shows more on request', async () => {
+    for (let i = 0; i < 120; i++) {
+      await stub.api.tasks.create({ projectId, type: 'STORY', title: `Bulk ${i}` });
+    }
+    const fixture = TestBed.createComponent(Board);
+    fixture.componentRef.setInput('projectId', projectId);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const todoCards = () => root.querySelectorAll('[data-column="To Do"] .card-item').length;
+    expect(todoCards()).toBe(100);
+    const more = root.querySelector('[data-testid="column-show-more"]') as HTMLElement;
+    expect(more.textContent).toContain('21');
+    more.click();
+    await settle(fixture);
+    expect(todoCards()).toBe(121);
+    expect(root.querySelector('[data-testid="column-show-more"]')).toBeNull();
+  });
+});

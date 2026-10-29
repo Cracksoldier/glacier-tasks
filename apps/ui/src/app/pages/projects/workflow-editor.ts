@@ -16,6 +16,7 @@ import {
   type WorkflowStatus,
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { CATEGORY_KEYS } from '../../core/tasks/task-display';
 import { Dialog } from '../../shared/dialog';
@@ -32,11 +33,14 @@ import { Dialog } from '../../shared/dialog';
   template: `
     <section class="card" aria-labelledby="workflow-heading">
       <h2 id="workflow-heading">{{ i18n.t('projectSettings.statuses') }}</h2>
+      @if (statuses.error()) {
+        <p class="error-banner" role="alert" data-testid="statuses-load-error">{{ i18n.errorMessage(statuses.error()) }}</p>
+      }
       @if (error(); as message) {
         <p class="error-banner" role="alert" data-testid="workflow-error">{{ message }}</p>
       }
       <ol class="statuses" cdkDropList (cdkDropListDropped)="dropped($event)" data-testid="status-list">
-        @for (status of statuses.value() ?? []; track status.id; let i = $index; let last = $last) {
+        @for (status of loaded(statuses) ?? []; track status.id; let i = $index; let last = $last) {
           <li cdkDrag [cdkDragData]="status" [attr.data-status-name]="status.name">
             <span class="handle" cdkDragHandle [attr.aria-hidden]="true">
               <i class="fa-solid fa-grip-vertical"></i>
@@ -121,7 +125,7 @@ import { Dialog } from '../../shared/dialog';
           <label for="replacement">{{ i18n.t('workflow.replacement') }}</label>
           <select id="replacement" data-testid="wizard-replacement" (change)="replacementId.set($any($event.target).value)">
             <option value="" [selected]="replacementId() === ''">—</option>
-            @for (other of statuses.value() ?? []; track other.id) {
+            @for (other of loaded(statuses) ?? []; track other.id) {
               @if (other.id !== status.id) {
                 <option [value]="other.id">{{ other.name }}</option>
               }
@@ -212,6 +216,8 @@ import { Dialog } from '../../shared/dialog';
   `,
 })
 export class WorkflowEditor {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -270,7 +276,7 @@ export class WorkflowEditor {
     if (ok) return;
     // The browser already moved the selection, and the unchanged [checked] bindings are not
     // re-applied, so restore the whole group from the model.
-    const current = this.statuses.value()?.find((s) => s.isDefault)?.id;
+    const current = loaded(this.statuses)?.find((s) => s.isDefault)?.id;
     const radios = this.host.nativeElement.querySelectorAll<HTMLInputElement>(
       'input[type="radio"][name="default-status"]',
     );

@@ -218,6 +218,8 @@ export interface AppInfo {
   lastRestore: RestoreResult | null;
   /** A confirmed restore could not be activated; the previous workspace was kept (T9). */
   restoreFailed: boolean;
+  /** UI language Chromium was started with; native date fields follow it (D52). */
+  startLanguage: Language;
 }
 
 export interface ExportResult {

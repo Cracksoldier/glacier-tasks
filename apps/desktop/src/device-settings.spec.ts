@@ -2,7 +2,12 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DeviceSettingsStore, languageFromPreferences } from './device-settings.js';
+import {
+  chromiumLocale,
+  DeviceSettingsStore,
+  languageFromPreferences,
+  readStartLanguage,
+} from './device-settings.js';
 import { silentLogger } from './logger.js';
 
 let dir: string;
@@ -25,6 +30,24 @@ describe('languageFromPreferences (D15)', () => {
     [[], 'en'],
   ])('%j → %s', (languages, expected) => {
     expect(languageFromPreferences(languages)).toBe(expected);
+  });
+});
+
+describe('readStartLanguage (D52)', () => {
+  it('reads the stored language without writing, and falls back to the OS', () => {
+    expect(readStartLanguage(file, ['de-DE'])).toBe('de');
+    expect(existsSync(file)).toBe(false);
+    new DeviceSettingsStore(file, ['de-DE'], silentLogger).update({ language: 'en' });
+    expect(readStartLanguage(file, ['de-DE'])).toBe('en');
+    writeFileSync(file, '{ not json');
+    expect(readStartLanguage(file, ['de-AT'])).toBe('de');
+    writeFileSync(file, JSON.stringify({ language: 'fr' }));
+    expect(readStartLanguage(file, ['en-US'])).toBe('en');
+  });
+
+  it('maps UI languages to Chromium locales', () => {
+    expect(chromiumLocale('de')).toBe('de-DE');
+    expect(chromiumLocale('en')).toBe('en-US');
   });
 });
 

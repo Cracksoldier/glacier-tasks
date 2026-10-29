@@ -139,7 +139,7 @@ import { Dialog } from '../../shared/dialog';
 
       &.over {
         border-color: var(--color-accent);
-        background-color: var(--color-accent-muted);
+        background-color: var(--color-surface-hover);
       }
       button {
         margin-left: auto;

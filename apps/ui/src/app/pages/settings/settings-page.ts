@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { ATTACHMENT_MAX_MIB_LIMIT, type Language, type Theme } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import { SettingsStore } from '../../core/settings/settings-store';
 import { DataSection } from './data-section';
@@ -28,6 +29,8 @@ interface Choice<T> {
   styleUrl: './settings-page.scss',
 })
 export class SettingsPage {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   protected readonly settings = inject(SettingsStore);
   private readonly api = inject(GLACIER_API);
@@ -65,6 +68,11 @@ export class SettingsPage {
       input.value = String(this.settings.attachmentMaxMiB());
       this.error.set(this.i18n.t('settings.saveFailed'));
     }
+  }
+
+  /** D52: native date fields switch language only with a restart. */
+  protected async restart(): Promise<void> {
+    await this.api.app.restart().catch(() => this.error.set(this.i18n.t('settings.saveFailed')));
   }
 
   protected async selectTheme(theme: Theme): Promise<void> {

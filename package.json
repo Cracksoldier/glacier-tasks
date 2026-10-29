@@ -17,7 +17,8 @@
   "scripts": {
     "start": "npm run build -w @glacier-tasks/domain -w @glacier-tasks/data && concurrently -k -n pkgs,ui,app -c gray,blue,cyan \"tsc -b -w --preserveWatchOutput packages/domain packages/data\" \"npm start -w @glacier-tasks/ui\" \"wait-on tcp:localhost:4200 && npm run dev -w @glacier-tasks/desktop\"",
     "build": "npm run build --workspace @glacier-tasks/domain --workspace @glacier-tasks/data --workspace @glacier-tasks/ui --workspace @glacier-tasks/desktop",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && npm run check:i18n",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "package:dir": "npm run build && npm run package:dir --workspace @glacier-tasks/desktop",
@@ -31,6 +32,7 @@
     "@resvg/resvg-js": "2.6.2",
     "@types/better-sqlite3": "9.6.0",
     "@types/node": "24.19.2",
+    "axe-core": "4.14.0",
     "concurrently": "10.0.6",
     "typescript": "6.0.3",
     "vitest": "5.0.5",

@@ -12,22 +12,22 @@
   --color-accent-muted: #63b3ed;
   --color-accent-contrast: #0d1b2a;
   --color-text: #e0e6ed;
-  --color-text-muted: #8899aa;
+  --color-text-muted: #9aaabb; /* ≥ 4.5:1 on every dark surface (M8 a11y) */
   --color-border: #2c3e54;
   --color-shadow: rgba(0, 0, 0, 0.4);
   --color-focus: #4cc9f0;
   --color-danger: #c0392b;
   --color-danger-hover: #d64534;
   --color-danger-contrast: #ffffff;
-  --color-danger-text: #e74c3c;
+  --color-danger-text: #ff7b6e;
   --color-backdrop: rgba(4, 10, 18, 0.6);
   --avatar-1: #2b6cb0;
-  --avatar-2: #2f855a;
+  --avatar-2: #2e8258;
   --avatar-3: #9b2c2c;
   --avatar-4: #6b46c1;
-  --avatar-5: #b7791f;
+  --avatar-5: #9d681b;
   --avatar-6: #2c7a7b;
-  --avatar-text: #ffffff;
+  --avatar-text: #ffffff; /* every avatar color keeps ≥ 4.5:1 with it */
   // Label palette (D25): background/foreground pairs per palette id.
   --label-slate-bg: #334155;
   --label-slate-fg: #e2e8f0;
@@ -58,8 +58,8 @@
   --color-surface: #ffffff;
   --color-surface-elevated: #ffffff;
   --color-surface-hover: #e8eef5;
-  --color-accent: #0d8ecf;
-  --color-accent-muted: #3aa8dd;
+  --color-accent: #0a6fa8; /* ≥ 4.5:1 on white and on the light page background */
+  --color-accent-muted: #0a5f91;
   --color-accent-contrast: #ffffff;
   --color-text: #1b263b;
   --color-text-muted: #5a6b7d;
@@ -71,12 +71,12 @@
   --color-danger-contrast: #ffffff;
   --color-danger-text: #c0392b;
   --color-backdrop: rgba(13, 27, 42, 0.35);
-  --avatar-1: #3182ce;
-  --avatar-2: #38a169;
+  --avatar-1: #2d78be;
+  --avatar-2: #2e8456;
   --avatar-3: #c53030;
   --avatar-4: #805ad5;
-  --avatar-5: #c05621;
-  --avatar-6: #319795;
+  --avatar-5: #bc5420;
+  --avatar-6: #297f7d;
   --avatar-text: #ffffff;
   --label-slate-bg: #e2e8f0;
   --label-slate-fg: #334155;

@@ -31,7 +31,7 @@ push only when the user asks.
   Renderer warnings and errors are echoed to the terminal; F12 opens DevTools. Main/preload
   changes need an app restart.
 - `npm run build`: domain → data → ui → desktop (order of the `workspaces` array)
-- `npm test`: Vitest in all workspaces (UI via `ng test`)
+- `npm test`: Vitest in all workspaces (UI via `ng test`); then `check:i18n` fails on translation keys nothing uses
 - `npm run e2e`: Playwright drives the built, unpackaged app (`tests/e2e`); run `npm run build` first.
   `GLACIER_TEST_DIALOG_PATH` (only honoured with `GLACIER_USER_DATA`) replaces the native
   save/open dialogs and makes a confirmed restore exit instead of relaunching
@@ -83,7 +83,8 @@ push only when the user asks.
   Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts`, `media-protocol.ts`
   (`glacier-media://avatar|attachment/<uuid>`) and `smoke.ts`.
 - `apps/ui`: Angular renderer (standalone, zoneless, OnPush, signals; ADR 0006):
-  - `core/api`: `GLACIER_API` token
+  - `core/api`: `GLACIER_API` token; `loaded(resource)` reads resource values (Angular's
+    `value()` throws after a load error, so never call it directly)
   - `core/settings`, `core/theme`, `core/i18n`, `core/projects`, `core/users`: signal stores
   - `core/markdown`: `MarkdownService` (marked + DOMPurify, ADR 0008); `core/tasks`: display keys,
     `ProjectViewStore` (per-project sort/filters/columns, D42), `queryAll`; `core/activity`: history

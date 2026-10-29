@@ -12,6 +12,7 @@ import {
 import type { AttachmentMetadata } from '@glacier-tasks/domain';
 import { diffLines } from '../../core/activity/line-diff';
 import { GLACIER_API } from '../../core/api/glacier-api';
+import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { Dialog } from '../../shared/dialog';
 import { MarkdownView } from '../../shared/markdown-view';
@@ -33,7 +34,7 @@ type Mode = 'rendered' | 'source' | 'compare';
       }
       <div class="layout">
         <ol class="versions" data-testid="version-list">
-          @for (version of versions.value() ?? []; track version.eventId; let i = $index) {
+          @for (version of loaded(versions) ?? []; track version.eventId; let i = $index) {
             <li>
               <button type="button" class="version" data-testid="version-item"
                 [class.active]="version.eventId === selectedId()" (click)="selectedId.set(version.eventId)">
@@ -178,6 +179,8 @@ type Mode = 'rendered' | 'source' | 'compare';
   `,
 })
 export class DescriptionVersions {
+  /** Resource values without the error-state throw (see core/api/loaded). */
+  protected readonly loaded = loaded;
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
 
@@ -205,17 +208,17 @@ export class DescriptionVersions {
     loader: ({ params }) => this.api.tasks.descriptionVersions(params),
   });
   protected readonly selectedId = linkedSignal(
-    () => this.initialEventId() ?? this.versions.value()?.[0]?.eventId ?? null,
+    () => this.initialEventId() ?? loaded(this.versions)?.[0]?.eventId ?? null,
   );
   protected readonly mode = signal<Mode>('rendered');
 
   private readonly index = computed(() =>
-    (this.versions.value() ?? []).findIndex((v) => v.eventId === this.selectedId()),
+    (loaded(this.versions) ?? []).findIndex((v) => v.eventId === this.selectedId()),
   );
-  protected readonly selected = computed(() => this.versions.value()?.[this.index()]);
+  protected readonly selected = computed(() => loaded(this.versions)?.[this.index()]);
   /** Newest first, so the predecessor is the next entry. */
   protected readonly previous = computed(() =>
-    this.index() >= 0 ? this.versions.value()?.[this.index() + 1] : undefined,
+    this.index() >= 0 ? loaded(this.versions)?.[this.index() + 1] : undefined,
   );
   protected readonly diff = computed(() =>
     diffLines(this.previous()?.markdown ?? '', this.selected()?.markdown ?? ''),
