@@ -39,3 +39,14 @@ export async function launchApp(
     throw error;
   }
 }
+
+/**
+ * Resolves once the app's process has really exited. Playwright's 'close' event fires when its
+ * debugging connection drops, which can be before the process releases the single-instance
+ * lock and its files; a relaunch right then would exit at once.
+ */
+export function processExit(app: ElectronApplication): Promise<void> {
+  const child = app.process();
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  return new Promise((resolve) => child.once('exit', () => resolve()));
+}

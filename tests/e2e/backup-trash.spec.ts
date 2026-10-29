@@ -8,7 +8,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, type Page, test } from '@playwright/test';
-import { createUserDataDir, launchApp } from './app';
+import { createUserDataDir, launchApp, processExit } from './app';
 
 let userData: ReturnType<typeof createUserDataDir>;
 let files: string;
@@ -96,7 +96,7 @@ test('a complete backup restores everything and search works right away', async 
 
     await first.page.getByTestId('data-restore').click();
     await expect(first.page.getByTestId('restore-preview')).toContainText('backup.glaciertasks');
-    const closed = first.app.waitForEvent('close');
+    const closed = processExit(first.app);
     await first.page.getByTestId('restore-confirm').click();
     await closed;
   } catch (error) {

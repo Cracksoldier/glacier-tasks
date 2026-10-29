@@ -6,7 +6,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { MIGRATIONS, migrate, openDatabase } from '@glacier-tasks/data';
-import { createUserDataDir, launchApp } from './app';
+import { createUserDataDir, launchApp, processExit } from './app';
 
 let userData: ReturnType<typeof createUserDataDir>;
 
@@ -78,7 +78,7 @@ test('date fields switch to the UI language after a restart (D52)', async () => 
         await expect(before.page.getByTestId('restart-hint')).toHaveCount(0);
         return before.page.evaluate(() => navigator.language);
       }
-      const closed = before.app.waitForEvent('close');
+      const closed = processExit(before.app);
       await before.page.getByTestId('restart-now').click();
       await closed;
     } catch (error) {
