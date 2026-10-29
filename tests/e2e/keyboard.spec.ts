@@ -44,6 +44,7 @@ test('projects, stories, subtasks, status changes and trash work by keyboard', a
     await page.getByTestId('task-title').focus();
     await page.keyboard.press('End');
     await page.keyboard.type(' v2');
+    await expect(page.getByTestId('task-save')).toBeEnabled();
     await press(page, 'task-save');
     await expect(page.getByTestId('task-saved')).toBeVisible();
 

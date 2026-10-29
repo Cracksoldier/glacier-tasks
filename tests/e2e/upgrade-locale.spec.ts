@@ -76,7 +76,10 @@ test('date fields switch to the UI language after a restart (D52)', async () => 
       const started = await before.page.evaluate(() => window.glacierTasks?.app.info());
       if (started?.startLanguage === language) {
         await expect(before.page.getByTestId('restart-hint')).toHaveCount(0);
-        return before.page.evaluate(() => navigator.language);
+        const current = await before.page.evaluate(() => navigator.language);
+        // Close it, or the next launch finds the single-instance lock taken and exits.
+        await before.app.close();
+        return current;
       }
       const closed = processExit(before.app);
       await before.page.getByTestId('restart-now').click();
