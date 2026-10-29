@@ -34,7 +34,7 @@
 
 **Goal:** Packaged app starts, communicates securely through typed IPC, opens an initialized SQLite database, and already has its final look and translation layer.
 
-**Status:** Done locally (2026-10-29); see `docs/adr/0006-renderer-architecture.md`. CI run pending.
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/0006-renderer-architecture.md`.
 
 **Tasks**
 1. Bootstrap Electron main/preload plus Angular renderer; dev/watch and packaged builds; Biome formatting; Vitest.
