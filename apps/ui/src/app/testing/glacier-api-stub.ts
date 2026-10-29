@@ -20,7 +20,9 @@ import {
   type TaskQuery,
   type TaskSummary,
   type UpdateTaskInput,
+  type StatusCategory,
   type UserProfile,
+  type WorkflowStatus,
 } from '@glacier-tasks/domain';
 
 export interface GlacierApiStub {
@@ -34,6 +36,7 @@ export interface GlacierApiStub {
   /** Avatar file id returned by the next users.chooseAvatar call; null simulates cancel. */
   nextAvatarFileId: string | null;
   labels: Label[];
+  statuses: WorkflowStatus[];
   /** All tasks incl. trashed; `descriptionMarkdown` kept alongside the summary. */
   tasks: Array<TaskSummary & { descriptionMarkdown: string }>;
 }
@@ -67,6 +70,7 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     users: [],
     nextAvatarFileId: null,
     labels: [],
+    statuses: [],
     tasks: [],
   };
   let nextId = 1;
@@ -103,6 +107,18 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
       doneStoryCount: 0,
     };
     stub.projects.push(project);
+    stub.statuses.push(
+      ...DEFAULT_STATUSES.map((status, position) => ({
+        id: `${project.id}-status-${position}`,
+        projectId: project.id,
+        name: status.name,
+        category: status.category,
+        position,
+        isDefault: status.isDefault,
+        createdAt: now(),
+        updatedAt: now(),
+      })),
+    );
     return structuredClone(project);
   };
   api['projects']!['update'] = async (id, patch) => {
@@ -117,19 +133,7 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     if (description !== undefined) project.description = description;
     return structuredClone(project);
   };
-  api['workflows']!['list'] = async (projectId) => {
-    findProject(projectId as string);
-    return DEFAULT_STATUSES.map((status, position) => ({
-      id: `${projectId}-status-${position}`,
-      projectId,
-      name: status.name,
-      category: status.category,
-      position,
-      isDefault: status.isDefault,
-      createdAt: now(),
-      updatedAt: now(),
-    }));
-  };
+  installWorkflowApi(stub, api, newId, now);
 
   api['users']!['list'] = async (includeArchived) =>
     structuredClone(stub.users.filter((u) => includeArchived || u.archivedAt === null));
@@ -193,6 +197,109 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
   };
   installTaskApi(stub, api, newId, now);
   return stub;
+}
+
+/** In-memory statuses with the D07/D01 rules the UI reacts to. */
+function installWorkflowApi(
+  stub: GlacierApiStub,
+  api: Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>>,
+  newId: () => string,
+  now: () => string,
+): void {
+  const fail = (code: string, message: string) => ({ code, message });
+  const ofProject = (projectId: string) =>
+    stub.statuses.filter((s) => s.projectId === projectId).sort((a, b) => a.position - b.position);
+  const find = (id: string) => {
+    const status = stub.statuses.find((s) => s.id === id);
+    if (!status) throw fail('NOT_FOUND', 'errors.statusNotFound');
+    return status;
+  };
+  const renumber = (projectId: string, ids: string[]) =>
+    ids.forEach((id, position) => {
+      find(id).position = position;
+    });
+
+  api['workflows']!['list'] = async (projectId) => {
+    if (!stub.projects.some((p) => p.id === projectId)) {
+      throw fail('NOT_FOUND', 'errors.projectNotFound');
+    }
+    return structuredClone(ofProject(projectId as string));
+  };
+  api['workflows']!['create'] = async (projectId, input) => {
+    const { name, category } = input as { name: string; category: StatusCategory };
+    const statuses = ofProject(projectId as string);
+    if (statuses.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+      throw fail('CONFLICT', 'errors.statusNameTaken');
+    }
+    const status: WorkflowStatus = {
+      id: newId(),
+      projectId: projectId as string,
+      name,
+      category,
+      position: statuses.length,
+      isDefault: false,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    stub.statuses.push(status);
+    return structuredClone(status);
+  };
+  api['workflows']!['update'] = async (id, patch) => {
+    const status = find(id as string);
+    const { name, category, isDefault, position } = patch as Partial<WorkflowStatus>;
+    const statuses = ofProject(status.projectId);
+    if (
+      category &&
+      category !== 'DONE' &&
+      !statuses.some((s) => s.id !== status.id && s.category === 'DONE')
+    ) {
+      throw fail('CONFLICT', 'errors.lastDoneStatus');
+    }
+    if (name) status.name = name;
+    if (category) status.category = category;
+    if (isDefault) {
+      for (const s of statuses) s.isDefault = s.id === status.id;
+    }
+    if (position !== undefined) {
+      const ids = statuses.map((s) => s.id).filter((x) => x !== status.id);
+      ids.splice(Math.min(position, ids.length), 0, status.id);
+      renumber(status.projectId, ids);
+    }
+    return structuredClone(status);
+  };
+  api['workflows']!['usage'] = async (id) => {
+    find(id as string);
+    const using = stub.tasks.filter((t) => t.statusId === id);
+    return {
+      stories: using.filter((t) => t.type === 'STORY' && !t.trashedAt).length,
+      subtasks: using.filter((t) => t.type === 'SUBTASK' && !t.trashedAt).length,
+      trashed: using.filter((t) => t.trashedAt).length,
+    };
+  };
+  api['workflows']!['removeAndMigrate'] = async (id, replacementId) => {
+    const status = find(id as string);
+    const replacement = stub.statuses.find((s) => s.id === replacementId);
+    if (
+      !replacement ||
+      replacement.id === status.id ||
+      replacement.projectId !== status.projectId
+    ) {
+      throw fail('VALIDATION', 'errors.invalidReplacement');
+    }
+    const remaining = ofProject(status.projectId).filter((s) => s.id !== status.id);
+    if (!remaining.some((s) => s.category === 'DONE'))
+      throw fail('CONFLICT', 'errors.lastDoneStatus');
+    for (const task of stub.tasks.filter((t) => t.statusId === status.id)) {
+      task.statusId = replacement.id;
+      task.version++;
+    }
+    if (status.isDefault) replacement.isDefault = true;
+    stub.statuses = stub.statuses.filter((s) => s.id !== status.id);
+    renumber(
+      status.projectId,
+      remaining.map((s) => s.id),
+    );
+  };
 }
 
 type ApiRecord = Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>>;
@@ -293,6 +400,19 @@ function installTaskApi(
     if (task.version !== version) throw fail('CONFLICT', 'errors.staleTask');
     Object.assign(task, patch as UpdateTaskInput, { version: task.version + 1 });
     return detail(task.id);
+  };
+  api['tasks']!['move'] = async (id, version, statusId, sortOrder) => {
+    const task = findTask(id as string);
+    if (task.type !== 'STORY') throw fail('VALIDATION', 'errors.moveStoriesOnly');
+    if (task.version !== version) throw fail('CONFLICT', 'errors.staleTask');
+    const columnChanged = task.statusId !== statusId;
+    const column = stub.tasks.filter((t) => t.statusId === statusId && t.id !== task.id);
+    const top = column.map((t) => t.sortOrder).sort()[0];
+    Object.assign(task, {
+      statusId,
+      sortOrder: !columnChanged && sortOrder ? sortOrder : top ? `0${top}` : 'V',
+      version: task.version + 1,
+    });
   };
   api['tasks']!['moveToStory'] = async (id, version, target) => {
     const task = findTask(id as string);

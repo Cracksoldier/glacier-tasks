@@ -49,6 +49,13 @@ export interface WorkflowStatus {
   updatedAt: string;
 }
 
+/** Tasks using a status: live stories, live subtasks and trashed tasks (D01). */
+export interface StatusUsage {
+  stories: number;
+  subtasks: number;
+  trashed: number;
+}
+
 export interface Label {
   id: string;
   projectId: string;

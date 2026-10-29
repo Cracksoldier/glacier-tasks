@@ -56,8 +56,9 @@ push only when the user asks.
 - `packages/data`: main process only: `openDatabase`, `migrate`, migrations in
   `src/migrations/NNNN-name.ts` (never edit a released migration).
   - `src/services/`: DB-only services (`ProjectService`, `UserService`, `ActivityService`,
-    `TaskService`, `LabelService`, `TrashService`) taking a `ServiceContext` (db, clock, id
-    generator). Task writes check `version` (D05) and bump it on every change; see ADR 0008. Each write is one transaction that
+    `TaskService`, `LabelService`, `TrashService`, `WorkflowService`) taking a `ServiceContext` (db, clock, id
+    generator). Task writes check `version` (D05) and bump it on every change; see ADR 0008.
+    Status rules and board moves: ADR 0009. Each write is one transaction that
     also records its activity event (D12). Services never touch the file system.
   - Services throw `AppError` with an `errors.*` message key; every key needs EN/DE text.
 - `apps/desktop`: Electron main + preload, bundled by esbuild into CJS (`scripts/build.mjs`);
@@ -81,7 +82,8 @@ push only when the user asks.
   - `shared/`: `<app-avatar>`, `<app-dialog>` (native `<dialog>`), `<app-label-chip>`,
     `<app-markdown-view>`; global building blocks
     (`.btn`, `.field`, `.card`, …) in `styles/_components.scss`
-  - `shell/`, `pages/`
+  - `shell/`, `pages/` (`pages/projects/board.ts`: Kanban with CDK drag & drop;
+    `workflow-editor.ts`: statuses and the delete-and-migrate wizard)
   - `testing/`: API stub (in-memory projects/users) and providers
 
 Packages compile to `dist/` with `tsc -b`. Rebuild `domain` after changes before the UI or

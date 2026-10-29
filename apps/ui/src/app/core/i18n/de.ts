@@ -46,8 +46,6 @@ export const de = {
     'Der Schlüssel ist festgelegt, weil dieses Projekt bereits Vorgangs-IDs vergeben hat.',
   'projectSettings.statuses': 'Workflow-Status',
   'projectSettings.defaultStatus': 'Standard',
-  'projectSettings.statusesHint':
-    'Das Bearbeiten des Workflows ist in einer späteren Version verfügbar.',
 
   'status.category.TODO': 'Offen',
   'status.category.IN_PROGRESS': 'In Arbeit',
@@ -88,7 +86,7 @@ export const de = {
   'stories.create': 'Story anlegen',
   'stories.createTitle': 'Neue Story',
   'stories.emptyTitle': 'Noch keine Stories',
-  'stories.emptyBody': 'Lege die erste Story an. Das Kanban-Board folgt in einer späteren Version.',
+  'stories.emptyBody': 'Lege die erste Story an, um mit der Planung zu beginnen.',
   'taskType.STORY': 'Story',
   'taskType.SUBTASK': 'Unteraufgabe',
   'priority.LOW': 'Niedrig',
@@ -175,6 +173,35 @@ export const de = {
   'errors.projectTrashed': 'Stelle zuerst das Projekt wieder her.',
   'errors.notTrashed': 'Dieses Element liegt nicht im Papierkorb.',
   'errors.alreadyTrashed': 'Dieses Element liegt bereits im Papierkorb.',
+
+  'board.views': 'Ansicht',
+  'board.viewBoard': 'Board',
+  'board.viewList': 'Liste',
+  'board.toggleSubtasks': 'Unteraufgaben ein- oder ausblenden',
+  'board.moveTo': 'In Status verschieben',
+  'board.emptyColumn': 'Keine Stories',
+  'board.staleRefreshed':
+    'Die Story wurde inzwischen geändert. Das Board wurde aktualisiert; bitte versuche es erneut.',
+  'workflow.name': 'Statusname',
+  'workflow.rename': 'Status umbenennen',
+  'workflow.category': 'Kategorie',
+  'workflow.moveUp': 'Nach oben',
+  'workflow.moveDown': 'Nach unten',
+  'workflow.delete': 'Status löschen',
+  'workflow.newPlaceholder': 'Name des neuen Status',
+  'workflow.add': 'Status hinzufügen',
+  'workflow.deleteTitle': 'Status löschen',
+  'workflow.deleteUsage':
+    '„{name}“ wird von {stories} Stories, {subtasks} Unteraufgaben und {trashed} Aufgaben im Papierkorb verwendet. Sie werden alle in den gewählten Status verschoben.',
+  'workflow.replacement': 'Aufgaben verschieben nach',
+  'workflow.deleteDefaultHint':
+    'Dies ist der Standardstatus; der gewählte Status wird zum neuen Standard.',
+  'workflow.deleteConfirm': 'Löschen und Aufgaben verschieben',
+  'errors.statusNotFound': 'Der Status existiert nicht mehr.',
+  'errors.statusNameTaken': 'In diesem Projekt gibt es bereits einen Status mit diesem Namen.',
+  'errors.lastDoneStatus': 'Jedes Projekt braucht mindestens einen Status der Kategorie Erledigt.',
+  'errors.invalidReplacement': 'Wähle einen anderen Status dieses Projekts.',
+  'errors.moveStoriesOnly': 'Auf dem Board können nur Stories verschoben werden.',
 
   'errors.validation': 'Die Eingabe ist ungültig.',
   'errors.unexpected':

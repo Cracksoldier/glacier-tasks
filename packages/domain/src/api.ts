@@ -18,6 +18,7 @@ import type {
   Project,
   ProjectSummary,
   RestoreResult,
+  StatusUsage,
   TaskDetail,
   TaskSummary,
   TrashItem,
@@ -92,6 +93,8 @@ export interface GlacierTasksAPI {
     list(projectId: string): Promise<WorkflowStatus[]>;
     create(projectId: string, input: StatusInput): Promise<WorkflowStatus>;
     update(id: string, patch: StatusPatch): Promise<WorkflowStatus>;
+    /** Tasks that a removal would migrate, for the delete wizard (D01). */
+    usage(statusId: string): Promise<StatusUsage>;
     removeAndMigrate(statusId: string, replacementStatusId: string): Promise<void>;
   };
   attachments: {
@@ -147,7 +150,7 @@ export const IPC_CHANNELS = {
   activity: ['forEntity', 'forProject'],
   labels: ['list', 'create', 'update', 'remove'],
   trash: ['list'],
-  workflows: ['list', 'create', 'update', 'removeAndMigrate'],
+  workflows: ['list', 'create', 'update', 'usage', 'removeAndMigrate'],
   attachments: ['add', 'list', 'open', 'saveAs', 'remove'],
   data: ['backup', 'restore', 'exportJson'],
   settings: ['getDevice', 'updateDevice', 'chooseAutoBackupFolder'],

@@ -68,6 +68,7 @@ export const IPC_ARGS = {
   'workflows:list': byId,
   'workflows:create': z.tuple([idSchema, statusInputSchema]),
   'workflows:update': z.tuple([idSchema, statusPatchSchema]),
+  'workflows:usage': byId,
   'workflows:removeAndMigrate': z.tuple([idSchema, idSchema]),
 
   'attachments:add': byId,

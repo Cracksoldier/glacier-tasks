@@ -103,7 +103,7 @@ test('stories, subtasks, Markdown and moves persist (UJ-01, UJ-02, D04)', async 
     await page.locator('[data-project-key="GAME"]').click();
     await createStory(page, 'Crafting');
     await page.locator('[data-project-key="GAME"]').click();
-    await page.locator('[data-issue-key="GAME-1"]').click();
+    await page.locator('.card-item[data-issue-key="GAME-1"] [data-testid="card-title"]').click();
     await page.locator('[data-issue-key="GAME-2"] .subtask-title').click();
     await page.getByTestId('task-move-target').selectOption({ label: 'GAME-4 Crafting' });
     await page.getByTestId('task-move').click();
@@ -117,12 +117,14 @@ test('stories, subtasks, Markdown and moves persist (UJ-01, UJ-02, D04)', async 
   try {
     const page2 = second.page;
     await expect(page2.getByTestId('project-title')).toHaveText('Game Dev');
-    await expect(page2.locator('[data-issue-key="GAME-1"]')).toContainText('Implement inventory');
+    await expect(page2.locator('.card-item[data-issue-key="GAME-1"]')).toContainText(
+      'Implement inventory',
+    );
     await expect(
-      page2.locator('[data-issue-key="GAME-1"] [data-testid="story-progress"]'),
+      page2.locator('.card-item[data-issue-key="GAME-1"] [data-testid="card-progress"]'),
     ).toHaveText('1/1');
     await expect(
-      page2.locator('[data-issue-key="GAME-4"] [data-testid="story-progress"]'),
+      page2.locator('.card-item[data-issue-key="GAME-4"] [data-testid="card-progress"]'),
     ).toHaveText('1/1');
   } finally {
     await second.app.close();
@@ -146,7 +148,7 @@ test('trash keeps independently trashed subtasks in the trash (UJ-06, D02, D39)'
     await page.getByTestId('task-trash').click();
     await page.getByTestId('task-trash-confirm').click();
     await expect(page.getByTestId('project-title')).toHaveText('Game Dev');
-    await expect(page.locator('[data-issue-key="GAME-1"]')).toHaveCount(0);
+    await expect(page.locator('.card-item[data-issue-key="GAME-1"]')).toHaveCount(0);
 
     await page.getByTestId('nav-trash').click();
     await expect(page.locator('[data-trash-title]')).toHaveCount(2);
@@ -155,7 +157,7 @@ test('trash keeps independently trashed subtasks in the trash (UJ-06, D02, D39)'
     await expect(page.locator('[data-trash-title="A"]')).toHaveCount(1);
 
     await page.locator('[data-project-key="GAME"]').click();
-    await page.locator('[data-issue-key="GAME-1"]').click();
+    await page.locator('.card-item[data-issue-key="GAME-1"] [data-testid="card-title"]').click();
     await expect(page.locator('[data-issue-key="GAME-3"]')).toContainText('B');
     await expect(page.locator('[data-issue-key="GAME-2"]')).toHaveCount(0);
 

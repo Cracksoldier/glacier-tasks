@@ -164,7 +164,7 @@ export class TaskService {
     const order =
       input.sortBy === 'issueKey'
         ? `t.issue_number ${direction}`
-        : `s.position ${direction}, t.sort_order ${direction}`;
+        : `s.position ${direction}, t.sort_order ${direction}, t.issue_number ${direction}`;
     const filter = where.join(' AND ');
     const { total } = this.ctx.db
       .prepare(`SELECT count(*) AS total FROM tasks t WHERE ${filter}`)
@@ -349,6 +349,39 @@ export class TaskService {
       this.record(row, TASK_EVENTS.updated, payload);
     })();
     return this.get(id);
+  }
+
+  /**
+   * Board move of a story (BOARD-04/05): to another column it goes to the top (D26); within
+   * its column it takes the given sort key. Only a column change is recorded in history.
+   */
+  move(id: string, expectedVersion: number, statusId: string, sortOrder?: string): void {
+    this.ctx.db.transaction(() => {
+      const row = this.requireLive(id);
+      if (row.type !== 'STORY') throw new AppError('VALIDATION', 'errors.moveStoriesOnly');
+      assertVersion(row, expectedVersion);
+      const to = this.statusSnapshot(row.project_id, statusId);
+      const columnChanged = statusId !== row.status_id;
+      const key =
+        columnChanged || sortOrder === undefined
+          ? sortKeyBetween(null, this.firstStoryKeyInStatus(row.project_id, statusId, id))
+          : sortOrder;
+      const result = this.ctx.db
+        .prepare(
+          `UPDATE tasks SET status_id = ?, sort_order = ?, version = version + 1, updated_at = ?
+           WHERE id = ? AND version = ?`,
+        )
+        .run(statusId, key, this.ctx.now(), id, expectedVersion);
+      if (result.changes !== 1) throw stale();
+      if (columnChanged) {
+        const payload: TaskUpdatedPayload = {
+          issueKey: issueKey(row),
+          title: row.title,
+          changes: { status: { from: this.statusSnapshot(row.project_id, row.status_id), to } },
+        };
+        this.record(row, TASK_EVENTS.updated, payload);
+      }
+    })();
   }
 
   /** D04: a subtask moves to another live story of the same project; its key stays. */

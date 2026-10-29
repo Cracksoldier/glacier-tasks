@@ -11,12 +11,15 @@ export class SettingsStore {
   readonly language = signal<Language>('en');
   /** Last opened project (PROJ-02); validated by the main process on write. */
   readonly lastProjectId = signal<string | null>(null);
+  /** Board or list on the project page (D17). */
+  readonly lastView = signal<'board' | 'list'>('board');
 
   async load(): Promise<void> {
     const settings = await this.api.settings.getDevice();
     this.theme.set(settings.theme);
     this.language.set(settings.language);
     this.lastProjectId.set(settings.lastProjectId);
+    this.lastView.set(settings.lastView);
   }
 
   setTheme(theme: Theme): Promise<void> {
@@ -33,6 +36,12 @@ export class SettingsStore {
     if (this.lastProjectId() === lastProjectId) return Promise.resolve();
     return this.optimistic(this.lastProjectId, lastProjectId, () =>
       this.api.settings.updateDevice({ lastProjectId }),
+    );
+  }
+
+  setLastView(lastView: 'board' | 'list'): Promise<void> {
+    return this.optimistic(this.lastView, lastView, () =>
+      this.api.settings.updateDevice({ lastView }),
     );
   }
 

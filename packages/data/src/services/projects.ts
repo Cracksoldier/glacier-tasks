@@ -16,6 +16,7 @@ import {
   type WorkflowStatus,
 } from '@glacier-tasks/domain';
 import { recordEvent } from './activity.js';
+import { listStatuses } from './workflows.js';
 import { fieldChange, isUniqueViolation, type ServiceContext } from './context.js';
 
 interface ProjectRow {
@@ -34,17 +35,6 @@ interface SummaryRow extends ProjectRow {
   done_story_count: number;
 }
 
-interface StatusRow {
-  id: string;
-  project_id: string;
-  name: string;
-  category: WorkflowStatus['category'];
-  position: number;
-  is_default: number;
-  created_at: string;
-  updated_at: string;
-}
-
 function toProject(row: ProjectRow): Project {
   return {
     id: row.id,
@@ -55,19 +45,6 @@ function toProject(row: ProjectRow): Project {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     trashedAt: row.trashed_at,
-  };
-}
-
-function toStatus(row: StatusRow): WorkflowStatus {
-  return {
-    id: row.id,
-    projectId: row.project_id,
-    name: row.name,
-    category: row.category,
-    position: row.position,
-    isDefault: row.is_default === 1,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
   };
 }
 
@@ -246,12 +223,7 @@ export class ProjectService {
   /** Workflow statuses of a live project in board order. */
   statuses(projectId: string): WorkflowStatus[] {
     this.requireLive(projectId);
-    return this.ctx.db
-      .prepare<[string], StatusRow>(
-        `SELECT * FROM statuses WHERE project_id = ? ORDER BY position, created_at`,
-      )
-      .all(projectId)
-      .map(toStatus);
+    return listStatuses(this.ctx.db, projectId);
   }
 
   /**

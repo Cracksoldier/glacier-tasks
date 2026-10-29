@@ -5,7 +5,6 @@ import {
   inject,
   input,
   linkedSignal,
-  resource,
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -21,15 +20,15 @@ import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
 import { SettingsStore } from '../../core/settings/settings-store';
-import { CATEGORY_KEYS } from '../../core/tasks/task-display';
 import { Dialog } from '../../shared/dialog';
 import { LabelManager } from './label-manager';
+import { WorkflowEditor } from './workflow-editor';
 
-/** Edit name, key and description (PROJ-03); statuses are read-only until M4. */
+/** Project settings (PROJ-03): name, key and description, workflow, labels, trash. */
 @Component({
   selector: 'app-project-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Dialog, LabelManager, RouterLink],
+  imports: [Dialog, LabelManager, RouterLink, WorkflowEditor],
   template: `
     @if (project(); as project) {
       <section class="page narrow">
@@ -107,21 +106,7 @@ import { LabelManager } from './label-manager';
           </div>
         </form>
 
-        <section class="card statuses" aria-labelledby="statuses-heading">
-          <h2 id="statuses-heading">{{ i18n.t('projectSettings.statuses') }}</h2>
-          <ol data-testid="status-list">
-            @for (status of statuses.value() ?? []; track status.id) {
-              <li>
-                <span class="status-name">{{ status.name }}</span>
-                <span class="category">{{ i18n.t(categoryKey[status.category]) }}</span>
-                @if (status.isDefault) {
-                  <span class="badge">{{ i18n.t('projectSettings.defaultStatus') }}</span>
-                }
-              </li>
-            }
-          </ol>
-          <p class="field-hint">{{ i18n.t('projectSettings.statusesHint') }}</p>
-        </section>
+        <app-workflow-editor class="block" [projectId]="project.id" />
 
         <app-label-manager class="block" [projectId]="project.id" />
 
@@ -201,41 +186,6 @@ import { LabelManager } from './label-manager';
       margin: 0 0 16px;
       color: var(--color-accent);
     }
-    .statuses {
-      margin-top: 20px;
-
-      h2 {
-        margin: 0 0 12px;
-        font-size: 15px;
-      }
-      ol {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin: 0 0 12px;
-        padding: 0;
-        list-style: none;
-      }
-      li {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-    }
-    .status-name {
-      min-width: 140px;
-      font-weight: 600;
-    }
-    .category {
-      color: var(--color-text-muted);
-    }
-    .badge {
-      padding: 1px 8px;
-      border: 1px solid var(--color-accent);
-      border-radius: 999px;
-      color: var(--color-accent);
-      font-size: 12px;
-    }
   `,
 })
 export class ProjectSettingsPage {
@@ -250,7 +200,6 @@ export class ProjectSettingsPage {
 
   protected readonly nameMax = PROJECT_NAME_MAX_LENGTH;
   protected readonly descriptionMax = PROJECT_DESCRIPTION_MAX_LENGTH;
-  protected readonly categoryKey = CATEGORY_KEYS;
 
   // Form fields start from the stored project and reset when it changes (e.g. after saving).
   protected readonly name = linkedSignal(() => this.project()?.name ?? '');
@@ -261,11 +210,6 @@ export class ProjectSettingsPage {
   protected readonly saved = signal(false);
   protected readonly error = signal<string | null>(null);
   private readonly keyTaken = signal(false);
-
-  protected readonly statuses = resource({
-    params: () => this.projectId(),
-    loader: ({ params }) => this.api.workflows.list(params),
-  });
 
   protected readonly nameValid = computed(() => this.name().trim().length > 0);
   protected readonly keyError = computed(() => {

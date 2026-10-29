@@ -1,0 +1,96 @@
+@if (error(); as message) {
+  <p class="error-banner" role="alert" data-testid="board-error">{{ message }}</p>
+}
+
+<div class="board" cdkDropListGroup data-testid="board">
+  @for (column of columns(); track column.status.id) {
+    <section class="column" [attr.aria-labelledby]="'column-' + column.status.id"
+      [attr.data-column]="column.status.name">
+      <header class="column-header">
+        <span class="category-dot category-{{ column.status.category }}" aria-hidden="true"></span>
+        <h2 [id]="'column-' + column.status.id">{{ column.status.name }}</h2>
+        <span class="count" data-testid="column-count">{{ column.stories.length }}</span>
+      </header>
+
+      <ol class="cards" cdkDropList [cdkDropListData]="column" (cdkDropListDropped)="drop($event)"
+        [attr.aria-label]="column.status.name">
+        @for (story of column.stories; track story.id) {
+          <li class="card-item" cdkDrag [cdkDragData]="story" [attr.data-issue-key]="story.issueKey">
+            <article class="story-card">
+              <div class="card-top">
+                <span class="issue-key mono">{{ story.issueKey }}</span>
+                <span class="priority priority-{{ story.priority }}" [title]="i18n.t('task.field.priority')">
+                  {{ i18n.t(priorityKey[story.priority]) }}
+                </span>
+              </div>
+              <a class="title" [routerLink]="['/projects', story.projectId, 'tasks', story.id]"
+                data-testid="card-title">{{ story.title }}</a>
+
+              @if (story.labelIds.length > 0) {
+                <div class="labels">
+                  @for (labelId of story.labelIds; track labelId) {
+                    @if (labelsById().get(labelId); as label) {
+                      <app-label-chip [name]="label.name" [color]="label.color" />
+                    }
+                  }
+                </div>
+              }
+
+              <div class="card-meta">
+                @if (story.dueDate) {
+                  <span class="due"><i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                    {{ i18n.formatLocalDate(story.dueDate) }}</span>
+                }
+                @if (story.subtaskProgress; as progress) {
+                  @if (progress.total > 0) {
+                    <button type="button" class="progress" data-testid="card-progress"
+                      [attr.aria-expanded]="expanded().has(story.id)"
+                      [attr.aria-label]="i18n.t('board.toggleSubtasks')" (click)="toggle(story.id)">
+                      <i class="fa-solid" [class.fa-chevron-down]="!expanded().has(story.id)"
+                        [class.fa-chevron-up]="expanded().has(story.id)" aria-hidden="true"></i>
+                      {{ progress.done }}/{{ progress.total }}
+                    </button>
+                  }
+                }
+                <span class="spacer"></span>
+                <!-- Keyboard alternative to dragging (M4 task 5). -->
+                <select class="card-status" data-testid="card-status" (change)="moveTo(story, $any($event.target))"
+                  [attr.aria-label]="i18n.t('board.moveTo') + ': ' + story.issueKey" [title]="i18n.t('board.moveTo')">
+                  @for (status of statuses.value() ?? []; track status.id) {
+                    <option [value]="status.id" [selected]="status.id === story.statusId">{{ status.name }}</option>
+                  }
+                </select>
+                @if (story.assigneeUserId && usersById().get(story.assigneeUserId); as user) {
+                  <app-avatar [userId]="user.id" [name]="user.name" [avatarFileId]="user.avatarFileId"
+                    [archived]="user.archivedAt !== null" [size]="24" [title]="user.name" />
+                }
+              </div>
+
+              @if (expanded().has(story.id)) {
+                <ul class="subtasks" data-testid="card-subtasks">
+                  @for (subtask of subtasksByStory().get(story.id) ?? []; track subtask.id) {
+                    <li [attr.data-issue-key]="subtask.issueKey">
+                      <a class="subtask-title" [routerLink]="['/projects', story.projectId, 'tasks', subtask.id]">
+                        {{ subtask.title }}
+                      </a>
+                      <select data-testid="card-subtask-status" [attr.aria-label]="i18n.t('task.field.status') + ': ' + subtask.title"
+                        (change)="setSubtaskStatus(subtask, $any($event.target))">
+                        @for (status of statuses.value() ?? []; track status.id) {
+                          <option [value]="status.id" [selected]="status.id === subtask.statusId">{{ status.name }}</option>
+                        }
+                      </select>
+                    </li>
+                  }
+                </ul>
+              }
+
+            </article>
+            <div class="drop-placeholder" *cdkDragPlaceholder></div>
+          </li>
+        } @empty {
+          <li class="empty">{{ i18n.t('board.emptyColumn') }}</li>
+        }
+      </ol>
+    </section>
+  }
+</div>

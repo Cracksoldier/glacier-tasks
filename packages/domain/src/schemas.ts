@@ -221,3 +221,5 @@ export type UpdateTaskData = z.output<typeof updateTaskInputSchema>;
 export type TaskQueryData = z.output<typeof taskQuerySchema>;
 export type LabelData = z.output<typeof labelInputSchema>;
 export type LabelPatchData = z.output<typeof labelPatchSchema>;
+export type StatusInputData = z.output<typeof statusInputSchema>;
+export type StatusPatchData = z.output<typeof statusPatchSchema>;

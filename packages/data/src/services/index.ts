@@ -5,3 +5,4 @@ export * from './projects.js';
 export * from './tasks.js';
 export * from './trash.js';
 export * from './users.js';
+export * from './workflows.js';

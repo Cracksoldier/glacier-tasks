@@ -18,6 +18,7 @@ import { SettingsStore } from '../../core/settings/settings-store';
 import { PRIORITY_KEYS } from '../../core/tasks/task-display';
 import { UsersStore } from '../../core/users/users-store';
 import { Avatar } from '../../shared/avatar';
+import { Board } from './board';
 import { Dialog } from '../../shared/dialog';
 import { LabelChip } from '../../shared/label-chip';
 
@@ -28,10 +29,10 @@ import { LabelChip } from '../../shared/label-chip';
 @Component({
   selector: 'app-project-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Avatar, Dialog, LabelChip, RouterLink],
+  imports: [Avatar, Board, Dialog, LabelChip, RouterLink],
   template: `
     @if (project(); as project) {
-      <section class="page">
+      <section class="page wide">
         <header class="page-header">
           <div>
             <span class="key mono" data-testid="project-key-badge">{{ project.key }}</span>
@@ -61,62 +62,81 @@ import { LabelChip } from '../../shared/label-chip';
           <p class="description">{{ project.description }}</p>
         }
 
-        @if (stories.error()) {
-          <p class="error-banner" role="alert">{{ i18n.errorMessage(stories.error()) }}</p>
-        }
-        @if (storyRows().length === 0 && !stories.isLoading()) {
-          <div class="empty-state">
-            <h2>{{ i18n.t('stories.emptyTitle') }}</h2>
-            <p>{{ i18n.t('stories.emptyBody') }}</p>
-          </div>
+        <div class="view-tabs" role="tablist" [attr.aria-label]="i18n.t('board.views')">
+          <button type="button" role="tab" class="tab" data-testid="view-board"
+            [class.active]="view() === 'board'" [attr.aria-selected]="view() === 'board'"
+            (click)="setView('board')">
+            <i class="fa-solid fa-table-columns" aria-hidden="true"></i>
+            {{ i18n.t('board.viewBoard') }}
+          </button>
+          <button type="button" role="tab" class="tab" data-testid="view-list"
+            [class.active]="view() === 'list'" [attr.aria-selected]="view() === 'list'"
+            (click)="setView('list')">
+            <i class="fa-solid fa-list" aria-hidden="true"></i>
+            {{ i18n.t('board.viewList') }}
+          </button>
+        </div>
+
+        @if (view() === 'board') {
+          <app-board [projectId]="project.id" />
         } @else {
-          <ul class="card story-list" data-testid="story-list">
-            @for (row of storyRows(); track row.story.id) {
-              <li>
-                <a
-                  class="story-row"
-                  [routerLink]="['/projects', project.id, 'tasks', row.story.id]"
-                  [attr.data-issue-key]="row.story.issueKey"
-                >
-                  <span class="issue-key mono">{{ row.story.issueKey }}</span>
-                  <span class="title">{{ row.story.title }}</span>
-                  <span class="labels">
-                    @for (label of row.labels; track label.id) {
-                      <app-label-chip [name]="label.name" [color]="label.color" />
-                    }
-                  </span>
-                  <span class="status" data-testid="story-status">{{ row.statusName }}</span>
-                  <span class="priority priority-{{ row.story.priority }}">
-                    {{ i18n.t(priorityKey[row.story.priority]) }}
-                  </span>
-                  <span class="due">
-                    @if (row.story.dueDate) {
-                      {{ i18n.formatLocalDate(row.story.dueDate) }}
-                    }
-                  </span>
-                  <span class="progress" data-testid="story-progress">
-                    @if (row.story.subtaskProgress; as progress) {
-                      @if (progress.total > 0) {
-                        {{ progress.done }}/{{ progress.total }}
+          @if (stories.error()) {
+            <p class="error-banner" role="alert">{{ i18n.errorMessage(stories.error()) }}</p>
+          }
+          @if (storyRows().length === 0 && !stories.isLoading()) {
+            <div class="empty-state">
+              <h2>{{ i18n.t('stories.emptyTitle') }}</h2>
+              <p>{{ i18n.t('stories.emptyBody') }}</p>
+            </div>
+          } @else {
+            <ul class="card story-list" data-testid="story-list">
+              @for (row of storyRows(); track row.story.id) {
+                <li>
+                  <a
+                    class="story-row"
+                    [routerLink]="['/projects', project.id, 'tasks', row.story.id]"
+                    [attr.data-issue-key]="row.story.issueKey"
+                  >
+                    <span class="issue-key mono">{{ row.story.issueKey }}</span>
+                    <span class="title">{{ row.story.title }}</span>
+                    <span class="labels">
+                      @for (label of row.labels; track label.id) {
+                        <app-label-chip [name]="label.name" [color]="label.color" />
                       }
-                    }
-                  </span>
-                  <span class="assignee">
-                    @if (row.assignee; as user) {
-                      <app-avatar
-                        [userId]="user.id"
-                        [name]="user.name"
-                        [avatarFileId]="user.avatarFileId"
-                        [archived]="user.archivedAt !== null"
-                        [size]="24"
-                        [title]="user.name"
-                      />
-                    }
-                  </span>
-                </a>
-              </li>
-            }
-          </ul>
+                    </span>
+                    <span class="status" data-testid="story-status">{{ row.statusName }}</span>
+                    <span class="priority priority-{{ row.story.priority }}">
+                      {{ i18n.t(priorityKey[row.story.priority]) }}
+                    </span>
+                    <span class="due">
+                      @if (row.story.dueDate) {
+                        {{ i18n.formatLocalDate(row.story.dueDate) }}
+                      }
+                    </span>
+                    <span class="progress" data-testid="story-progress">
+                      @if (row.story.subtaskProgress; as progress) {
+                        @if (progress.total > 0) {
+                          {{ progress.done }}/{{ progress.total }}
+                        }
+                      }
+                    </span>
+                    <span class="assignee">
+                      @if (row.assignee; as user) {
+                        <app-avatar
+                          [userId]="user.id"
+                          [name]="user.name"
+                          [avatarFileId]="user.avatarFileId"
+                          [archived]="user.archivedAt !== null"
+                          [size]="24"
+                          [title]="user.name"
+                        />
+                      }
+                    </span>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
         }
       </section>
 
@@ -221,6 +241,32 @@ import { LabelChip } from '../../shared/label-chip';
       color: var(--color-danger-text);
       font-weight: 600;
     }
+    .wide {
+      max-width: none;
+    }
+    .view-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      background: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+
+      &.active {
+        border-color: var(--color-border);
+        background-color: var(--color-surface-elevated);
+        color: var(--color-accent);
+        font-weight: 600;
+      }
+    }
     .dialog-actions {
       justify-content: flex-end;
       margin-top: 8px;
@@ -242,8 +288,11 @@ export class ProjectPage {
   protected readonly titleMax = TITLE_MAX_LENGTH;
   protected readonly priorityKey = PRIORITY_KEYS;
 
+  /** Board or list (D17 `lastView`); the list is the simple story list until M5. */
+  protected readonly view = this.settings.lastView;
+
   protected readonly stories = resource({
-    params: () => (this.project() ? this.projectId() : undefined),
+    params: () => (this.project() && this.view() === 'list' ? this.projectId() : undefined),
     loader: ({ params }) =>
       this.api.tasks.query({
         projectId: params,
@@ -294,6 +343,10 @@ export class ProjectPage {
         }
       });
     });
+  }
+
+  protected setView(view: 'board' | 'list'): void {
+    void this.settings.setLastView(view).catch(() => undefined);
   }
 
   protected openCreate(): void {

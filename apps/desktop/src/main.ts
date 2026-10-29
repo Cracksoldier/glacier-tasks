@@ -26,6 +26,7 @@ import {
   TaskService,
   TrashService,
   UserService,
+  WorkflowService,
 } from '@glacier-tasks/data';
 import { AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
 import { AvatarStore } from './avatar-store.js';
@@ -119,6 +120,7 @@ async function start(): Promise<void> {
   const tasks = new TaskService(services, projects);
   const labels = new LabelService(services);
   const trash = new TrashService(services);
+  const workflows = new WorkflowService(services);
   avatarStore = new AvatarStore({ dir: paths.avatars, users, logger });
   avatarStore.reconcile();
   const avatars = avatarStore;
@@ -145,6 +147,8 @@ async function start(): Promise<void> {
       get: (id) => tasks.get(id),
       create: (input) => tasks.create(input),
       update: (id, expectedVersion, patch) => tasks.update(id, expectedVersion, patch),
+      move: (id, expectedVersion, statusId, sortOrder) =>
+        tasks.move(id, expectedVersion, statusId, sortOrder),
       moveToStory: (id, expectedVersion, targetStoryId) =>
         tasks.moveToStory(id, expectedVersion, targetStoryId),
       trash: (id) => tasks.trash(id),
@@ -178,7 +182,11 @@ async function start(): Promise<void> {
       forProject: (projectId, page) => activity.forProject(projectId, page),
     },
     workflows: {
-      list: (projectId) => projects.statuses(projectId),
+      list: (projectId) => workflows.list(projectId),
+      create: (projectId, input) => workflows.create(projectId, input),
+      update: (id, patch) => workflows.update(id, patch),
+      usage: (id) => workflows.usage(id),
+      removeAndMigrate: (id, replacementId) => workflows.removeAndMigrate(id, replacementId),
     },
     settings: {
       getDevice: () => settings.get(),

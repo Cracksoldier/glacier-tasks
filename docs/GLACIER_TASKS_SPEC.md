@@ -343,6 +343,7 @@ interface GlacierTasksAPI {
     list(projectId: string): Promise<WorkflowStatus[]>;
     create(projectId: string, input: StatusInput): Promise<WorkflowStatus>;
     update(id: string, patch: StatusPatch): Promise<WorkflowStatus>;
+    usage(statusId: string): Promise<StatusUsage>; // live stories, live subtasks, trashed (wizard preview)
     removeAndMigrate(statusId: string, replacementStatusId: string): Promise<void>;
   };
   attachments: {

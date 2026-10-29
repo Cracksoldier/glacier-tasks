@@ -31,6 +31,13 @@ export const TASK_EVENTS = {
   subtaskMovedOut: 'task.subtaskMovedOut',
 } as const;
 
+export const STATUS_EVENTS = {
+  created: 'status.created',
+  updated: 'status.updated',
+  reordered: 'status.reordered',
+  removed: 'status.removed',
+} as const;
+
 export const LABEL_EVENTS = {
   created: 'label.created',
   updated: 'label.updated',
@@ -184,4 +191,36 @@ export interface LabelRemovedPayload {
   name: string;
   color: string | null;
   affectedTasks: TaskRef[];
+}
+
+// --- Workflow statuses ------------------------------------------------------
+
+export interface StatusCreatedPayload {
+  name: string;
+  category: string;
+  position: number;
+}
+
+export interface StatusUpdatedPayload {
+  name: string;
+  changes: Partial<{
+    name: FieldChange<string>;
+    category: FieldChange<string>;
+    isDefault: FieldChange<boolean>;
+  }>;
+}
+
+export interface StatusReorderedPayload {
+  name: string;
+  from: number;
+  to: number;
+}
+
+export interface StatusRemovedPayload {
+  name: string;
+  category: string;
+  replacement: StatusSnapshot;
+  /** The replacement became the default because the removed status was it. */
+  defaultReassigned: boolean;
+  migrated: { stories: number; subtasks: number; trashed: number };
 }
