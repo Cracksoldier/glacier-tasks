@@ -8,6 +8,7 @@ import {
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { LABEL_COLOR_KEYS } from '../../core/tasks/task-display';
 import { Dialog } from '../../shared/dialog';
 import { LabelChip } from '../../shared/label-chip';
 
@@ -51,7 +52,7 @@ import { LabelChip } from '../../shared/label-chip';
                   [class.selected]="label.color === color"
                   [style.background-color]="'var(--label-' + color + '-bg)'"
                   [style.border-color]="'var(--label-' + color + '-fg)'"
-                  [attr.aria-label]="i18n.t('labels.color') + ': ' + color"
+                  [attr.aria-label]="i18n.t('labels.color') + ': ' + i18n.t(colorKey[color])"
                   [attr.aria-pressed]="label.color === color"
                   [attr.data-testid]="'label-color-' + color"
                   (click)="recolor(label, color)"
@@ -196,6 +197,7 @@ export class LabelManager {
   readonly projectId = input.required<string>();
 
   protected readonly colors = LABEL_COLORS;
+  protected readonly colorKey = LABEL_COLOR_KEYS;
   protected readonly nameMax = LABEL_NAME_MAX_LENGTH;
   protected readonly labels = resource({
     params: () => this.projectId(),

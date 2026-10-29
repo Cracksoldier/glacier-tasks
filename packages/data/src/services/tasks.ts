@@ -146,7 +146,17 @@ export class TaskService {
    * one project, optionally by type and status, in board order or by issue number.
    */
   query(input: TaskQueryData): PagedResult<TaskSummary> {
-    if (input.projectId === null || input.text !== '') {
+    // Refuse what M5 adds instead of silently returning unfiltered or unsorted results.
+    if (
+      input.projectId === null ||
+      input.text !== '' ||
+      input.priorities.length > 0 ||
+      input.assigneeUserIds.length > 0 ||
+      input.labelIds.length > 0 ||
+      input.dueFrom !== null ||
+      input.dueTo !== null ||
+      (input.sortBy !== 'sortOrder' && input.sortBy !== 'issueKey')
+    ) {
       throw new AppError('VALIDATION', 'errors.notAvailable');
     }
     this.requireLiveProject(input.projectId);

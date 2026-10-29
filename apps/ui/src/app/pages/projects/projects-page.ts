@@ -109,4 +109,9 @@ import { ProjectsStore } from '../../core/projects/projects-store';
 export class ProjectsPage {
   protected readonly i18n = inject(I18nService);
   protected readonly store = inject(ProjectsStore);
+
+  constructor() {
+    // Story counts change with every task write, which doesn't reload the store.
+    void this.store.load().catch((error: unknown) => console.error(error));
+  }
 }

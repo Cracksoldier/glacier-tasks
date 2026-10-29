@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { App } from '../../app';
 import { provideAppRouter } from '../../app.routes';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
 import { SettingsStore } from '../../core/settings/settings-store';
 import type { GlacierApiStub } from '../../testing/glacier-api-stub';
@@ -85,6 +86,22 @@ describe('project creation (PROJ-01)', () => {
 
     expect(byTestId(root, 'project-key-error').textContent).toContain('already used');
     expect(stub.projects.length).toBe(1);
+  });
+});
+
+describe('project dashboard (PROJ-02)', () => {
+  it('reloads the story counts whenever it opens', async () => {
+    await stub.api.projects.create({ key: 'ALPHA', name: 'Alpha' });
+    await TestBed.inject(ProjectsStore).load();
+    // A task write elsewhere changes the counts without reloading the store.
+    Object.assign(stub.projects[0] as object, { openStoryCount: 3, doneStoryCount: 2 });
+
+    const harness = await RouterTestingHarness.create('/projects');
+    await settle(harness.fixture);
+    const cards = byTestId(harness.routeNativeElement as HTMLElement, 'project-cards');
+    expect(cards.querySelector('.counts')?.textContent?.trim()).toBe(
+      TestBed.inject(I18nService).t('projects.counts', { open: 3, done: 2 }),
+    );
   });
 });
 

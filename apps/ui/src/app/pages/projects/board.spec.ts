@@ -190,6 +190,19 @@ describe('WorkflowEditor (spec §3.4, UJ-04)', () => {
     expect(stub.statuses.filter((s) => s.isDefault).map((s) => s.name)).toEqual(['Review']);
   });
 
+  it('restores the previous default radio when the change fails', async () => {
+    const { fixture, row } = await renderEditor();
+    stub.api.workflows.update = async () => {
+      throw { code: 'IO', message: 'errors.unexpected' };
+    };
+    const radio = (name: string) =>
+      row(name).querySelector('[data-testid="status-default"]') as HTMLInputElement;
+    radio('Done').click();
+    await settle(fixture);
+    expect(radio('Done').checked).toBe(false);
+    expect(radio('To Do').checked).toBe(true);
+  });
+
   it('refuses to recategorize the last Done status and restores the select', async () => {
     const { fixture, root, row } = await renderEditor();
     const select = row('Done').querySelector(

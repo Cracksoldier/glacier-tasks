@@ -482,6 +482,24 @@ describe('query (M3 subset)', () => {
       expect.objectContaining({ message: 'errors.notAvailable' }),
     );
   });
+
+  it('refuses the filters and sort orders that M5 adds', () => {
+    const unsupported = [
+      { priorities: ['HIGH' as const] },
+      { assigneeUserIds: [null] },
+      { labelIds: ['00000000-0000-4000-8000-000000000999'] },
+      { dueFrom: '2026-01-01' },
+      { dueTo: '2026-01-01' },
+      { sortBy: 'title' as const },
+      { projectId: null },
+    ];
+    for (const overrides of unsupported) {
+      expect(
+        () => tasks.query({ ...queryAll(), ...overrides }),
+        JSON.stringify(overrides),
+      ).toThrowError(expect.objectContaining({ message: 'errors.notAvailable' }));
+    }
+  });
 });
 
 function queryAll() {

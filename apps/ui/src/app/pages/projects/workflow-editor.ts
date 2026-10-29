@@ -1,5 +1,13 @@
 import { CdkDrag, type CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, inject, input, resource, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  inject,
+  input,
+  resource,
+  signal,
+} from '@angular/core';
 import {
   STATUS_CATEGORIES,
   STATUS_NAME_MAX_LENGTH,
@@ -59,8 +67,8 @@ import { Dialog } from '../../shared/dialog';
               }
             </select>
             <label class="default">
-              <input type="radio" name="default-status" data-testid="status-default"
-                [checked]="status.isDefault" (change)="setDefault(status, $any($event.target))" />
+              <input type="radio" name="default-status" data-testid="status-default" [value]="status.id"
+                [checked]="status.isDefault" (change)="setDefault(status)" />
               {{ i18n.t('projectSettings.defaultStatus') }}
             </label>
             <span class="order">
@@ -206,6 +214,7 @@ import { Dialog } from '../../shared/dialog';
 export class WorkflowEditor {
   protected readonly i18n = inject(I18nService);
   private readonly api = inject(GLACIER_API);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly projectId = input.required<string>();
 
@@ -256,9 +265,16 @@ export class WorkflowEditor {
     if (!ok) select.value = status.category;
   }
 
-  protected async setDefault(status: WorkflowStatus, radio: HTMLInputElement): Promise<void> {
+  protected async setDefault(status: WorkflowStatus): Promise<void> {
     const ok = await this.run(() => this.api.workflows.update(status.id, { isDefault: true }));
-    if (!ok) radio.checked = false;
+    if (ok) return;
+    // The browser already moved the selection, and the unchanged [checked] bindings are not
+    // re-applied, so restore the whole group from the model.
+    const current = this.statuses.value()?.find((s) => s.isDefault)?.id;
+    const radios = this.host.nativeElement.querySelectorAll<HTMLInputElement>(
+      'input[type="radio"][name="default-status"]',
+    );
+    for (const radio of radios) radio.checked = radio.value === current;
   }
 
   protected move(status: WorkflowStatus, position: number): Promise<boolean> {

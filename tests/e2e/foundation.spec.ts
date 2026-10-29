@@ -51,14 +51,17 @@ test('renderer has no Node access and only the typed API (T1)', async () => {
 
 test('a fresh profile starts dark (D18) and theme + language survive a restart', async () => {
   const first = await launchApp(userData.dir);
-  await expect(first.page.locator('html')).toHaveClass(/theme-dark/);
+  try {
+    await expect(first.page.locator('html')).toHaveClass(/theme-dark/);
 
-  await first.page.getByTestId('nav-settings').click();
-  await first.page.getByTestId('theme-light').check();
-  await first.page.getByTestId('language-de').check();
-  await expect(first.page.locator('html')).toHaveClass(/theme-light/);
-  await expect(first.page.locator('h1')).toHaveText('Einstellungen');
-  await first.app.close();
+    await first.page.getByTestId('nav-settings').click();
+    await first.page.getByTestId('theme-light').check();
+    await first.page.getByTestId('language-de').check();
+    await expect(first.page.locator('html')).toHaveClass(/theme-light/);
+    await expect(first.page.locator('h1')).toHaveText('Einstellungen');
+  } finally {
+    await first.app.close();
+  }
 
   const second = await launchApp(userData.dir);
   try {

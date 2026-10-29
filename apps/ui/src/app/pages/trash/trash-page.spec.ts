@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { SettingsStore } from '../../core/settings/settings-store';
 import { LabelManager } from '../projects/label-manager';
 import type { GlacierApiStub } from '../../testing/glacier-api-stub';
@@ -82,5 +83,9 @@ describe('LabelManager (D25)', () => {
     expect(
       root.querySelector('[data-testid="label-color-red"]')?.getAttribute('aria-pressed'),
     ).toBe('true');
+    const i18n = TestBed.inject(I18nService);
+    expect(root.querySelector('[data-testid="label-color-red"]')?.getAttribute('aria-label')).toBe(
+      `${i18n.t('labels.color')}: ${i18n.t('labels.colorName.red')}`,
+    );
   });
 });

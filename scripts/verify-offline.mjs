@@ -9,7 +9,7 @@ const browserDir = path.join(root, 'apps', 'ui', 'dist', 'browser');
 const files = [path.join(root, 'apps', 'ui', 'src', 'index.html')];
 
 if (fs.existsSync(browserDir)) {
-  for (const entry of fs.readdirSync(browserDir)) {
+  for (const entry of fs.readdirSync(browserDir, { recursive: true })) {
     if (/\.(?:html|css|js)$/.test(entry)) files.push(path.join(browserDir, entry));
   }
 } else {

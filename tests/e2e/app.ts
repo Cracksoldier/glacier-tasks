@@ -25,7 +25,13 @@ export async function launchApp(
   userDataDir: string,
 ): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({ args: [APP_DIR], env: appEnv(userDataDir) });
-  const page = await app.firstWindow();
-  await page.getByTestId('app-shell').waitFor();
-  return { app, page };
+  try {
+    const page = await app.firstWindow();
+    await page.getByTestId('app-shell').waitFor();
+    return { app, page };
+  } catch (error) {
+    // The caller never gets the handle, so don't leave the process holding the profile.
+    await app.close().catch(() => undefined);
+    throw error;
+  }
 }
