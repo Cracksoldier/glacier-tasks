@@ -157,6 +157,7 @@
 6. Provide user-facing backup/restore dialogs and detailed success/failure messages.
 7. Implement **export-only** structured JSON with workspace/project scope and optional trashed items (D14). Explicitly label it as non-restorable; no binary data.
 8. Test corruption, disk-full handling, failed restore rollback, restore into a clean installation, search integrity after restore, and automatic backup retention.
+9. Added during M7: board grouping by subtasks with per-story swimlanes and individually draggable subtasks (BOARD-07, D51).
 
 **Deliverables:** trash manager, reliable full backup/restore, automatic backups, JSON exporter, test fixtures.  
 **Acceptance:** complete backup/restore preserves two projects, profiles, statuses, stories, subtasks, history, avatars and attachment bytes; search works immediately after restore; failed restore leaves original data intact; automatic backups keep only the configured number; JSON cannot be mistaken for a full backup.  

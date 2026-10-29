@@ -185,6 +185,8 @@ export const projectViewSchema = z.strictObject({
   sortDirection: sortDirectionSchema,
   filters: taskFiltersSchema,
   columns: z.array(z.enum(LIST_COLUMNS)).max(LIST_COLUMNS.length),
+  /** Board grouping (BOARD-07, D51); views stored before M7 get the default. */
+  boardGroup: z.enum(['stories', 'subtasks']).default('stories'),
 });
 
 // --- Attachments ------------------------------------------------------------

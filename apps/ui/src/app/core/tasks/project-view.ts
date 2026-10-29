@@ -28,6 +28,7 @@ export const DEFAULT_PROJECT_VIEW: ProjectView = {
   sortDirection: 'asc',
   filters: EMPTY_FILTERS,
   columns: [...DEFAULT_LIST_COLUMNS],
+  boardGroup: 'stories',
 };
 
 /** Number of filters in use (each list counts once, each date bound once). */

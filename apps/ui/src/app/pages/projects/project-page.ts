@@ -109,7 +109,9 @@ import { ProjectActivity } from './project-activity';
         @if (view() === 'activity') {
           <app-project-activity [projectId]="project.id" />
         } @else if (view() === 'board') {
-          <app-board [projectId]="project.id" [filters]="projectView().filters" />
+          <app-board [projectId]="project.id" [filters]="projectView().filters"
+            [group]="projectView().boardGroup"
+            (groupChange)="viewStore.update(project.id, { boardGroup: $event })" />
         } @else {
           <app-task-list
             [query]="listQuery()"

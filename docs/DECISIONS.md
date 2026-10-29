@@ -114,4 +114,4 @@ Reference application for visual identity, tooling and release process:
 | D48 | The `.glaciertasks` archive (D34) is written and read with **yazl** and **yauzl** (streaming, ZIP64), pinned exactly. See `docs/adr/0012-backup-restore-and-trash.md`. | DATA-04, T14 |
 | D49 | The global Trash page has a project filter; each project page links to its own trash ("Trash (n)"), which opens the Trash page filtered to that project. | TRASH-03 |
 | D50 | Permanent deletion is confirmed by typing the project or issue key; "Empty trash" by typing a localized confirmation word. Both warn that only a backup can bring the data back. | TRASH-05 |
-
+| D51 | The board can be grouped by subtasks (Jira-style swimlanes): every story with subtasks gets a row with the status columns, its subtasks are cards that can be dragged into another status on their own (status only, D06; no reordering within a column), and stories without subtasks follow in an "Other stories" row. The grouping is remembered per project like the other view settings (D42). | BOARD-07 |

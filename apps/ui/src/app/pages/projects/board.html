@@ -2,6 +2,19 @@
   <p class="error-banner" role="alert" data-testid="board-error">{{ message }}</p>
 }
 
+<div class="group-toggle" role="radiogroup" [attr.aria-label]="i18n.t('board.group')">
+  <span class="group-label">{{ i18n.t('board.group') }}</span>
+  @for (option of groups; track option.value) {
+    <button type="button" role="radio" class="group-option" [attr.data-testid]="'board-group-' + option.value"
+      [class.active]="group() === option.value" [attr.aria-checked]="group() === option.value"
+      (click)="groupChange.emit(option.value)">
+      <i class="fa-solid {{ option.icon }}" aria-hidden="true"></i>
+      {{ i18n.t(option.label) }}
+    </button>
+  }
+</div>
+
+@if (group() === 'stories') {
 <div class="board" cdkDropListGroup data-testid="board">
   @for (column of columns(); track column.status.id) {
     <section class="column" [attr.aria-labelledby]="'column-' + column.status.id"
@@ -94,3 +107,92 @@
     </section>
   }
 </div>
+} @else {
+  <div class="lanes" data-testid="board-lanes">
+    @for (lane of lanes(); track lane.id) {
+      <section class="lane" [attr.data-lane]="lane.story?.issueKey ?? 'other'" data-testid="board-lane">
+        <header class="lane-header">
+          <button type="button" class="btn btn-ghost btn-icon lane-toggle" data-testid="lane-toggle"
+            [attr.aria-expanded]="!collapsed().has(lane.id)"
+            [attr.aria-label]="i18n.t(collapsed().has(lane.id) ? 'board.expandLane' : 'board.collapseLane')"
+            (click)="toggleLane(lane.id)">
+            <i class="fa-solid" [class.fa-chevron-down]="!collapsed().has(lane.id)"
+              [class.fa-chevron-right]="collapsed().has(lane.id)" aria-hidden="true"></i>
+          </button>
+          @if (lane.story; as story) {
+            <i class="fa-solid fa-bookmark story-icon" aria-hidden="true"></i>
+            <a class="lane-key mono" [routerLink]="['/projects', story.projectId, 'tasks', story.id]">{{ story.issueKey }}</a>
+            <a class="lane-title" [routerLink]="['/projects', story.projectId, 'tasks', story.id]">{{ story.title }}</a>
+            <select class="card-status" data-testid="lane-story-status" (change)="moveTo(story, $any($event.target))"
+              [attr.aria-label]="i18n.t('board.moveTo') + ': ' + story.issueKey">
+              @for (status of statuses.value() ?? []; track status.id) {
+                <option [value]="status.id" [selected]="status.id === story.statusId">{{ status.name }}</option>
+              }
+            </select>
+            @if (story.assigneeUserId && usersById().get(story.assigneeUserId); as user) {
+              <app-avatar [userId]="user.id" [name]="user.name" [avatarFileId]="user.avatarFileId"
+                [archived]="user.archivedAt !== null" [size]="22" [title]="user.name" />
+            }
+            <span class="lane-count" data-testid="lane-count">
+              {{ i18n.t('board.laneCount', { done: lane.done, total: lane.total }) }}
+            </span>
+          } @else {
+            <span class="lane-title">{{ i18n.t('board.otherStories') }}</span>
+          }
+        </header>
+
+        @if (!collapsed().has(lane.id)) {
+          <div class="lane-columns" cdkDropListGroup>
+            @for (column of lane.columns; track column.status.id) {
+              <div class="lane-column" [attr.data-column]="column.status.name">
+                <div class="lane-column-header">
+                  <span class="category-dot category-{{ column.status.category }}" aria-hidden="true"></span>
+                  <span>{{ column.status.name }}</span>
+                  <span class="count">{{ column.tasks.length }}</span>
+                </div>
+                <ol class="lane-cards" cdkDropList [cdkDropListData]="column" (cdkDropListDropped)="dropInLane($event)"
+                  [attr.aria-label]="column.status.name">
+                  @for (task of column.tasks; track task.id) {
+                    <li class="lane-card" cdkDrag [cdkDragData]="task" [attr.data-issue-key]="task.issueKey"
+                      data-testid="lane-card">
+                      <a class="title" [routerLink]="['/projects', task.projectId, 'tasks', task.id]">{{ task.title }}</a>
+                      <div class="card-meta">
+                        <span class="issue-key mono">{{ task.issueKey }}</span>
+                        <span class="spacer"></span>
+                        @if (task.type === 'SUBTASK') {
+                          <select class="card-status" data-testid="card-subtask-status"
+                            [attr.aria-label]="i18n.t('task.field.status') + ': ' + task.title"
+                            (change)="setSubtaskStatus(task, $any($event.target))">
+                            @for (status of statuses.value() ?? []; track status.id) {
+                              <option [value]="status.id" [selected]="status.id === task.statusId">{{ status.name }}</option>
+                            }
+                          </select>
+                        } @else {
+                          <select class="card-status" data-testid="card-status" (change)="moveTo(task, $any($event.target))"
+                            [attr.aria-label]="i18n.t('board.moveTo') + ': ' + task.issueKey">
+                            @for (status of statuses.value() ?? []; track status.id) {
+                              <option [value]="status.id" [selected]="status.id === task.statusId">{{ status.name }}</option>
+                            }
+                          </select>
+                        }
+                        @if (task.assigneeUserId && usersById().get(task.assigneeUserId); as user) {
+                          <app-avatar [userId]="user.id" [name]="user.name" [avatarFileId]="user.avatarFileId"
+                            [archived]="user.archivedAt !== null" [size]="20" [title]="user.name" />
+                        }
+                      </div>
+                      <div class="drop-placeholder" *cdkDragPlaceholder></div>
+                    </li>
+                  }
+                </ol>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    } @empty {
+      <div class="empty-state" data-testid="lanes-empty">
+        <p>{{ i18n.t('board.noLanes') }}</p>
+      </div>
+    }
+  </div>
+}

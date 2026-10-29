@@ -188,6 +188,7 @@ Local app data directory (standard per-user location only, D16)
 - `BOARD-04` Drag stories across columns to change status; use typed validation and atomic persistence, showing an error and restoring UI state if write fails.
 - `BOARD-05` Reorder cards within a column; persist order using fractional sort keys; a card moved to another column is placed at the top (D26).
 - `BOARD-06` Apply project filters consistently with the list view; board filters evaluate story fields only (D09). **[CONFIRMED]** Board and list share one filter set per project (D43).
+- `BOARD-07` **[CONFIRMED]** The board can be grouped by subtasks: one swimlane per story with subtasks, whose subtasks are dragged between status columns individually; stories without subtasks appear in a final "Other stories" lane; the grouping is remembered per project (D51).
 
 ### 4.6 List view and navigation (`LIST`)
 

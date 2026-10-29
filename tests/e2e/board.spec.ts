@@ -177,3 +177,45 @@ test('deleting a status migrates live and trashed tasks (UJ-04, D01, D07)', asyn
     await app.close();
   }
 });
+
+test('grouped by subtasks, a subtask is dragged into another status on its own (BOARD-07, D51)', async () => {
+  const first = await launchApp(userData.dir);
+  try {
+    const { page } = first;
+    await seed(page);
+    await page.getByTestId('board-group-subtasks').click();
+    const lane = page.locator('[data-lane="GAME-1"]');
+    await expect(lane.locator('[data-column="To Do"] [data-testid="lane-card"]')).toHaveCount(2);
+    await expect(page.locator('[data-lane="other"] [data-testid="lane-card"]')).toHaveCount(1);
+
+    const card = lane.locator('[data-testid="lane-card"][data-issue-key="GAME-2"]');
+    await drag(page, card, lane.locator('[data-column="Done"] .lane-cards'));
+    await expect(lane.locator('[data-column="Done"] [data-testid="lane-card"]')).toHaveCount(1);
+
+    const states = await page.evaluate(async () => {
+      const api = window.glacierTasks;
+      if (!api) throw new Error('API missing');
+      const [project] = await api.projects.list();
+      const statuses = new Map(
+        (await api.workflows.list(project?.id as string)).map((s) => [s.id, s.name]),
+      );
+      const tasks = (await api.tasks.query({ projectId: project?.id as string })).items;
+      return Object.fromEntries(tasks.map((t) => [t.issueKey, statuses.get(t.statusId)]));
+    });
+    expect(states).toMatchObject({ 'GAME-1': 'To Do', 'GAME-2': 'Done', 'GAME-3': 'To Do' });
+  } finally {
+    await first.app.close();
+  }
+
+  // The grouping is remembered per project (D51).
+  const second = await launchApp(userData.dir);
+  try {
+    await expect(second.page.getByTestId('board-lanes')).toBeVisible();
+    await expect(second.page.getByTestId('board-group-subtasks')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  } finally {
+    await second.app.close();
+  }
+});

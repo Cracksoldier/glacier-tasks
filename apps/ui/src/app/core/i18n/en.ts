@@ -456,6 +456,15 @@ export const en = {
     'The prepared restore is no longer available. Please choose the backup again.',
   'errors.exportFailed': 'The export could not be written.',
   'errors.autoBackupFolderUnavailable': 'The folder for automatic backups is not available.',
+
+  'board.group': 'Group',
+  'board.groupStories': 'Stories',
+  'board.groupSubtasks': 'Subtasks',
+  'board.otherStories': 'Other stories',
+  'board.collapseLane': 'Collapse',
+  'board.expandLane': 'Expand',
+  'board.laneCount': '{done}/{total} subtasks done',
+  'board.noLanes': 'No stories match the filters.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -83,3 +83,25 @@ the 256-character limit of `sortKeySchema` and reordering next to it would have 
   never changes the story (TASK-05).
 - **Views:** the project page shows Board | List tabs. The choice is stored in the device setting
   `lastView` (D17). Since M5 the list view and the board filters follow ADR 0010.
+
+## Subtask swimlanes (BOARD-07, D51; added in M7)
+
+- **Toggle:** a "Group: Stories | Subtasks" toggle above the board switches the view. The
+  choice is `boardGroup` in the project's view in the device settings (D42); views stored
+  earlier default to `stories`.
+- **Lanes:** grouped by subtasks, every story that passes the board filters (story fields only,
+  D43) and has subtasks becomes a lane, in board order.
+  - A lane has the story's key and title, its status select and assignee, the done/total count
+    and a collapse toggle. Collapsed lanes are not remembered.
+  - Below it are the project's status columns with that story's subtasks.
+  - Columns scroll on their own above 360 px.
+  - Stories without subtasks follow in an "Other stories" lane.
+- **Dropping:**
+  - **A subtask** dropped into another column changes only its status through `tasks.update`
+    (version-checked, history, D06). The story keeps its status.
+  - **A story** in "Other stories" moves through `tasks.move`, to the top of the column (D26).
+  - **Inside one column** a drop does nothing: the order follows the story's subtask order and,
+    in the "Other stories" lane, the column shows only part of the board.
+  - Each lane has its own `cdkDropListGroup`, so cards never change lanes.
+- **Keyboard:** every card keeps a status select as the alternative to dragging.
+

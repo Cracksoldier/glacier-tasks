@@ -106,7 +106,8 @@ describe('DeviceSettingsStore', () => {
   describe('project views (D42)', () => {
     const P1 = '00000000-0000-4000-8000-000000000001';
     const P2 = '00000000-0000-4000-8000-000000000002';
-    const view = {
+    /** A view as stored before M7, without `boardGroup`. */
+    const legacyView = {
       sortBy: 'title' as const,
       sortDirection: 'desc' as const,
       filters: {
@@ -121,6 +122,7 @@ describe('DeviceSettingsStore', () => {
       },
       columns: ['status' as const, 'labels' as const],
     };
+    const view = { ...legacyView, boardGroup: 'subtasks' as const };
 
     it('stores, persists and forgets a view per project', () => {
       const store = new DeviceSettingsStore(file, ['en-US'], silentLogger);
@@ -144,11 +146,12 @@ describe('DeviceSettingsStore', () => {
         projectViews: {},
       });
 
-      stored.projectViews = { [P1]: view, [P2]: { sortBy: 'nonsense' }, 'not-a-uuid': view };
+      stored.projectViews = { [P1]: legacyView, [P2]: { sortBy: 'nonsense' }, 'not-a-uuid': view };
       writeFileSync(file, JSON.stringify(stored));
       expect(new DeviceSettingsStore(file, ['en-US'], silentLogger).get()).toMatchObject({
         theme: 'light',
-        projectViews: { [P1]: view },
+        // Views stored before M7 get the default grouping (D51).
+        projectViews: { [P1]: { ...legacyView, boardGroup: 'stories' } },
       });
     });
 

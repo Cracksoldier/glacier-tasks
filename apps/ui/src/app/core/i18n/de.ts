@@ -470,4 +470,13 @@ export const de = {
     'Die vorbereitete Wiederherstellung ist nicht mehr verfügbar. Bitte wähle das Backup erneut.',
   'errors.exportFailed': 'Der Export konnte nicht geschrieben werden.',
   'errors.autoBackupFolderUnavailable': 'Der Ordner für automatische Backups ist nicht verfügbar.',
+
+  'board.group': 'Gruppieren',
+  'board.groupStories': 'Stories',
+  'board.groupSubtasks': 'Unteraufgaben',
+  'board.otherStories': 'Weitere Stories',
+  'board.collapseLane': 'Einklappen',
+  'board.expandLane': 'Ausklappen',
+  'board.laneCount': '{done}/{total} Unteraufgaben erledigt',
+  'board.noLanes': 'Keine Stories passen zu den Filtern.',
 } as const satisfies Record<TranslationKey, string>;

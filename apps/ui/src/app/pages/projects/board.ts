@@ -13,6 +13,7 @@ import {
   inject,
   input,
   linkedSignal,
+  output,
   resource,
   signal,
 } from '@angular/core';
@@ -25,7 +26,7 @@ import {
   type WorkflowStatus,
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import { EMPTY_FILTERS, queryAll } from '../../core/tasks/project-view';
 import { PRIORITY_KEYS } from '../../core/tasks/task-display';
 import { UsersStore } from '../../core/users/users-store';
@@ -37,11 +38,30 @@ interface Column {
   stories: TaskSummary[];
 }
 
+/** One status column inside a swimlane (BOARD-07). */
+interface LaneColumn {
+  status: WorkflowStatus;
+  tasks: TaskSummary[];
+}
+
+/** A story with its subtasks by status, or the closing "Other stories" row (story === null). */
+interface Lane {
+  id: string;
+  story: TaskSummary | null;
+  columns: LaneColumn[];
+  done: number;
+  total: number;
+}
+
+export type BoardGroup = 'stories' | 'subtasks';
+
 /**
  * Kanban board (BOARD-01..06): one column per status, story cards only, expandable subtasks
  * with status changes (D06), drag & drop with fractional sort keys (D26) and a status select
  * on every card as the keyboard alternative to dragging. The project's filters apply to the
- * story fields only (D09, D43); columns stay, so the status filter is ignored.
+ * story fields only (D09, D43); columns stay, so the status filter is ignored. Grouped by
+ * subtasks (BOARD-07, D51), each story with subtasks becomes a swimlane whose subtasks can be
+ * dragged between statuses; stories without subtasks follow in an "Other stories" row.
  */
 @Component({
   selector: 'app-board',
@@ -65,8 +85,19 @@ export class Board {
 
   readonly projectId = input.required<string>();
   readonly filters = input<TaskFilters>(EMPTY_FILTERS);
+  /** Remembered per project (D51); the toggle asks the page to store a change. */
+  readonly group = input<BoardGroup>('stories');
+  readonly groupChange = output<BoardGroup>();
 
   protected readonly priorityKey = PRIORITY_KEYS;
+  protected readonly groups: ReadonlyArray<{
+    value: BoardGroup;
+    label: TranslationKey;
+    icon: string;
+  }> = [
+    { value: 'stories', label: 'board.groupStories', icon: 'fa-table-columns' },
+    { value: 'subtasks', label: 'board.groupSubtasks', icon: 'fa-layer-group' },
+  ];
   protected readonly tasks = resource({
     params: () => ({ projectId: this.projectId(), filters: this.filters() }),
     loader: async ({ params: { projectId, filters } }) => {
@@ -113,6 +144,41 @@ export class Board {
   );
   protected readonly usersById = computed(() => new Map(this.users.all().map((u) => [u.id, u])));
 
+  /**
+   * Swimlanes in board order (status position, then card order, as loaded). Subtasks keep
+   * their story's order inside a column. Moves are shown at once and confirmed by the reload.
+   */
+  protected readonly lanes = linkedSignal<Lane[]>(() => {
+    const statuses = this.statuses.value() ?? [];
+    const position = new Map(statuses.map((s) => [s.id, s.position]));
+    const stories = [...(this.tasks.value()?.stories ?? [])].sort(
+      (a, b) => (position.get(a.statusId) ?? 0) - (position.get(b.statusId) ?? 0),
+    );
+    const subtasks = this.subtasksByStory();
+    const done = new Set(statuses.filter((s) => s.category === 'DONE').map((s) => s.id));
+    const split = (tasks: TaskSummary[]) =>
+      statuses.map((status) => ({ status, tasks: tasks.filter((t) => t.statusId === status.id) }));
+    const lanes: Lane[] = stories
+      .filter((story) => (subtasks.get(story.id) ?? []).length > 0)
+      .map((story) => {
+        const own = subtasks.get(story.id) ?? [];
+        return {
+          id: story.id,
+          story,
+          columns: split(own),
+          done: own.filter((t) => done.has(t.statusId)).length,
+          total: own.length,
+        };
+      });
+    const others = stories.filter((story) => (subtasks.get(story.id) ?? []).length === 0);
+    if (others.length > 0) {
+      lanes.push({ id: 'other', story: null, columns: split(others), done: 0, total: 0 });
+    }
+    return lanes;
+  });
+  /** Collapsed swimlanes; not remembered (D51). */
+  protected readonly collapsed = signal<ReadonlySet<string>>(new Set());
+
   protected readonly expanded = signal<ReadonlySet<string>>(new Set());
   protected readonly error = signal<string | null>(null);
 
@@ -123,6 +189,45 @@ export class Board {
   /** Reloads cards after a story was created elsewhere on the page. */
   reload(): void {
     this.tasks.reload();
+  }
+
+  protected toggleLane(laneId: string): void {
+    this.collapsed.update((ids) => {
+      const next = new Set(ids);
+      if (!next.delete(laneId)) next.add(laneId);
+      return next;
+    });
+  }
+
+  /**
+   * BOARD-07: a card dropped into another column of its swimlane changes status. Subtasks
+   * change only their own status (D06); stories in "Other stories" move to the top of the
+   * column (D26). Order inside a column is not changed here.
+   */
+  protected async dropInLane(
+    event: CdkDragDrop<LaneColumn, LaneColumn, TaskSummary>,
+  ): Promise<void> {
+    const task = event.item.data;
+    const from = event.previousContainer.data;
+    const to = event.container.data;
+    if (from.status.id === to.status.id) return;
+    this.lanes.update((lanes) =>
+      lanes.map((lane) => ({
+        ...lane,
+        columns: lane.columns.map((column) => {
+          if (column === from)
+            return { ...column, tasks: column.tasks.filter((t) => t.id !== task.id) };
+          if (column === to)
+            return { ...column, tasks: [...column.tasks, { ...task, statusId: to.status.id }] };
+          return column;
+        }),
+      })),
+    );
+    await this.persist(() =>
+      task.type === 'SUBTASK'
+        ? this.api.tasks.update(task.id, task.version, { statusId: to.status.id })
+        : this.api.tasks.move(task.id, task.version, to.status.id),
+    );
   }
 
   protected toggle(storyId: string): void {
