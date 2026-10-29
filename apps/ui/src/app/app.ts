@@ -1,24 +1,16 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { APP_NAME, PRIORITIES } from '@glacier-tasks/domain';
+import { Shell } from './shell/shell';
 
-// M0 placeholder: proves that the renderer resolves the shared domain package.
-// The real shell (theme, i18n, navigation) is built in M1.
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <main>
-      <h1>{{ appName }}</h1>
-      <p data-testid="priorities">{{ priorities.join(' · ') }}</p>
-    </main>
-  `,
+  imports: [Shell],
+  template: '<app-shell />',
   styles: `
-    main {
-      padding: 2rem;
+    :host {
+      display: block;
+      height: 100%;
     }
   `,
 })
-export class App {
-  protected readonly appName = APP_NAME;
-  protected readonly priorities = PRIORITIES;
-}
+export class App {}

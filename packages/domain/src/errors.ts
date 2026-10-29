@@ -50,3 +50,13 @@ export function fail<T = never>(error: AppErrorInfo): Result<T> {
 export function isAppError(value: unknown): value is AppError {
   return value instanceof AppError;
 }
+
+/** Rejections from `window.glacierTasks` are plain AppErrorInfo objects (ADR 0004). */
+export function isAppErrorInfo(value: unknown): value is AppErrorInfo {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as AppErrorInfo).message === 'string' &&
+    (ERROR_CODES as ReadonlyArray<unknown>).includes((value as AppErrorInfo).code)
+  );
+}

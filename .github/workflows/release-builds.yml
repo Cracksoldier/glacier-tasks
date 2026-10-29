@@ -1,0 +1,276 @@
+name: Release builds
+
+# Builds and publishes Windows (NSIS) and Linux (AppImage, deb) x64 releases (D21, D37).
+# Adapted from Glacier Notes' release-builds.yml. Trigger manually from the default branch,
+# or by pushing a v* tag. Versions with a pre-release suffix (e.g. 0.1.0-alpha.1) are
+# published as GitHub pre-releases.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Release version, without the leading v (for example, 0.1.0)
+        required: true
+        type: string
+      next_development_version:
+        description: Optional next version to commit after publishing (for example, 0.2.0-dev.0)
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release version
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.versions.outputs.next_version }}
+      prerelease: ${{ steps.versions.outputs.prerelease }}
+      tag: ${{ steps.versions.outputs.tag }}
+      version: ${{ steps.versions.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - id: versions
+        name: Validate release versions
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          NEXT_VERSION_INPUT: ${{ inputs.next_development_version }}
+          RELEASE_VERSION_INPUT: ${{ inputs.release_version }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == 'push' ]]; then
+            release_candidate="${GITHUB_REF_NAME#v}"
+            next_candidate=''
+          else
+            if [[ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]]; then
+              echo "::error::Manual releases must run from the $DEFAULT_BRANCH branch."
+              exit 1
+            fi
+            release_candidate="${RELEASE_VERSION_INPUT#v}"
+            next_candidate="${NEXT_VERSION_INPUT#v}"
+          fi
+
+          # Accepts MAJOR.MINOR.PATCH with an optional pre-release suffix; no build metadata.
+          normalize() {
+            node -e '
+              const v = process.argv[1];
+              const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
+              if (!semver.test(v)) process.exit(1);
+              process.stdout.write(v);
+            ' "$1"
+          }
+
+          if ! release_version="$(normalize "$release_candidate")"; then
+            echo "::error::Release version must be SemVer (for example 0.1.0 or 0.1.0-alpha.1): $release_candidate"
+            exit 1
+          fi
+
+          next_version=''
+          if [[ -n "$next_candidate" ]]; then
+            if ! next_version="$(normalize "$next_candidate")"; then
+              echo "::error::Next development version must be SemVer: $next_candidate"
+              exit 1
+            fi
+            if [[ "$next_version" == "$release_version" ]]; then
+              echo '::error::Next development version must differ from the release version.'
+              exit 1
+            fi
+          fi
+
+          prerelease=false
+          if [[ "$release_version" == *-* ]]; then
+            prerelease=true
+          fi
+
+          {
+            echo "version=$release_version"
+            echo "tag=v$release_version"
+            echo "next_version=$next_version"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+  quality:
+    name: Quality gate
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run build
+      - run: npm test
+      - run: npm run verify:offline
+      - name: Configure Electron sandbox for E2E tests
+        run: |
+          # Electron 45 downloads its binary on first use (ADR 0001).
+          sandbox="$(dirname "$(node -p "require('electron')" | tail -n 1)")/chrome-sandbox"
+          sudo chown root:root "$sandbox"
+          sudo chmod 4755 "$sandbox"
+      - run: xvfb-run -a npm run e2e
+
+  package:
+    name: Package (${{ matrix.platform }})
+    needs: [prepare, quality]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            artifacts: apps/desktop/release/*-Setup.exe
+          - os: ubuntu-latest
+            platform: linux
+            artifacts: |
+              apps/desktop/release/*.AppImage
+              apps/desktop/release/*.deb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Stamp release version
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version --ignore-scripts
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version --ignore-scripts \
+            --workspace @glacier-tasks/desktop
+      - run: npm ci
+      - run: npm run build
+      - run: npm run verify:offline
+      - name: Build installers
+        run: npm run package --workspace @glacier-tasks/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - if: matrix.platform == 'linux'
+        name: Configure Linux sandbox for smoke test
+        run: |
+          sandbox=apps/desktop/release/linux-unpacked/chrome-sandbox
+          sudo chown root:root "$sandbox"
+          sudo chmod 4755 "$sandbox"
+          test "$(stat -c '%U:%G %a' "$sandbox")" = 'root:root 4755'
+      - if: matrix.platform == 'linux'
+        run: xvfb-run -a npm run smoke -- linux
+      - if: matrix.platform == 'win32'
+        run: npm run smoke -- win32
+      - uses: actions/upload-artifact@v7
+        with:
+          name: glacier-tasks-${{ matrix.platform }}-x64
+          if-no-files-found: error
+          path: ${{ matrix.artifacts }}
+
+  publish:
+    name: Publish GitHub Release
+    needs: [prepare, package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: glacier-tasks-*-x64
+          path: release-assets
+          merge-multiple: true
+      - name: Verify release assets
+        shell: bash
+        run: |
+          shopt -s nullglob
+
+          assert_count() {
+            expected="$1"
+            label="$2"
+            shift 2
+            if [[ "$#" -ne "$expected" ]]; then
+              echo "::error::Expected $expected $label release asset(s), found $#."
+              exit 1
+            fi
+          }
+
+          assert_count 1 AppImage release-assets/*.AppImage
+          assert_count 1 Debian-package release-assets/*.deb
+          assert_count 1 Windows-installer release-assets/*-Setup.exe
+
+          assets=(release-assets/*)
+          if [[ "${#assets[@]}" -ne 3 ]]; then
+            echo "::error::Expected exactly 3 release assets, found ${#assets[@]}."
+            exit 1
+          fi
+          printf 'Release asset: %s\n' "${assets[@]}"
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          shopt -s nullglob
+          assets=(release-assets/*)
+          release_options=(
+            --title "Glacier Tasks $RELEASE_TAG"
+            --generate-notes
+          )
+
+          if [[ "$GITHUB_EVENT_NAME" == 'push' ]]; then
+            release_options+=(--verify-tag)
+          else
+            release_options+=(--target "$GITHUB_SHA")
+          fi
+          if [[ "$PRERELEASE" == 'true' ]]; then
+            release_options+=(--prerelease --latest=false)
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            "${release_options[@]}" \
+            "${assets[@]}"
+
+  next-version:
+    name: Set next development version
+    needs: [prepare, publish]
+    if: needs.prepare.outputs.next_version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Update package versions
+        shell: bash
+        env:
+          NEXT_VERSION: ${{ needs.prepare.outputs.next_version }}
+        run: |
+          npm version "$NEXT_VERSION" --no-git-tag-version --allow-same-version --ignore-scripts
+          npm version "$NEXT_VERSION" --no-git-tag-version --allow-same-version --ignore-scripts \
+            --workspace @glacier-tasks/desktop
+      - name: Commit next development version
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          NEXT_VERSION: ${{ needs.prepare.outputs.next_version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json apps/desktop/package.json
+          git commit -m "Start $NEXT_VERSION development"
+          git push origin "HEAD:$DEFAULT_BRANCH"

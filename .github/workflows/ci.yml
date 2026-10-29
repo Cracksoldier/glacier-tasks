@@ -36,6 +36,17 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: npm run verify:offline
+      - if: matrix.platform == 'linux'
+        name: Configure Electron sandbox for E2E tests
+        run: |
+          # Electron 45 downloads its binary on first use (ADR 0001).
+          sandbox="$(dirname "$(node -p "require('electron')" | tail -n 1)")/chrome-sandbox"
+          sudo chown root:root "$sandbox"
+          sudo chmod 4755 "$sandbox"
+      - if: matrix.platform == 'linux'
+        run: xvfb-run -a npm run e2e
+      - if: matrix.platform == 'win32'
+        run: npm run e2e
       - name: Package unpacked app
         run: npm run package:dir --workspace @glacier-tasks/desktop
         env:

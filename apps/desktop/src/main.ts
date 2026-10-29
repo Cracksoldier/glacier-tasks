@@ -1,190 +1,146 @@
-// Electron main process — M0 skeleton.
+// Electron main process: wiring only. Logic lives in the imported modules.
 //
-// Establishes the security baseline (docs/threat-model.md) and the workspace database
-// lifecycle. Smoke mode (GLACIER_SMOKE=1) exercises SQLite, FTS5, the backup API and the
-// renderer in a packaged build and prints one `[smoke] {...}` JSON line.
+// Environment:
+//   GLACIER_DEV=1          load the Angular dev server, enable DevTools shortcuts
+//   GLACIER_USER_DATA=dir  use another app data directory (smoke and E2E runs)
+//   GLACIER_SMOKE=1        run the packaged self-test and exit (see smoke.ts)
 
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { app, BrowserWindow, session, shell } from 'electron';
+import { app, type BrowserWindow, ipcMain, nativeTheme, session } from 'electron';
 import type { Database } from 'better-sqlite3';
-import {
-  integrityCheck,
-  LATEST_SCHEMA_VERSION,
-  MIGRATIONS,
-  migrate,
-  openDatabase,
-  snapshotDatabase,
-} from '@glacier-tasks/data';
-import { API_GLOBAL_NAME, APP_NAME } from '@glacier-tasks/domain';
+import { LATEST_SCHEMA_VERSION, MIGRATIONS } from '@glacier-tasks/data';
+import { type AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
+import { DeviceSettingsStore } from './device-settings.js';
+import { createDispatcher, createSenderCheck, type IpcHandlers } from './ipc.js';
+import { createLogger } from './logger.js';
+import { ensureAppDirectories, resolveAppPaths } from './paths.js';
+import { hardenApp, hardenSession } from './security.js';
+import { runSmoke } from './smoke.js';
+import { showStartupError } from './startup-error.js';
+import { createMainWindow, rendererDir, WINDOW_BACKGROUND } from './window.js';
+import { openWorkspace } from './workspace.js';
 
+const isDev = process.env['GLACIER_DEV'] === '1';
 const isSmoke = process.env['GLACIER_SMOKE'] === '1';
-const WORKSPACE_FILE = 'glacier-tasks.sqlite';
+const devUrl = isDev ? 'http://localhost:4200' : undefined;
 
-if (isSmoke) {
-  app.setPath(
-    'userData',
-    process.env['GLACIER_SMOKE_USER_DATA'] ?? mkdtempSync(join(tmpdir(), 'glacier-tasks-smoke-')),
-  );
-}
+const userDataOverride = process.env['GLACIER_USER_DATA'];
+if (userDataOverride) app.setPath('userData', userDataOverride);
 
 let workspace: Database | undefined;
 let mainWindow: BrowserWindow | undefined;
+const remoteRequests: string[] = [];
 
-function createWindow(show: boolean): BrowserWindow {
-  const window = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    show,
-    title: APP_NAME,
-    backgroundColor: '#0d1b2a',
-    webPreferences: {
-      preload: join(__dirname, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      webSecurity: true,
-      spellcheck: false,
-    },
-  });
-
-  // No in-app navigation away from the bundled renderer, no new windows (threat model T6).
-  window.webContents.on('will-navigate', (event) => event.preventDefault());
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
-    return { action: 'deny' };
-  });
-
-  void window.loadFile(join(__dirname, 'renderer', 'index.html'));
-  return window;
+function backgroundFor(theme: Theme): string {
+  const dark = theme === 'dark' || (theme === 'system' && nativeTheme.shouldUseDarkColors);
+  return dark ? WINDOW_BACKGROUND.dark : WINDOW_BACKGROUND.light;
 }
 
-function openWorkspace(): Database {
-  const db = openDatabase(join(app.getPath('userData'), WORKSPACE_FILE), { wal: true });
-  migrate(db, MIGRATIONS);
-  return db;
+function iconPath(): string | undefined {
+  // Windows takes the icon from the executable; Linux needs it on the window.
+  return process.platform === 'linux' ? join(__dirname, 'icon.png') : undefined;
 }
 
-async function runSmoke(): Promise<void> {
-  const result: Record<string, unknown> = { ok: false, electron: process.versions.electron };
-  // Offline guarantee (UJ-08): record and cancel every network request.
-  const remoteRequests: string[] = [];
-  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    const isRemote = /^(?:https?|wss?|ftp):/i.test(details.url);
-    if (isRemote) remoteRequests.push(details.url);
-    callback({ cancel: isRemote });
-  });
+async function start(): Promise<void> {
+  const paths = resolveAppPaths(app.getPath('userData'));
+  ensureAppDirectories(paths);
+  const logger = createLogger(paths.logs, { echo: isDev || isSmoke });
+  logger.info('app starting', { version: app.getVersion(), electron: process.versions.electron });
+
+  const settings = new DeviceSettingsStore(
+    paths.deviceSettings,
+    app.getPreferredSystemLanguages(),
+    logger,
+  );
+  nativeTheme.themeSource = settings.get().theme;
+
+  const securityOptions = {
+    ...(devUrl ? { devUrl } : {}),
+    onRemoteRequest: (url: string) => remoteRequests.push(url),
+  };
+  hardenApp(app, securityOptions);
+  hardenSession(session.defaultSession, securityOptions);
+
   try {
-    const db = openWorkspace();
-    workspace = db;
-    result['schemaVersion'] = LATEST_SCHEMA_VERSION;
-
-    const now = new Date().toISOString();
-    db.transaction(() => {
-      db.prepare(
-        `INSERT INTO projects (id, project_key, name, next_issue_number, created_at, updated_at)
-         VALUES ('p1', 'GAME', 'Game Dev', 2, ?, ?)`,
-      ).run(now, now);
-      db.prepare(
-        `INSERT INTO statuses (id, project_id, name, category, position, is_default, created_at, updated_at)
-         VALUES ('s1', 'p1', 'To Do', 'TODO', 0, 1, ?, ?)`,
-      ).run(now, now);
-      db.prepare(
-        `INSERT INTO tasks (id, project_id, issue_number, type, title, status_id, sort_order, created_at, updated_at)
-         VALUES ('t1', 'p1', 1, 'STORY', 'Implement inventory', 's1', 'V', ?, ?)`,
-      ).run(now, now);
-    })();
-    const hits = db
-      .prepare(`SELECT count(*) AS c FROM tasks_fts WHERE tasks_fts MATCH 'inventor*'`)
-      .get() as { c: number };
-    result['fts5'] = hits.c === 1;
-
-    const snapshotPath = join(app.getPath('userData'), 'snapshot.sqlite');
-    await snapshotDatabase(db, snapshotPath);
-    const snapshot = openDatabase(snapshotPath, { readonly: true });
-    result['integrity'] = integrityCheck(snapshot);
-    result['backup'] =
-      (snapshot.prepare('SELECT count(*) AS c FROM tasks').get() as { c: number }).c === 1;
-    snapshot.close();
-
-    const window = createWindow(false);
-    mainWindow = window;
-    await new Promise<void>((resolve, reject) => {
-      window.webContents.once('did-finish-load', () => resolve());
-      window.webContents.once('did-fail-load', (_e, code, description) =>
-        reject(new Error(`Renderer failed to load: ${code} ${description}`)),
-      );
-    });
-    const renderer = (await window.webContents.executeJavaScript(`
-      new Promise((resolve) => {
-        const deadline = Date.now() + 10000;
-        const poll = () => {
-          const heading = document.querySelector('h1');
-          if (heading || Date.now() > deadline) {
-            resolve({
-              title: document.title,
-              heading: heading ? heading.textContent : null,
-              nodeRequire: typeof require,
-              nodeProcess: typeof process,
-              api: typeof window['${API_GLOBAL_NAME}'],
-            });
-          } else {
-            setTimeout(poll, 50);
-          }
-        };
-        poll();
+    workspace = (
+      await openWorkspace({
+        dbPath: paths.workspaceDb,
+        backupsDir: paths.backups,
+        migrations: MIGRATIONS,
+        logger,
       })
-    `)) as Record<string, unknown>;
-    result['renderer'] = renderer;
-    result['remoteRequests'] = remoteRequests;
-
-    result['ok'] =
-      remoteRequests.length === 0 &&
-      result['fts5'] === true &&
-      result['backup'] === true &&
-      result['integrity'] === 'ok' &&
-      renderer['heading'] === APP_NAME &&
-      renderer['nodeRequire'] === 'undefined' &&
-      renderer['nodeProcess'] === 'undefined' &&
-      renderer['api'] === 'object';
+    ).db;
   } catch (error) {
-    result['error'] = error instanceof Error ? error.message : String(error);
+    await showStartupError(error as AppError, settings.get().language, paths.root);
+    app.exit(1);
+    return;
   }
-  console.log(`[smoke] ${JSON.stringify(result)}`);
-  const resultFile = process.env['GLACIER_SMOKE_RESULT'];
-  if (resultFile) writeFileSync(resultFile, JSON.stringify(result, null, 2));
-  workspace?.close();
-  workspace = undefined;
-  app.exit(result['ok'] === true ? 0 : 1);
+
+  const handlers: IpcHandlers = {
+    app: {
+      info: () => ({ version: app.getVersion(), schemaVersion: LATEST_SCHEMA_VERSION }),
+    },
+    settings: {
+      getDevice: () => settings.get(),
+      updateDevice: (patch) => {
+        const updated = settings.update(patch);
+        if (patch.theme) {
+          nativeTheme.themeSource = updated.theme;
+          mainWindow?.setBackgroundColor(backgroundFor(updated.theme));
+        }
+        return updated;
+      },
+    },
+  };
+  const dispatch = createDispatcher({
+    handlers,
+    isTrustedSender: createSenderCheck({
+      rendererDir: rendererDir(),
+      ...(devUrl ? { devUrl } : {}),
+    }),
+    logger,
+  });
+  for (const channel of allIpcChannels()) {
+    ipcMain.handle(channel, (event, ...args) =>
+      dispatch(channel, event.senderFrame?.url ?? '', args),
+    );
+  }
+
+  mainWindow = createMainWindow({
+    settings,
+    backgroundColor: backgroundFor(settings.get().theme),
+    show: !isSmoke,
+    ...(devUrl ? { devUrl } : {}),
+    ...(iconPath() ? { iconPath: iconPath() as string } : {}),
+  });
+  mainWindow.on('closed', () => {
+    mainWindow = undefined;
+  });
+
+  if (isSmoke) {
+    const ok = await runSmoke({ window: mainWindow, db: workspace, paths, remoteRequests });
+    workspace.close();
+    workspace = undefined;
+    app.exit(ok ? 0 : 1);
+  }
 }
 
-if (!isSmoke && !app.requestSingleInstanceLock()) {
-  // A second launch focuses the existing window (D05).
+if (!app.requestSingleInstanceLock()) {
+  // A second launch hands over to the running instance and exits (D05).
   app.quit();
 } else {
   app.on('second-instance', () => {
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
     mainWindow.focus();
   });
 
-  app.on('web-contents-created', (_event, contents) => {
-    contents.on('will-attach-webview', (event) => event.preventDefault());
-  });
+  void app.whenReady().then(start);
 
-  void app.whenReady().then(async () => {
-    if (isSmoke) {
-      await runSmoke();
-      return;
-    }
-    workspace = openWorkspace();
-    mainWindow = createWindow(true);
-  });
-
-  app.on('window-all-closed', () => {
+  app.on('window-all-closed', () => app.quit());
+  app.on('will-quit', () => {
     workspace?.close();
     workspace = undefined;
-    app.quit();
   });
 }

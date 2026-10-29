@@ -24,7 +24,7 @@ const child = spawn(executable, [], {
     ...process.env,
     GLACIER_SMOKE: '1',
     GLACIER_SMOKE_RESULT: resultFile,
-    GLACIER_SMOKE_USER_DATA: path.join(tempDir, 'user-data'),
+    GLACIER_USER_DATA: path.join(tempDir, 'user-data'),
   },
   stdio: 'inherit',
 });

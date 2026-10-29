@@ -15,7 +15,9 @@
     "build": "tsc -p tsconfig.json && node scripts/build.mjs",
     "start": "electron .",
     "package:dir": "electron-builder --dir --x64 --publish never",
-    "package": "electron-builder --x64 --publish never"
+    "package": "electron-builder --x64 --publish never",
+    "test": "vitest run",
+    "dev": "node scripts/dev.mjs"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3"
@@ -25,6 +27,7 @@
     "@glacier-tasks/domain": "0.0.0",
     "electron": "45.1.0",
     "electron-builder": "26.18.0",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "zod": "4.6.7"
   }
 }

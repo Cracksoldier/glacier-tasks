@@ -23,13 +23,25 @@ push only when the user asks.
 
 ## Commands
 
+- `npm start`: dev mode with three parallel processes:
+  - `tsc -b -w` for the packages
+  - `ng serve` on :4200
+  - Electron with `GLACIER_DEV=1` via `apps/desktop/scripts/dev.mjs`
+
+  Renderer warnings and errors are echoed to the terminal; F12 opens DevTools. Main/preload
+  changes need an app restart.
 - `npm run build`: domain → data → ui → desktop (order of the `workspaces` array)
 - `npm test`: Vitest in all workspaces (UI via `ng test`)
+- `npm run e2e`: Playwright drives the built, unpackaged app (`tests/e2e`); run `npm run build` first
+- `node scripts/generate-icons.mjs`: re-render icons after changing `apps/desktop/build/icon.svg`
 - `npm run format` / `npm run format:check`: Biome; Markdown and YAML are formatted by hand
 - `npm run verify:offline`: fails if the renderer build references remote resources
 - `npm run package:dir --workspace @glacier-tasks/desktop`: unpacked package in `apps/desktop/release`
 - `npm run smoke [-- win32|linux]`: runs the packaged app in smoke mode (needs `package:dir` first)
-- Unpackaged smoke run: `cd apps/desktop && GLACIER_SMOKE=1 npx electron .` (prints a `[smoke] {...}` line)
+- Unpackaged smoke run: `cd apps/desktop && GLACIER_SMOKE=1 GLACIER_USER_DATA=<tmp dir> npx electron .`
+  (prints a `[smoke] {...}` line)
+- `GLACIER_USER_DATA=<dir>` points any run at a separate app data directory; never test
+  against the real profile.
 - Single test file: `npx vitest run src/sort-key.spec.ts` inside a package
 
 ## Layout (ADR 0002)
@@ -44,7 +56,21 @@ push only when the user asks.
   `src/migrations/NNNN-name.ts` (never edit a released migration).
 - `apps/desktop`: Electron main + preload, bundled by esbuild into CJS (`scripts/build.mjs`);
   `electron-builder.yml`.
-- `apps/ui`: Angular renderer (standalone, zoneless, OnPush).
+- `apps/desktop/src`: `main.ts` is wiring only. The logic lives in Electron-free modules
+  with unit tests:
+  - `ipc.ts`: dispatcher and sender check
+  - `device-settings.ts`
+  - `workspace.ts`: open, safety backup, migrate
+  - `fs-safe.ts`
+  - `logger.ts`
+  - `paths.ts`
+
+  Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts` and `smoke.ts`.
+- `apps/ui`: Angular renderer (standalone, zoneless, OnPush, signals; ADR 0006):
+  - `core/api`: `GLACIER_API` token
+  - `core/settings`, `core/theme`, `core/i18n`
+  - `shell/`, `pages/`
+  - `testing/`: API stub and providers
 
 Packages compile to `dist/` with `tsc -b`. Rebuild `domain` after changes before the UI or
 desktop picks them up.
@@ -60,7 +86,13 @@ desktop picks them up.
   project-scoped references must follow that pattern. Write multi-table changes in one
   transaction.
 - **Renderer:** no Node APIs, no remote URLs, no inline scripts (CSP in `apps/ui/src/index.html`).
-- All user-facing strings go through the EN/DE translation layer (from M1).
+  Don't add a `<base>` element to `index.html` (ADR 0006: it breaks hash URLs and the IPC
+  sender check).
+- **Text:** every user-facing string needs an entry in `core/i18n/en.ts` *and* `de.ts`.
+  Use `i18n.t(key)`, never literal text in templates.
+- **Styles:** use the CSS custom properties from `styles/_tokens.scss`, never literal colours.
+- **Network:** the main process cancels every http/ws request except the dev server. Don't
+  add anything that fetches remotely.
 
 ## Commit style
 

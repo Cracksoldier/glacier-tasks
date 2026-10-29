@@ -38,5 +38,7 @@ needed in CI.
 ## Consequences
 
 - Angular dictates the TypeScript line; TypeScript upgrades wait for Angular support.
-- Playwright (E2E) is added when the first E2E test lands (M1/M3), at the then-current version.
+- Added in M1: Playwright 1.64.1 (`_electron` E2E; no browser download needed), `@resvg/resvg-js`
+  2.6.2 (icon rendering), `concurrently` and `wait-on` (dev workflow), Font Awesome 7.3.1,
+  `@angular/router` 22.2.3.
 - Upgrading Electron requires re-running the packaged smoke test on both platforms.

@@ -74,3 +74,11 @@ Reference application for visual identity, tooling and release process:
 | D33 | Attachments (A09): 100 MiB per file (configurable); inline previews for PNG, JPEG, GIF and WebP only, never SVG; other types open/save-as only.                                                                                                                                        | §3.6      |
 | D34 | Backup format (A11): `.glaciertasks` ZIP archive with `manifest.json` (format version, schema version, timestamp, file inventory, SHA-256 checksums), SQLite snapshot and managed files.                                                                                               | DATA-04   |
 | D35 | Repository layout: npm workspaces monorepo — `apps/desktop` (Electron main/preload, bundled with esbuild), `apps/ui` (Angular), `packages/domain` (shared types, Zod schemas, invariants), `packages/data` (SQLite migrations/repositories). See `docs/adr/0002-repository-layout.md`. | §13       |
+
+## 2026-10-29 — M1 planning
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D36 | Renderer navigation uses the Angular Router with hash URLs (`index.html#/settings`), so routes work over `file://` and support back/forward and deep links. See `docs/adr/0006-renderer-architecture.md`. | UX-02 |
+| D37 | A full Glacier Notes-style release workflow ships from M1: manual dispatch or `v*` tag → version stamping, quality gate, Windows NSIS + Linux AppImage/deb builds with packaged smoke tests, GitHub Release (pre-release for `-` versions). | D21, M8 |
+| D38 | No native application menu bar on Windows/Linux. All actions live in the app UI; standard text-editing shortcuts keep working; DevTools only in development. | UX-02 |

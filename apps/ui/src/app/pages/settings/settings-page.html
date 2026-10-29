@@ -1,0 +1,61 @@
+<section class="page">
+  <h1>{{ i18n.t('settings.title') }}</h1>
+
+  @if (error(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+
+  <section class="card" aria-labelledby="appearance-heading">
+    <h2 id="appearance-heading">{{ i18n.t('settings.appearance') }}</h2>
+
+    <fieldset class="choice-group">
+      <legend>{{ i18n.t('settings.theme') }}</legend>
+      <div class="segmented">
+        @for (choice of themes; track choice.value) {
+          <label class="segment" [class.selected]="settings.theme() === choice.value">
+            <input
+              type="radio"
+              name="theme"
+              [value]="choice.value"
+              [checked]="settings.theme() === choice.value"
+              (change)="selectTheme(choice.value)"
+              [attr.data-testid]="'theme-' + choice.value"
+            />
+            <i class="fa-solid {{ choice.icon }}" aria-hidden="true"></i>
+            <span>{{ i18n.t(choice.label!) }}</span>
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset class="choice-group">
+      <legend>{{ i18n.t('settings.language') }}</legend>
+      <div class="segmented">
+        @for (choice of languages; track choice.value) {
+          <label class="segment" [class.selected]="settings.language() === choice.value">
+            <input
+              type="radio"
+              name="language"
+              [value]="choice.value"
+              [checked]="settings.language() === choice.value"
+              (change)="selectLanguage(choice.value)"
+              [attr.lang]="choice.value"
+              [attr.data-testid]="'language-' + choice.value"
+            />
+            <span [attr.lang]="choice.value">{{ choice.nativeLabel }}</span>
+          </label>
+        }
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="card" aria-labelledby="about-heading">
+    <h2 id="about-heading">{{ i18n.t('settings.about') }}</h2>
+    <dl class="facts">
+      <dt>{{ i18n.t('settings.version') }}</dt>
+      <dd data-testid="app-version">{{ info.value()?.version ?? '…' }}</dd>
+      <dt>{{ i18n.t('settings.schemaVersion') }}</dt>
+      <dd>{{ info.value()?.schemaVersion ?? '…' }}</dd>
+    </dl>
+  </section>
+</section>

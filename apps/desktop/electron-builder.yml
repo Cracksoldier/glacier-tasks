@@ -10,6 +10,7 @@ buildDependenciesFromSource: false
 
 directories:
   output: release
+  buildResources: build
 
 files:
   - package.json
@@ -25,6 +26,7 @@ asarUnpack:
   - "**/node_modules/better-sqlite3/prebuilds/*.node"
 
 linux:
+  icon: build/icons
   category: Office
   files:
     - "!**/node_modules/better-sqlite3/prebuilds/{darwin-*,win32-*,*-arm64}.node"
@@ -42,6 +44,7 @@ deb:
   artifactName: Glacier-Tasks-${version}-linux-${arch}.deb
 
 win:
+  icon: build/icon.ico
   files:
     - "!**/node_modules/better-sqlite3/prebuilds/{darwin-*,linux*,*-arm64}.node"
   target:

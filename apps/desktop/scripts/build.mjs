@@ -7,37 +7,48 @@
 import { build } from 'esbuild';
 import { cpSync, existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'dist');
 const rendererSource = join(root, '..', 'ui', 'dist', 'browser');
 
-rmSync(outDir, { recursive: true, force: true });
+/** @param {{ dev?: boolean }} options  dev: skip the renderer copy (served by ng serve). */
+export async function buildDesktop({ dev = false } = {}) {
+  rmSync(outDir, { recursive: true, force: true });
 
-const common = {
-  bundle: true,
-  platform: 'node',
-  target: 'node24',
-  format: 'cjs',
-  sourcemap: 'linked',
-  external: ['electron', 'better-sqlite3'],
-  logLevel: 'info',
-};
+  const common = {
+    bundle: true,
+    platform: 'node',
+    target: 'node24',
+    format: 'cjs',
+    sourcemap: 'linked',
+    external: ['electron', 'better-sqlite3'],
+    logLevel: 'info',
+  };
 
-await build({
-  ...common,
-  entryPoints: [join(root, 'src', 'main.ts')],
-  outfile: join(outDir, 'main.cjs'),
-});
+  await build({
+    ...common,
+    entryPoints: [join(root, 'src', 'main.ts')],
+    outfile: join(outDir, 'main.cjs'),
+  });
 
-await build({
-  ...common,
-  entryPoints: [join(root, 'src', 'preload.ts')],
-  outfile: join(outDir, 'preload.cjs'),
-});
+  await build({
+    ...common,
+    entryPoints: [join(root, 'src', 'preload.ts')],
+    outfile: join(outDir, 'preload.cjs'),
+  });
 
-if (!existsSync(join(rendererSource, 'index.html'))) {
-  throw new Error('Renderer build missing: run the @glacier-tasks/ui build first');
+  // Linux window icon (Windows takes the icon from the executable).
+  cpSync(join(root, 'build', 'icon.png'), join(outDir, 'icon.png'));
+
+  if (dev) return;
+  if (!existsSync(join(rendererSource, 'index.html'))) {
+    throw new Error('Renderer build missing: run the @glacier-tasks/ui build first');
+  }
+  cpSync(rendererSource, join(outDir, 'renderer'), { recursive: true });
 }
-cpSync(rendererSource, join(outDir, 'renderer'), { recursive: true });
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  await buildDesktop();
+}

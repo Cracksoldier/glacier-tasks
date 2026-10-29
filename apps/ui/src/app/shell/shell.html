@@ -1,0 +1,44 @@
+<div class="shell" data-testid="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <img class="brand-logo" src="icon.svg" alt="" width="32" height="32" />
+      <span class="brand-name">{{ i18n.t('app.name') }}</span>
+    </div>
+
+    <nav class="nav" [attr.aria-label]="i18n.t('nav.label')">
+      <ul>
+        @for (item of primaryNav; track item.path) {
+          <li>
+            <a
+              class="nav-link"
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              ariaCurrentWhenActive="page"
+            >
+              <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+              <span>{{ i18n.t(item.label) }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+      <ul class="nav-bottom">
+        <li>
+          <a
+            class="nav-link"
+            [routerLink]="settingsNav.path"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            data-testid="nav-settings"
+          >
+            <i class="fa-solid {{ settingsNav.icon }}" aria-hidden="true"></i>
+            <span>{{ i18n.t(settingsNav.label) }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

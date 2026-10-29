@@ -18,7 +18,7 @@
 
 **Goal:** Lock choices that otherwise produce painful rework.
 
-**Status:** Done locally (2026-10-29); see `docs/adr/`, `docs/architecture.md`, `docs/threat-model.md`. Linux packaging is verified by CI.
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/`, `docs/architecture.md`, `docs/threat-model.md`.
 
 **Tasks**
 1. Confirm Node/Electron/Angular versions compatible with each other (starting from Glacier Notes' current versions); npm workspaces vs. Glacier Notes' single-package layout.
@@ -33,6 +33,8 @@
 ## M1 — Electron/Angular foundation, persistence and visual foundation
 
 **Goal:** Packaged app starts, communicates securely through typed IPC, opens an initialized SQLite database, and already has its final look and translation layer.
+
+**Status:** Done locally (2026-10-29); see `docs/adr/0006-renderer-architecture.md`. CI run pending.
 
 **Tasks**
 1. Bootstrap Electron main/preload plus Angular renderer; dev/watch and packaged builds; Biome formatting; Vitest.

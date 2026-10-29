@@ -23,7 +23,24 @@ Every IPC surface change touches, in order:
 ### Preload rules
 
 - Only `contextBridge.exposeInMainWorld(API_GLOBAL_NAME, frozenApi)`.
+- The API object is generated from `IPC_CHANNELS`. Each method calls exactly one fixed
+  `ipcRenderer.invoke('<group>:<method>', …args)`, and the object and its groups are frozen.
 - Never expose `ipcRenderer`, a generic `invoke(channel, …)`, Node APIs, file paths or SQL.
+
+### Dispatch (main process, `apps/desktop/src/ipc.ts`)
+
+Every channel in `IPC_CHANNELS` is registered with `ipcMain.handle` and goes through
+`createDispatcher`, in this order:
+
+1. **Sender check:** the calling frame's URL must be inside the bundled renderer directory
+   (`file://…/dist/renderer/…`), or in development the Angular dev server. Anything else gets
+   `VALIDATION` / `errors.untrustedSender` and is logged.
+2. **Argument validation** with `IPC_ARGS[channel]` (`packages/domain/src/ipc-args.ts`, one
+   `z.tuple` per channel). This runs before the handler lookup, so malformed input is rejected
+   the same way whether or not a feature is implemented.
+3. **Handler lookup:** channels without a handler yet return `IO` / `errors.notAvailable`.
+4. The handler receives the *parsed* arguments, with schema defaults and normalization applied.
+   `undefined` results become `null`.
 
 ### Validation
 
