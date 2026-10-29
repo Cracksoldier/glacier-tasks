@@ -85,7 +85,7 @@
 **Deliverables:** working task editor, CRUD IPC, domain validation, trash service, initial history.  
 **Acceptance:** user can create story and two subtasks, assign each independently, edit Markdown, move a subtask to another story, trash and restore a story (independently trashed subtask stays trashed), restart without data loss; finishing subtasks never changes parent status.  
 **Dependencies:** M2.
-**Status:** Implemented (2026-10-29). See `docs/adr/0008-task-service-and-markdown.md`. Also delivered here: project trash/restore and bulk unassignment of archived profiles (moved from M2), and a minimal Trash page with Restore (D39). Until the M4 board, the project page lists stories (D40).
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/0008-task-service-and-markdown.md`. Also delivered here: project trash/restore and bulk unassignment of archived profiles (moved from M2), and a minimal Trash page with Restore (D39). Until the M4 board, the project page lists stories (D40).
 
 ## M4 — Project workflows and Kanban board
 
