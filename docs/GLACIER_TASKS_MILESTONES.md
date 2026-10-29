@@ -142,6 +142,8 @@
 **Acceptance:** attached file remains available after source deletion; inline attachment images render and other image sources are not loaded; history shows meaningful before/after edits and all description versions; malicious attachment path/Markdown cannot escape security boundary.  
 **Dependencies:** M3–M5.
 
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/0011-attachments-and-history.md`. Activity tab, profile history dialog and the attachment size setting confirmed as D45–D47.
+
 ## M7 — Trash UI, complete backup/restore and JSON export
 
 **Goal:** Ensure predictable recovery and portable archives for fully local data.
