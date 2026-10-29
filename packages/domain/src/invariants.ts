@@ -101,3 +101,40 @@ export function profileInitials(name: string): string {
   const last = parts.length > 1 ? (Array.from(parts[parts.length - 1] as string)[0] ?? '') : '';
   return (first + last).toUpperCase();
 }
+
+/**
+ * Suggests a project key from a project name (D08): the initials of several words, or a
+ * single word itself, restricted to A–Z/0–9 and 10 characters. The result may still be
+ * invalid (e.g. one letter); callers validate it like user input.
+ */
+export function suggestProjectKey(name: string): string {
+  const words = name
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase()
+    .split(/[^A-Z0-9]+/)
+    .filter(Boolean);
+  const firstLetter = words.findIndex((word) => /^[A-Z]/.test(word));
+  if (firstLetter < 0) return '';
+  const usable = words.slice(firstLetter);
+  const key = usable.length > 1 ? usable.map((word) => word[0]).join('') : (usable[0] as string);
+  return key.slice(0, 10);
+}
+
+export type AvatarMimeType = 'image/png' | 'image/jpeg' | 'image/webp';
+
+/**
+ * Detects PNG, JPEG or WebP from the file signature (D24). File names and extensions are
+ * never trusted.
+ */
+export function detectImageMime(bytes: Uint8Array): AvatarMimeType | undefined {
+  const startsWith = (offset: number, signature: ReadonlyArray<number>) =>
+    signature.every((value, index) => bytes[offset + index] === value);
+  if (startsWith(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png';
+  if (startsWith(0, [0xff, 0xd8, 0xff])) return 'image/jpeg';
+  // RIFF....WEBP
+  if (startsWith(0, [0x52, 0x49, 0x46, 0x46]) && startsWith(8, [0x57, 0x45, 0x42, 0x50])) {
+    return 'image/webp';
+  }
+  return undefined;
+}

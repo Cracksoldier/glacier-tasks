@@ -18,6 +18,13 @@
     (ADR 0004). The smoke test asserts the URL stays on `index.html#/…`.
 - **Shell:** left sidebar (brand, primary nav, settings at the bottom) plus a routed main area.
   Placeholder pages stand in for areas built in later milestones.
+- **M2 additions:**
+  - The sidebar has a project switcher.
+  - The empty route goes through the `startPage` guard to the last opened project
+    (`lastProjectId`, PROJ-02), if it still exists.
+  - The app initializer loads the project list after the device settings.
+  - Stores (`ProjectsStore`, `UsersStore`) reload from the main process after each write, rather
+    than patching local state.
 
 ### Access to the main process
 

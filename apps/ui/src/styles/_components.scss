@@ -1,0 +1,159 @@
+// Shared building blocks used across pages: page layout, cards, buttons, form fields,
+// banners. Colors come from tokens only.
+
+.page {
+  max-width: 1080px;
+  padding: 24px 32px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+  }
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.card {
+  padding: 20px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.empty-state {
+  padding: 48px 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  text-align: center;
+
+  h2 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: var(--color-text);
+  }
+
+  p {
+    margin: 0 0 16px;
+  }
+}
+
+.error-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger-text);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.btn-primary {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-accent-muted);
+  }
+}
+
+.btn-ghost {
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--color-text-muted);
+
+  &:hover:not(:disabled) {
+    color: var(--color-text);
+  }
+}
+
+.btn-icon {
+  padding: 6px 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  label {
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg);
+
+    &:disabled {
+      opacity: 0.65;
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--color-danger);
+    }
+  }
+
+  textarea {
+    min-height: 96px;
+    resize: vertical;
+  }
+}
+
+.field-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--color-danger-text);
+  font-size: 12px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}

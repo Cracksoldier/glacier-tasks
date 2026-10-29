@@ -19,6 +19,14 @@
   --color-danger: #c0392b;
   --color-danger-hover: #d64534;
   --color-danger-text: #e74c3c;
+  --color-backdrop: rgba(4, 10, 18, 0.6);
+  --avatar-1: #2b6cb0;
+  --avatar-2: #2f855a;
+  --avatar-3: #9b2c2c;
+  --avatar-4: #6b46c1;
+  --avatar-5: #b7791f;
+  --avatar-6: #2c7a7b;
+  --avatar-text: #ffffff;
 }
 
 .theme-light {
@@ -38,6 +46,14 @@
   --color-danger: #c0392b;
   --color-danger-hover: #d64534;
   --color-danger-text: #c0392b;
+  --color-backdrop: rgba(13, 27, 42, 0.35);
+  --avatar-1: #3182ce;
+  --avatar-2: #38a169;
+  --avatar-3: #c53030;
+  --avatar-4: #805ad5;
+  --avatar-5: #c05621;
+  --avatar-6: #319795;
+  --avatar-text: #ffffff;
 }
 
 :root {

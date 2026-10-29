@@ -52,8 +52,13 @@ push only when the user asks.
   - `AppError`/`Result` (`errors.ts`)
   - IPC contract (`api.ts`)
   - pure invariants and sort keys
+  - activity event types and payloads (`activity-events.ts`), media URLs (`media.ts`)
 - `packages/data`: main process only: `openDatabase`, `migrate`, migrations in
   `src/migrations/NNNN-name.ts` (never edit a released migration).
+  - `src/services/`: DB-only services (`ProjectService`, `UserService`, `ActivityService`)
+    taking a `ServiceContext` (db, clock, id generator). Each write is one transaction that
+    also records its activity event (D12). Services never touch the file system.
+  - Services throw `AppError` with an `errors.*` message key; every key needs EN/DE text.
 - `apps/desktop`: Electron main + preload, bundled by esbuild into CJS (`scripts/build.mjs`);
   `electron-builder.yml`.
 - `apps/desktop/src`: `main.ts` is wiring only. The logic lives in Electron-free modules
@@ -64,13 +69,17 @@ push only when the user asks.
   - `fs-safe.ts`
   - `logger.ts`
   - `paths.ts`
+  - `avatar-store.ts`: avatar import, read and startup reconciliation (ADR 0007)
 
-  Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts` and `smoke.ts`.
+  Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts`, `media-protocol.ts`
+  (`glacier-media://avatar/<uuid>`) and `smoke.ts`.
 - `apps/ui`: Angular renderer (standalone, zoneless, OnPush, signals; ADR 0006):
   - `core/api`: `GLACIER_API` token
-  - `core/settings`, `core/theme`, `core/i18n`
+  - `core/settings`, `core/theme`, `core/i18n`, `core/projects`, `core/users`: signal stores
+  - `shared/`: `<app-avatar>`, `<app-dialog>` (native `<dialog>`); global building blocks
+    (`.btn`, `.field`, `.card`, …) in `styles/_components.scss`
   - `shell/`, `pages/`
-  - `testing/`: API stub and providers
+  - `testing/`: API stub (in-memory projects/users) and providers
 
 Packages compile to `dist/` with `tsc -b`. Rebuild `domain` after changes before the UI or
 desktop picks them up.
@@ -91,6 +100,8 @@ desktop picks them up.
 - **Text:** every user-facing string needs an entry in `core/i18n/en.ts` *and* `de.ts`.
   Use `i18n.t(key)`, never literal text in templates.
 - **Styles:** use the CSS custom properties from `styles/_tokens.scss`, never literal colours.
+- **E2E:** the UI language follows the OS on first launch (D15), so E2E tests select by
+  `data-testid`, not by visible text.
 - **Network:** the main process cancels every http/ws request except the dev server. Don't
   add anything that fetches remotely.
 

@@ -53,6 +53,9 @@ export interface GlacierTasksAPI {
     update(id: string, input: UpdateUserInput): Promise<UserProfile>;
     archive(id: string): Promise<void>;
     unarchive(id: string): Promise<void>;
+    /** Opens a native file picker in the main process; resolves null when cancelled (D24). */
+    chooseAvatar(id: string): Promise<UserProfile | null>;
+    removeAvatar(id: string): Promise<UserProfile>;
   };
   tasks: {
     query(input: TaskQuery): Promise<PagedResult<TaskSummary>>;
@@ -104,7 +107,7 @@ export const API_GLOBAL_NAME = 'glacierTasks';
 export const IPC_CHANNELS = {
   app: ['info'],
   projects: ['list', 'create', 'update', 'trash', 'restore'],
-  users: ['list', 'create', 'update', 'archive', 'unarchive'],
+  users: ['list', 'create', 'update', 'archive', 'unarchive', 'chooseAvatar', 'removeAvatar'],
   tasks: [
     'query',
     'get',

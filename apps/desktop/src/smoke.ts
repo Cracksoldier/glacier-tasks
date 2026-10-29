@@ -12,7 +12,7 @@ import {
   openDatabase,
   snapshotDatabase,
 } from '@glacier-tasks/data';
-import { API_GLOBAL_NAME } from '@glacier-tasks/domain';
+import { API_GLOBAL_NAME, avatarUrl } from '@glacier-tasks/domain';
 import type { AppPaths } from './paths.js';
 
 export interface SmokeContext {
@@ -59,6 +59,14 @@ async function checkBackup(
   }
 }
 
+/** The media protocol answers, and refuses ids it does not know (T10). */
+async function checkMediaProtocol(window: BrowserWindow): Promise<{ mediaStatus: number }> {
+  const response = await window.webContents.session.fetch(
+    avatarUrl('00000000-0000-4000-8000-000000000000'),
+  );
+  return { mediaStatus: response.status };
+}
+
 async function checkRenderer(window: BrowserWindow): Promise<Record<string, unknown>> {
   if (window.webContents.isLoading()) {
     await new Promise<void>((resolve, reject) => {
@@ -77,7 +85,9 @@ async function checkRenderer(window: BrowserWindow): Promise<Record<string, unkn
       const api = window['${API_GLOBAL_NAME}'];
       let info = null;
       let invalidCall = null;
+      let projects = null;
       try { info = await api.app.info(); } catch (error) { info = { error }; }
+      try { projects = (await api.projects.list()).length; } catch (error) { projects = { error }; }
       try { await api.tasks.get('not-a-uuid'); invalidCall = 'resolved'; }
       catch (error) { invalidCall = error && error.code; }
       return {
@@ -91,6 +101,7 @@ async function checkRenderer(window: BrowserWindow): Promise<Record<string, unkn
         apiFrozen: Object.isFrozen(api),
         info,
         invalidCall,
+        projects,
       };
     })()
   `)) as Record<string, unknown>;
@@ -101,6 +112,7 @@ export async function runSmoke(context: SmokeContext): Promise<boolean> {
   try {
     Object.assign(result, checkDatabase(context.db));
     Object.assign(result, await checkBackup(context.db, context.paths));
+    Object.assign(result, await checkMediaProtocol(context.window));
     const renderer = await checkRenderer(context.window);
     result['renderer'] = renderer;
     result['remoteRequests'] = context.remoteRequests;
@@ -111,6 +123,8 @@ export async function runSmoke(context: SmokeContext): Promise<boolean> {
       result['fts5'] === true &&
       result['backup'] === true &&
       result['integrity'] === 'ok' &&
+      result['mediaStatus'] === 404 &&
+      typeof renderer['projects'] === 'number' &&
       renderer['shell'] === true &&
       String(renderer['href']).includes('index.html#/') &&
       renderer['nodeRequire'] === 'undefined' &&

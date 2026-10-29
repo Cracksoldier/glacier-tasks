@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   checkTitle,
   checkWorkflow,
+  detectImageMime,
   formatIssueKey,
   isDateRangeValid,
   isValidLocalDate,
@@ -10,6 +11,7 @@ import {
   parseIssueKey,
   profileInitials,
   subtaskProgress,
+  suggestProjectKey,
 } from './invariants.js';
 import { DEFAULT_STATUSES } from './enums.js';
 
@@ -119,5 +121,44 @@ describe('profile initials (USER-02)', () => {
     ['', '?'],
   ])('%j → %s', (name, expected) => {
     expect(profileInitials(name)).toBe(expected);
+  });
+});
+
+describe('project key suggestion (D08)', () => {
+  it.each([
+    ['Glacier Tasks', 'GT'],
+    ['Website', 'WEBSITE'],
+    ['Überarbeitung Homepage', 'UH'],
+    ['2026 roadmap', 'ROADMAP'],
+    ['a', 'A'],
+    ['!!!', ''],
+    ['Supercalifragilistic', 'SUPERCALIF'],
+  ])('%j → %j', (name, expected) => {
+    expect(suggestProjectKey(name)).toBe(expected);
+  });
+});
+
+describe('image signature detection (D24)', () => {
+  const bytes = (...values: number[]) => new Uint8Array(values);
+
+  it('detects PNG, JPEG and WebP', () => {
+    expect(detectImageMime(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0))).toBe(
+      'image/png',
+    );
+    expect(detectImageMime(bytes(0xff, 0xd8, 0xff, 0xe0))).toBe('image/jpeg');
+    expect(detectImageMime(bytes(0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x45, 0x42, 0x50))).toBe(
+      'image/webp',
+    );
+  });
+
+  it('rejects other content regardless of file name', () => {
+    expect(
+      detectImageMime(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>')),
+    ).toBe(undefined);
+    expect(detectImageMime(bytes(0x47, 0x49, 0x46, 0x38))).toBe(undefined); // GIF
+    expect(detectImageMime(bytes(0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x41, 0x56, 0x49))).toBe(
+      undefined,
+    ); // RIFF AVI
+    expect(detectImageMime(bytes())).toBe(undefined);
   });
 });

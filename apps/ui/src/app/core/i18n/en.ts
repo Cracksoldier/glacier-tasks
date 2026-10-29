@@ -4,17 +4,66 @@ export const en = {
   'app.name': 'Glacier Tasks',
   'common.loading': 'Loading…',
   'common.comingSoon': 'This area will be available in a later version.',
+  'common.cancel': 'Cancel',
+  'common.close': 'Close',
+  'common.save': 'Save',
+  'common.saved': 'Changes saved.',
+  'common.edit': 'Edit',
+
+  'validation.required': 'This field is required.',
 
   'nav.label': 'Main navigation',
   'nav.projects': 'Projects',
   'nav.profiles': 'Profiles',
   'nav.trash': 'Trash',
   'nav.settings': 'Settings',
+  'nav.yourProjects': 'Your projects',
+  'nav.noProjects': 'No projects yet',
 
   'projects.title': 'Projects',
   'projects.emptyTitle': 'No projects yet',
-  'projects.emptyBody': 'Projects, stories and boards will appear here.',
+  'projects.emptyBody': 'Create a project to start planning stories and subtasks.',
+  'projects.new': 'New project',
+  'projects.counts': '{open} open · {done} done',
+  'projects.create.title': 'New project',
+  'projects.create.submit': 'Create project',
+  'projects.field.name': 'Name',
+  'projects.field.key': 'Key',
+  'projects.field.keyHint':
+    'Prefix of all issue IDs, e.g. KEY-1. Cannot be changed after the first task is created.',
+  'projects.field.keyInvalid':
+    'Use 2–10 characters: an uppercase letter followed by letters or digits.',
+  'projects.field.description': 'Description',
+
+  'project.boardSoonTitle': 'The board is on its way',
+  'project.boardSoonBody': 'Stories, subtasks and the Kanban board arrive in the next versions.',
+
+  'projectSettings.title': 'Project settings',
+  'projectSettings.keyLocked': 'The key is fixed because this project has already issued task IDs.',
+  'projectSettings.statuses': 'Workflow statuses',
+  'projectSettings.defaultStatus': 'Default',
+  'projectSettings.statusesHint': 'Editing the workflow will be available in a later version.',
+
+  'status.category.TODO': 'To do',
+  'status.category.IN_PROGRESS': 'In progress',
+  'status.category.DONE': 'Done',
+
   'profiles.title': 'Profiles',
+  'profiles.new': 'New profile',
+  'profiles.create': 'Create profile',
+  'profiles.createTitle': 'New profile',
+  'profiles.editTitle': 'Edit profile',
+  'profiles.field.name': 'Name',
+  'profiles.showArchived': 'Show archived',
+  'profiles.archived': 'Archived',
+  'profiles.archive': 'Archive',
+  'profiles.unarchive': 'Restore',
+  'profiles.emptyTitle': 'No profiles',
+  'profiles.emptyBody':
+    'Profiles are local names (with an optional picture) that tasks can be assigned to.',
+  'profiles.chooseAvatar': 'Choose picture…',
+  'profiles.removeAvatar': 'Remove picture',
+  'profiles.avatarHint': 'PNG, JPEG or WebP, up to 5 MB. The picture is copied into the app.',
   'trash.title': 'Trash',
 
   'settings.title': 'Settings',
@@ -33,6 +82,15 @@ export const en = {
   'errors.unexpected': 'An unexpected error occurred. Your data was not changed.',
   'errors.notAvailable': 'This function is not available yet.',
   'errors.untrustedSender': 'The request was blocked.',
+  'errors.projectKeyTaken': 'This key is already used by another project (also in the trash).',
+  'errors.projectKeyLocked': 'The key can no longer be changed.',
+  'errors.projectNotFound': 'The project no longer exists.',
+  'errors.userNotFound': 'The profile no longer exists.',
+  'errors.userAlreadyArchived': 'The profile is already archived.',
+  'errors.userNotArchived': 'The profile is not archived.',
+  'errors.avatarTooLarge': 'The picture is larger than 5 MB.',
+  'errors.avatarUnsupported': 'Only PNG, JPEG and WebP pictures are supported.',
+  'errors.avatarUnreadable': 'The picture could not be read.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

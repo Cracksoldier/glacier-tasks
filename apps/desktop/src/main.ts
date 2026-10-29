@@ -6,13 +6,30 @@
 //   GLACIER_SMOKE=1        run the packaged self-test and exit (see smoke.ts)
 
 import { join } from 'node:path';
-import { app, type BrowserWindow, ipcMain, nativeTheme, session } from 'electron';
+import {
+  app,
+  type BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeTheme,
+  type OpenDialogOptions,
+  session,
+} from 'electron';
 import type { Database } from 'better-sqlite3';
-import { LATEST_SCHEMA_VERSION, MIGRATIONS } from '@glacier-tasks/data';
-import { type AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
+import {
+  ActivityService,
+  createServiceContext,
+  LATEST_SCHEMA_VERSION,
+  MIGRATIONS,
+  ProjectService,
+  UserService,
+} from '@glacier-tasks/data';
+import { AppError, allIpcChannels, type Theme } from '@glacier-tasks/domain';
+import { AvatarStore } from './avatar-store.js';
 import { DeviceSettingsStore } from './device-settings.js';
 import { createDispatcher, createSenderCheck, type IpcHandlers } from './ipc.js';
 import { createLogger } from './logger.js';
+import { handleMediaProtocol, registerMediaScheme } from './media-protocol.js';
 import { ensureAppDirectories, resolveAppPaths } from './paths.js';
 import { hardenApp, hardenSession } from './security.js';
 import { runSmoke } from './smoke.js';
@@ -28,6 +45,7 @@ const userDataOverride = process.env['GLACIER_USER_DATA'];
 if (userDataOverride) app.setPath('userData', userDataOverride);
 
 let workspace: Database | undefined;
+let avatarStore: AvatarStore | undefined;
 let mainWindow: BrowserWindow | undefined;
 const remoteRequests: string[] = [];
 
@@ -39,6 +57,20 @@ function backgroundFor(theme: Theme): string {
 function iconPath(): string | undefined {
   // Windows takes the icon from the executable; Linux needs it on the window.
   return process.platform === 'linux' ? join(__dirname, 'icon.png') : undefined;
+}
+
+const IMAGE_FILTER_NAME = { en: 'Images', de: 'Bilder' } as const;
+
+/** Native picker for avatar images (D24); the renderer never supplies a path (T5). */
+async function pickAvatarFile(language: 'en' | 'de'): Promise<string | undefined> {
+  const options: OpenDialogOptions = {
+    properties: ['openFile'],
+    filters: [{ name: IMAGE_FILTER_NAME[language], extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+  };
+  const result = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, options)
+    : await dialog.showOpenDialog(options);
+  return result.canceled ? undefined : result.filePaths[0];
 }
 
 async function start(): Promise<void> {
@@ -60,6 +92,7 @@ async function start(): Promise<void> {
   };
   hardenApp(app, securityOptions);
   hardenSession(session.defaultSession, securityOptions);
+  handleMediaProtocol(session.defaultSession, () => avatarStore);
 
   try {
     workspace = (
@@ -76,13 +109,49 @@ async function start(): Promise<void> {
     return;
   }
 
+  const services = createServiceContext(workspace);
+  const projects = new ProjectService(services);
+  const users = new UserService(services);
+  const activity = new ActivityService(services);
+  avatarStore = new AvatarStore({ dir: paths.avatars, users, logger });
+  avatarStore.reconcile();
+  const avatars = avatarStore;
+
   const handlers: IpcHandlers = {
     app: {
       info: () => ({ version: app.getVersion(), schemaVersion: LATEST_SCHEMA_VERSION }),
     },
+    projects: {
+      list: () => projects.list(),
+      create: (input) => projects.create(input),
+      update: (id, patch) => projects.update(id, patch),
+    },
+    users: {
+      list: (includeArchived) => users.list(includeArchived),
+      create: (input) => users.create(input),
+      update: (id, input) => users.update(id, input),
+      archive: (id) => users.archive(id),
+      unarchive: (id) => users.unarchive(id),
+      chooseAvatar: async (id) => {
+        users.get(id);
+        const path = await pickAvatarFile(settings.get().language);
+        return path === undefined ? null : avatars.importFrom(id, path);
+      },
+      removeAvatar: (id) => avatars.remove(id),
+    },
+    activity: {
+      forEntity: (entityType, entityId) => activity.forEntity(entityType, entityId),
+      forProject: (projectId, page) => activity.forProject(projectId, page),
+    },
+    workflows: {
+      list: (projectId) => projects.statuses(projectId),
+    },
     settings: {
       getDevice: () => settings.get(),
       updateDevice: (patch) => {
+        if (patch.lastProjectId && !projects.isLive(patch.lastProjectId)) {
+          throw new AppError('NOT_FOUND', 'errors.projectNotFound');
+        }
         const updated = settings.update(patch);
         if (patch.theme) {
           nativeTheme.themeSource = updated.theme;
@@ -136,10 +205,12 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow.focus();
   });
 
+  registerMediaScheme();
   void app.whenReady().then(start);
 
   app.on('window-all-closed', () => app.quit());
   app.on('will-quit', () => {
+    avatarStore = undefined;
     workspace?.close();
     workspace = undefined;
   });

@@ -33,6 +33,12 @@ describe('IPC_ARGS', () => {
     expect(IPC_ARGS['tasks:move'].safeParse([ID, 1, OTHER_ID, 'V0']).success).toBe(false);
   });
 
+  it('never accepts a file path for avatar selection (T5)', () => {
+    expect(IPC_ARGS['users:chooseAvatar'].safeParse([ID]).success).toBe(true);
+    expect(IPC_ARGS['users:chooseAvatar'].safeParse([ID, 'C:/avatar.png']).success).toBe(false);
+    expect(IPC_ARGS['users:removeAvatar'].safeParse(['avatar.png']).success).toBe(false);
+  });
+
   it('validates device settings patches', () => {
     const schema = IPC_ARGS['settings:updateDevice'];
     expect(schema.safeParse([{ theme: 'light', language: 'de' }]).success).toBe(true);

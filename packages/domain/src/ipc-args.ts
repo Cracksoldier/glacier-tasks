@@ -39,6 +39,8 @@ export const IPC_ARGS = {
   'users:update': z.tuple([idSchema, updateUserInputSchema]),
   'users:archive': byId,
   'users:unarchive': byId,
+  'users:chooseAvatar': byId,
+  'users:removeAvatar': byId,
 
   'tasks:query': z.tuple([taskQuerySchema]),
   'tasks:get': byId,

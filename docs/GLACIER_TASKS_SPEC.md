@@ -311,6 +311,8 @@ interface GlacierTasksAPI {
     update(id: string, input: UpdateUserInput): Promise<UserProfile>;
     archive(id: string): Promise<void>;
     unarchive(id: string): Promise<void>;
+    chooseAvatar(id: string): Promise<UserProfile | null>; // native picker in main; null = cancelled
+    removeAvatar(id: string): Promise<UserProfile>;
   };
   tasks: {
     query(input: TaskQuery): Promise<PagedResult<TaskSummary>>;

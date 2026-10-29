@@ -6,21 +6,59 @@
     </div>
 
     <nav class="nav" [attr.aria-label]="i18n.t('nav.label')">
-      <ul>
-        @for (item of primaryNav; track item.path) {
-          <li>
-            <a
-              class="nav-link"
-              [routerLink]="item.path"
-              routerLinkActive="active"
-              ariaCurrentWhenActive="page"
+      <div class="nav-top">
+        <ul>
+          @for (item of primaryNav; track item.path) {
+            <li>
+              <a
+                class="nav-link"
+                [routerLink]="item.path"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                ariaCurrentWhenActive="page"
+                [attr.data-testid]="item.testId"
+              >
+                <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+                <span>{{ i18n.t(item.label) }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+
+        <section class="switcher" aria-labelledby="switcher-heading">
+          <div class="switcher-header">
+            <h2 id="switcher-heading">{{ i18n.t('nav.yourProjects') }}</h2>
+            <button
+              type="button"
+              class="btn btn-ghost btn-icon"
+              data-testid="project-new"
+              [attr.aria-label]="i18n.t('projects.new')"
+              [title]="i18n.t('projects.new')"
+              (click)="projects.createDialogOpen.set(true)"
             >
-              <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
-              <span>{{ i18n.t(item.label) }}</span>
-            </a>
-          </li>
-        }
-      </ul>
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            </button>
+          </div>
+          <ul data-testid="project-switcher">
+            @for (project of projects.projects(); track project.id) {
+              <li>
+                <a
+                  class="nav-link project-link"
+                  [routerLink]="['/projects', project.id]"
+                  routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
+                  [attr.data-project-key]="project.key"
+                >
+                  <span class="project-key">{{ project.key }}</span>
+                  <span class="project-name">{{ project.name }}</span>
+                </a>
+              </li>
+            } @empty {
+              <li class="switcher-empty">{{ i18n.t('nav.noProjects') }}</li>
+            }
+          </ul>
+        </section>
+      </div>
       <ul class="nav-bottom">
         <li>
           <a
@@ -28,7 +66,7 @@
             [routerLink]="settingsNav.path"
             routerLinkActive="active"
             ariaCurrentWhenActive="page"
-            data-testid="nav-settings"
+            [attr.data-testid]="settingsNav.testId"
           >
             <i class="fa-solid {{ settingsNav.icon }}" aria-hidden="true"></i>
             <span>{{ i18n.t(settingsNav.label) }}</span>
@@ -42,3 +80,5 @@
     <router-outlet />
   </main>
 </div>
+
+<app-project-create-dialog />
