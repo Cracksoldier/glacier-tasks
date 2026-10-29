@@ -1,6 +1,6 @@
 {
   "name": "glacier-tasks-workspace",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Glacier Tasks — offline Jira-inspired desktop task planner (Electron + Angular)",
   "license": "UNLICENSED",

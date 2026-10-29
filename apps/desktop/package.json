@@ -1,7 +1,7 @@
 {
   "name": "@glacier-tasks/desktop",
   "productName": "Glacier Tasks",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Glacier Tasks — offline Jira-inspired desktop task planner",
   "author": {
