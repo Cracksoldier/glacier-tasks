@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and smoke (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run build
+      - run: npm test
+      - run: npm run verify:offline
+      - name: Package unpacked app
+        run: npm run package:dir --workspace @glacier-tasks/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - if: matrix.platform == 'linux'
+        name: Configure Linux sandbox for smoke test
+        run: |
+          sandbox=apps/desktop/release/linux-unpacked/chrome-sandbox
+          sudo chown root:root "$sandbox"
+          sudo chmod 4755 "$sandbox"
+          test "$(stat -c '%U:%G %a' "$sandbox")" = 'root:root 4755'
+      - if: matrix.platform == 'linux'
+        run: xvfb-run -a npm run smoke -- linux
+      - if: matrix.platform == 'win32'
+        run: npm run smoke -- win32

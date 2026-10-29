@@ -12,54 +12,65 @@ Reference application for visual identity, tooling and release process:
 
 ### Data model and lifecycle
 
-| ID | Decision | Spec refs |
-|---|---|---|
-| D01 | Deleting a workflow status migrates **all** tasks using it to the chosen replacement, including trashed tasks. Restore therefore never needs a status mapping step. | §3.4, TRASH-04 |
-| D02 | Trash tracks cascades: each trashed task/project records whether it was trashed directly or as part of a parent (`trash_cascade_root_id`). Restoring a parent restores only the children it took with it; independently trashed children stay in trash. | §3.3, TRASH-02, TRASH-06 |
-| D03 | Removing an attachment requires confirmation, deletes the managed bytes immediately and keeps a history event plus a metadata tombstone. There is no attachment-level trash. Attachments of trashed tasks are kept until the task is permanently deleted. | §3.6, FILE-05 |
-| D04 | A subtask can be moved to another story **in the same project**. Moving tasks between projects and converting story ↔ subtask are out of scope for v1. | §3.3, TASK-09 |
-| D05 | Tasks carry an integer `version` for optimistic concurrency; saving against a stale version fails with `CONFLICT`. The app runs as a single instance (second launch focuses the existing window). | §3.3, TASK-10, §2.1 |
-| D06 | Subtask status can be changed from the expanded story card on the Kanban board. | BOARD-03 |
-| D07 | Every project must keep at least one status in category `DONE`. | §3.4, §5.1 |
-| D08 | Project keys match `^[A-Z][A-Z0-9]{1,9}$`, are unique across live **and** trashed projects, and become reusable after permanent deletion. | §3.1, PROJ-01 |
+| ID  | Decision                                                                                                                                                                                                                                                  | Spec refs                |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| D01 | Deleting a workflow status migrates **all** tasks using it to the chosen replacement, including trashed tasks. Restore therefore never needs a status mapping step.                                                                                       | §3.4, TRASH-04           |
+| D02 | Trash tracks cascades: each trashed task/project records whether it was trashed directly or as part of a parent (`trash_cascade_root_id`). Restoring a parent restores only the children it took with it; independently trashed children stay in trash.   | §3.3, TRASH-02, TRASH-06 |
+| D03 | Removing an attachment requires confirmation, deletes the managed bytes immediately and keeps a history event plus a metadata tombstone. There is no attachment-level trash. Attachments of trashed tasks are kept until the task is permanently deleted. | §3.6, FILE-05            |
+| D04 | A subtask can be moved to another story **in the same project**. Moving tasks between projects and converting story ↔ subtask are out of scope for v1.                                                                                                    | §3.3, TASK-09            |
+| D05 | Tasks carry an integer `version` for optimistic concurrency; saving against a stale version fails with `CONFLICT`. The app runs as a single instance (second launch focuses the existing window).                                                         | §3.3, TASK-10, §2.1      |
+| D06 | Subtask status can be changed from the expanded story card on the Kanban board.                                                                                                                                                                           | BOARD-03                 |
+| D07 | Every project must keep at least one status in category `DONE`.                                                                                                                                                                                           | §3.4, §5.1               |
+| D08 | Project keys match `^[A-Z][A-Z0-9]{1,9}$`, are unique across live **and** trashed projects, and become reusable after permanent deletion.                                                                                                                 | §3.1, PROJ-01            |
 
 ### Views, Markdown and history
 
-| ID | Decision | Spec refs |
-|---|---|---|
-| D09 | List view/search: a matching subtask is shown beneath its parent story; a non-matching parent is shown dimmed as context. Board filters evaluate story fields only. | LIST-05, BOARD-06 |
-| D10 | Markdown may display images of the **same task's** attachments inline via `attachment:<id>` URLs. Checklists are read-only in preview (no source rewriting). | MD-04, MD-05 |
-| D11 | Title and description changes store the full new text in history (titles also store the old value). Users can browse earlier description versions and compare each with its predecessor. Supersedes the spec's "avoid redundant full description bodies". | §3.7, AUDIT-04 |
-| D12 | Activity history also covers projects, workflow statuses, labels and user profiles. Shown in a project activity view and in the profile manager. | §3.7, AUDIT-05 |
+| ID  | Decision                                                                                                                                                                                                                                                  | Spec refs         |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| D09 | List view/search: a matching subtask is shown beneath its parent story; a non-matching parent is shown dimmed as context. Board filters evaluate story fields only.                                                                                       | LIST-05, BOARD-06 |
+| D10 | Markdown may display images of the **same task's** attachments inline via `attachment:<id>` URLs. Checklists are read-only in preview (no source rewriting).                                                                                              | MD-04, MD-05      |
+| D11 | Title and description changes store the full new text in history (titles also store the old value). Users can browse earlier description versions and compare each with its predecessor. Supersedes the spec's "avoid redundant full description bodies". | §3.7, AUDIT-04    |
+| D12 | Activity history also covers projects, workflow statuses, labels and user profiles. Shown in a project activity view and in the profile manager.                                                                                                          | §3.7, AUDIT-05    |
 
 ### Backup, export and settings
 
-| ID | Decision | Spec refs |
-|---|---|---|
-| D13 | Automatic backups are **opt-in** (off by default). When enabled: user-chosen folder, run on app launch at most once per 24 h, keep the newest 7; interval and retention count are configurable. | DATA-09 |
-| D14 | JSON export scope is selectable: whole workspace or one project. Trashed items are excluded by default, with an option to include them. | DATA-03 |
-| D16 | Workspace data lives only in the standard per-user app data directory. No custom location and no portable build. | §2.1 |
-| D17 | Device settings (theme, language, window state, last project/view, automatic backup config) are stored outside the workspace database and are not replaced by a restore. | §2.1, DATA-10 |
+| ID  | Decision                                                                                                                                                                                        | Spec refs     |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| D13 | Automatic backups are **opt-in** (off by default). When enabled: user-chosen folder, run on app launch at most once per 24 h, keep the newest 7; interval and retention count are configurable. | DATA-09       |
+| D14 | JSON export scope is selectable: whole workspace or one project. Trashed items are excluded by default, with an option to include them.                                                         | DATA-03       |
+| D16 | Workspace data lives only in the standard per-user app data directory. No custom location and no portable build.                                                                                | §2.1          |
+| D17 | Device settings (theme, language, window state, last project/view, automatic backup config) are stored outside the workspace database and are not replaced by a restore.                        | §2.1, DATA-10 |
 
 ### UI, tooling and delivery
 
-| ID | Decision | Spec refs |
-|---|---|---|
-| D15 | UI languages: **English and German** (as in Glacier Notes), switchable in settings. Dates are formatted according to the selected UI language. Supersedes the review answer "English only". | UX-06 |
-| D18 | Theming is built in M1 using Glacier Notes' color tokens (`src/styles/_tokens.scss`). Themes: Light / Dark / Follow System; **Dark** on first launch. | UX-01, UX-07 |
-| D19 | Trash fields and the trash/restore service ship in M3; the trash UI and permanent deletion ship in M7. | TASK-01, M3, M7 |
-| D20 | FTS indexes are rebuilt after restore; implemented in M7. | SEARCH-03, M5, M7 |
-| D21 | Targets: Windows and Linux, **x64 only**. Releases are built by GitHub Actions (`windows-latest`, `ubuntu-latest`), modeled on Glacier Notes' `release-builds.yml`. Development happens on Windows 11. Artifacts: Windows NSIS installer, Linux AppImage and deb. | §2, M8 |
-| D22 | Stack matches Glacier Notes: **npm**, Angular, Electron, own SCSS design tokens (**no component library**), Font Awesome (bundled locally), Angular CDK (drag & drop, overlays, virtual scroll), marked + DOMPurify, Vitest, Biome. Plus `better-sqlite3` and Playwright (Electron) for E2E. Supersedes the review answer "pnpm + Angular Material". | §2, A13 |
-| D23 | Logo/icon is a variant of the Glacier Notes icon (navy background, ice-blue snowflake style) with a board/checklist motif, drafted as SVG in M1. | UX-07 |
+| ID  | Decision                                                                                                                                                                                                                                                                                                                                             | Spec refs         |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| D15 | UI languages: **English and German** (as in Glacier Notes), switchable in settings. Dates are formatted according to the selected UI language. Supersedes the review answer "English only".                                                                                                                                                          | UX-06             |
+| D18 | Theming is built in M1 using Glacier Notes' color tokens (`src/styles/_tokens.scss`). Themes: Light / Dark / Follow System; **Dark** on first launch.                                                                                                                                                                                                | UX-01, UX-07      |
+| D19 | Trash fields and the trash/restore service ship in M3; the trash UI and permanent deletion ship in M7.                                                                                                                                                                                                                                               | TASK-01, M3, M7   |
+| D20 | FTS indexes are rebuilt after restore; implemented in M7.                                                                                                                                                                                                                                                                                            | SEARCH-03, M5, M7 |
+| D21 | Targets: Windows and Linux, **x64 only**. Releases are built by GitHub Actions (`windows-latest`, `ubuntu-latest`), modeled on Glacier Notes' `release-builds.yml`. Development happens on Windows 11. Artifacts: Windows NSIS installer, Linux AppImage and deb.                                                                                    | §2, M8            |
+| D22 | Stack matches Glacier Notes: **npm**, Angular, Electron, own SCSS design tokens (**no component library**), Font Awesome (bundled locally), Angular CDK (drag & drop, overlays, virtual scroll), marked + DOMPurify, Vitest, Biome. Plus `better-sqlite3` and Playwright (Electron) for E2E. Supersedes the review answer "pnpm + Angular Material". | §2, A13           |
+| D23 | Logo/icon is a variant of the Glacier Notes icon (navy background, ice-blue snowflake style) with a board/checklist motif, drafted as SVG in M1.                                                                                                                                                                                                     | UX-07             |
 
 ### Minor defaults adopted without objection
 
-| ID | Decision |
-|---|---|
-| D24 | Avatars: PNG/JPEG/WebP, max 5 MiB, displayed square-cropped; replaced avatar files are deleted. |
-| D25 | Label colors come from a fixed palette of light/dark pairs (as Glacier Notes' note colors). |
-| D26 | Board card ordering uses fractional sort keys; a card moved to another column is placed at the top. |
-| D27 | Subtask create/trash/restore/move events are also recorded on the parent story's history. |
+| ID  | Decision                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------ |
+| D24 | Avatars: PNG/JPEG/WebP, max 5 MiB, displayed square-cropped; replaced avatar files are deleted.              |
+| D25 | Label colors come from a fixed palette of light/dark pairs (as Glacier Notes' note colors).                  |
+| D26 | Board card ordering uses fractional sort keys; a card moved to another column is placed at the top.          |
+| D27 | Subtask create/trash/restore/move events are also recorded on the parent story's history.                    |
 | D28 | Backups from older schema versions are restored and then migrated; backups from newer versions are rejected. |
-| D29 | User profiles are archived only, never hard-deleted. |
+| D29 | User profiles are archived only, never hard-deleted.                                                         |
+
+## 2026-10-29 — M0 planning
+
+| ID  | Decision                                                                                                                                                                                                                                                                               | Spec refs |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| D30 | Issue numbering (A02): project key becomes immutable once the project has issued a task ID; stories and subtasks share one monotonic per-project sequence; numbers are never reused.                                                                                                   | §3.1      |
+| D31 | Priorities (A04): fixed `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`; default `MEDIUM`.                                                                                                                                                                                                         | §3.3      |
+| D32 | Initial statuses (A05): `To Do` (`TODO`, default), `In Progress` (`IN_PROGRESS`), `Done` (`DONE`).                                                                                                                                                                                     | §3.4      |
+| D33 | Attachments (A09): 100 MiB per file (configurable); inline previews for PNG, JPEG, GIF and WebP only, never SVG; other types open/save-as only.                                                                                                                                        | §3.6      |
+| D34 | Backup format (A11): `.glaciertasks` ZIP archive with `manifest.json` (format version, schema version, timestamp, file inventory, SHA-256 checksums), SQLite snapshot and managed files.                                                                                               | DATA-04   |
+| D35 | Repository layout: npm workspaces monorepo — `apps/desktop` (Electron main/preload, bundled with esbuild), `apps/ui` (Angular), `packages/domain` (shared types, Zod schemas, invariants), `packages/data` (SQLite migrations/repositories). See `docs/adr/0002-repository-layout.md`. | §13       |

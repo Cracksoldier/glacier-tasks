@@ -18,6 +18,8 @@
 
 **Goal:** Lock choices that otherwise produce painful rework.
 
+**Status:** Done locally (2026-10-29); see `docs/adr/`, `docs/architecture.md`, `docs/threat-model.md`. Linux packaging is verified by CI.
+
 **Tasks**
 1. Confirm Node/Electron/Angular versions compatible with each other (starting from Glacier Notes' current versions); npm workspaces vs. Glacier Notes' single-package layout.
 2. Verify `better-sqlite3` native rebuild for Electron on the Windows 11 dev machine (build tools or prebuilt binaries) and in GitHub Actions for Windows and Linux; pick migration tooling.
@@ -170,24 +172,24 @@
 
 ## Cross-milestone traceability
 
-| Confirmed requirement | Main milestone(s) |
-|---|---|
-| Electron, Angular, SQLite, offline Windows/Linux x64 | M0, M1, M8 |
-| Themes (Glacier Notes tokens), EN/DE, app icon | M1, M8 |
-| GitHub Actions release builds | M1 (smoke), M8 (release) |
-| Multiple projects and global profiles | M2 |
-| Stories, one-level subtasks, one assignee, move subtask | M3 |
-| Task properties, dates, Markdown, fixed priorities, labels | M3 |
-| Optimistic concurrency, single instance | M1, M3 |
-| Trash service with cascade tracking | M3 (service), M7 (UI, permanent delete) |
-| Per-project statuses and status deletion migration | M4 |
-| Story-only Kanban with subtask progress and subtask status change | M4 |
-| List, full-text search, filtering, sorting | M5 |
-| Managed attachments, inline attachment images | M6 |
-| Activity history incl. description versions and non-task entities | M2–M6 |
-| Complete backup/restore, automatic backups, JSON export only | M7 |
-| Independent parent/subtask statuses | M3, M4 |
-| Offline-only, no sync, no authentication, no sprints | Architectural guardrail in every milestone |
+| Confirmed requirement                                             | Main milestone(s)                          |
+| ----------------------------------------------------------------- | ------------------------------------------ |
+| Electron, Angular, SQLite, offline Windows/Linux x64              | M0, M1, M8                                 |
+| Themes (Glacier Notes tokens), EN/DE, app icon                    | M1, M8                                     |
+| GitHub Actions release builds                                     | M1 (smoke), M8 (release)                   |
+| Multiple projects and global profiles                             | M2                                         |
+| Stories, one-level subtasks, one assignee, move subtask           | M3                                         |
+| Task properties, dates, Markdown, fixed priorities, labels        | M3                                         |
+| Optimistic concurrency, single instance                           | M1, M3                                     |
+| Trash service with cascade tracking                               | M3 (service), M7 (UI, permanent delete)    |
+| Per-project statuses and status deletion migration                | M4                                         |
+| Story-only Kanban with subtask progress and subtask status change | M4                                         |
+| List, full-text search, filtering, sorting                        | M5                                         |
+| Managed attachments, inline attachment images                     | M6                                         |
+| Activity history incl. description versions and non-task entities | M2–M6                                      |
+| Complete backup/restore, automatic backups, JSON export only      | M7                                         |
+| Independent parent/subtask statuses                               | M3, M4                                     |
+| Offline-only, no sync, no authentication, no sprints              | Architectural guardrail in every milestone |
 
 ## Recommended development workflow
 
@@ -201,6 +203,7 @@
 
 ```markdown
 ### [M#-T##] Short description
+
 Requirement references: TASK-05, BOARD-02
 Decisions: D##, if any
 Scope: what changes and what is explicitly excluded
@@ -209,8 +212,8 @@ Tests: unit/integration/E2E and manual verification steps
 Acceptance criteria:
 - [ ] Observable behavior 1
 - [ ] Observable behavior 2
-Dependencies: ticket IDs
-Assumptions: A## references, if any
+  Dependencies: ticket IDs
+  Assumptions: A## references, if any
 ```
 
 ## Release gates

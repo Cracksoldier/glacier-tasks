@@ -1,0 +1,33 @@
+# Compiled output
+dist/
+out-tsc/
+release/
+*.tsbuildinfo
+
+# Node
+node_modules/
+npm-debug.log
+
+# Angular
+.angular/
+
+# Local workspaces and test databases
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Miscellaneous
+coverage/
+__screenshots__/
+
+# System files
+.DS_Store
+Thumbs.db

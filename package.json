@@ -1,0 +1,33 @@
+{
+  "name": "glacier-tasks-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Glacier Tasks — offline Jira-inspired desktop task planner (Electron + Angular)",
+  "license": "UNLICENSED",
+  "packageManager": "npm@11.12.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/domain",
+    "packages/data",
+    "apps/ui",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @glacier-tasks/domain --workspace @glacier-tasks/data --workspace @glacier-tasks/ui --workspace @glacier-tasks/desktop",
+    "test": "npm run test --workspaces --if-present",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "package:dir": "npm run build && npm run package:dir --workspace @glacier-tasks/desktop",
+    "smoke": "node scripts/smoke-packaged.mjs",
+    "verify:offline": "node scripts/verify-offline.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

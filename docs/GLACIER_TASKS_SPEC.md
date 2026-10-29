@@ -34,24 +34,24 @@ The milestone plan lives in the separate file `GLACIER_TASKS_MILESTONES.md`. The
 
 ## 2. Technology and security boundaries
 
-| Area | Requirement / proposed solution | Status |
-|---|---|---|
-| Desktop shell | Electron (version aligned with Glacier Notes, reconfirmed in M0) | CONFIRMED |
-| UI | Angular + TypeScript | CONFIRMED |
-| Targets | Windows and Linux, x64 only | CONFIRMED (D21) |
-| Storage | One local SQLite workspace database | CONFIRMED (SQLite), ASSUMPTION (single workspace DB) |
-| Web server | None; renderer uses a typed preload/IPC API | ASSUMPTION |
-| SQLite driver | Main-process `better-sqlite3` | CONFIRMED (D22) |
-| Package manager | npm, single lockfile | CONFIRMED (D22) |
-| UI widgets | No component library; own SCSS design tokens + Angular CDK (drag & drop, overlays, virtual scroll); Font Awesome bundled locally | CONFIRMED (D22) |
-| Theming | Glacier Notes color tokens; Light / Dark / Follow System; Dark on first launch | CONFIRMED (D18) |
-| Languages | English and German | CONFIRMED (D15) |
-| Markdown | `marked` + `DOMPurify`, local only; no remote rendering/CDNs | CONFIRMED (D22), REQUIREMENT |
-| Search | SQLite FTS5 plus structured filtering | ASSUMPTION |
-| Packaging | electron-builder: Windows NSIS installer; Linux AppImage and deb | CONFIRMED (D21) |
-| CI / releases | GitHub Actions on `windows-latest` and `ubuntu-latest`, modeled on Glacier Notes' `release-builds.yml` | CONFIRMED (D21) |
-| Testing | Vitest (unit/integration), Playwright for packaged-Electron E2E, Biome formatting | CONFIRMED (D22), REQUIREMENT |
-| Development host | Windows 11 | CONFIRMED (D21) |
+| Area             | Requirement / proposed solution                                                                                                  | Status                                               |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Desktop shell    | Electron (version aligned with Glacier Notes, reconfirmed in M0)                                                                 | CONFIRMED                                            |
+| UI               | Angular + TypeScript                                                                                                             | CONFIRMED                                            |
+| Targets          | Windows and Linux, x64 only                                                                                                      | CONFIRMED (D21)                                      |
+| Storage          | One local SQLite workspace database                                                                                              | CONFIRMED (SQLite), ASSUMPTION (single workspace DB) |
+| Web server       | None; renderer uses a typed preload/IPC API                                                                                      | ASSUMPTION                                           |
+| SQLite driver    | Main-process `better-sqlite3`                                                                                                    | CONFIRMED (D22)                                      |
+| Package manager  | npm, single lockfile                                                                                                             | CONFIRMED (D22)                                      |
+| UI widgets       | No component library; own SCSS design tokens + Angular CDK (drag & drop, overlays, virtual scroll); Font Awesome bundled locally | CONFIRMED (D22)                                      |
+| Theming          | Glacier Notes color tokens; Light / Dark / Follow System; Dark on first launch                                                   | CONFIRMED (D18)                                      |
+| Languages        | English and German                                                                                                               | CONFIRMED (D15)                                      |
+| Markdown         | `marked` + `DOMPurify`, local only; no remote rendering/CDNs                                                                     | CONFIRMED (D22), REQUIREMENT                         |
+| Search           | SQLite FTS5 plus structured filtering                                                                                            | ASSUMPTION                                           |
+| Packaging        | electron-builder: Windows NSIS installer; Linux AppImage and deb                                                                 | CONFIRMED (D21)                                      |
+| CI / releases    | GitHub Actions on `windows-latest` and `ubuntu-latest`, modeled on Glacier Notes' `release-builds.yml`                           | CONFIRMED (D21)                                      |
+| Testing          | Vitest (unit/integration), Playwright for packaged-Electron E2E, Biome formatting                                                | CONFIRMED (D22), REQUIREMENT                         |
+| Development host | Windows 11                                                                                                                       | CONFIRMED (D21)                                      |
 
 ### 2.1 Application architecture
 
@@ -317,7 +317,7 @@ interface GlacierTasksAPI {
     get(id: string): Promise<TaskDetail>;
     create(input: CreateTaskInput): Promise<TaskDetail>;
     update(id: string, expectedVersion: number, patch: UpdateTaskInput): Promise<TaskDetail>;
-    move(id: string, expectedVersion: number, statusId: string, sortOrder?: number): Promise<void>;
+    move(id: string, expectedVersion: number, statusId: string, sortOrder?: string): Promise<void>;
     moveToStory(subtaskId: string, expectedVersion: number, targetStoryId: string): Promise<void>;
     trash(id: string): Promise<void>;
     restore(id: string): Promise<void>;
@@ -460,7 +460,7 @@ glacier-tasks/
   .github/workflows/         # release builds (Windows + Linux x64)
 ```
 
-**[ASSUMPTION]** TypeScript monorepo using **npm workspaces** with one lockfile and a single supported Node/Electron toolchain (D22). Avoid a web server runtime in production. The final layout is fixed in M0 and may follow Glacier Notes' simpler `electron/` + `src/` layout if workspaces add no value.
+**[CONFIRMED]** TypeScript monorepo using **npm workspaces** with one lockfile and a single supported Node/Electron toolchain (D22, D35). Avoid a web server runtime in production. Architecture decision records live in `docs/adr/`.
 
 ## 14. Definition of done for v1
 
@@ -471,9 +471,9 @@ The product is v1-ready only when every confirmed requirement has a passing acce
 Resolved in review round 1:
 
 1. ~~Angular component library~~ — none; own SCSS tokens + Angular CDK (D22).
-2. SQLite driver is `better-sqlite3` (D22); native rebuild pipeline and migration tooling still to be fixed in M0.
-3. Issue keys: immutable after first task; key format per D08.
-4. Attachment size cap (100 MiB default) and supported preview formats — still assumption, confirm in M0.
+2. SQLite driver is `better-sqlite3` (D22); native build pipeline and migration conventions in `docs/adr/0003` and `docs/adr/0005`.
+3. Issue keys: immutable after first task (D30); key format per D08.
+4. ~~Attachment size cap and preview formats~~ — D33.
 5. ~~Subtasks in search/filtered hierarchies~~ — D09.
 6. ~~Description history granularity~~ — full text versions (D11).
 7. ~~Restore semantics~~ — full replacement; merging excluded.
@@ -481,20 +481,20 @@ Resolved in review round 1:
 ## 16. Consolidated assumption register
 
 **A01** One workspace SQLite DB for all projects.  
-**A02** Project keys and stable issue numbering. *(Key format confirmed, D08.)*  
-**A03** ~~Archive profiles rather than hard delete them.~~ *Confirmed, D29.*  
-**A04** Four fixed priorities: low/medium/high/critical.  
-**A05** Default statuses and `TODO`/`IN_PROGRESS`/`DONE` categories. *(At least one DONE confirmed, D07.)*  
-**A06** Markdown GFM subset and explicit Save/Cancel task editor. *(Checklist/attachment-image behavior confirmed, D10.)*  
-**A07** Board card ordering and per-project view state persistence. *(Ordering confirmed, D26.)*  
+**A02** ~~Project keys and stable issue numbering.~~ _Confirmed, D08/D30._  
+**A03** ~~Archive profiles rather than hard delete them.~~ _Confirmed, D29._  
+**A04** ~~Four fixed priorities: low/medium/high/critical.~~ _Confirmed, D31._  
+**A05** ~~Default statuses and `TODO`/`IN_PROGRESS`/`DONE` categories.~~ _Confirmed, D07/D32._  
+**A06** Markdown GFM subset and explicit Save/Cancel task editor. _(Checklist/attachment-image behavior confirmed, D10.)_  
+**A07** Board card ordering and per-project view state persistence. _(Ordering confirmed, D26.)_  
 **A08** Scoped/global FTS5 search behavior and exact search fields.  
-**A09** Managed file naming, 100 MiB cap, preview support, staged operations. *(Removal semantics confirmed, D03.)*  
-**A10** No automatic trash expiry; project/global trash. *(Cascade restoration confirmed, D02.)*  
-**A11** Full-replacement backup restore; `.glaciertasks` archive with manifest/checksums.  
-**A12** ~~JSON export contents~~ *Confirmed, D14.*  
-**A13** ~~Main-process SQLite driver, Angular component library, packager, test tooling.~~ *Confirmed, D21/D22.*  
+**A09** ~~Managed file naming, 100 MiB cap, preview support, staged operations.~~ _Confirmed, D03/D33._  
+**A10** No automatic trash expiry; project/global trash. _(Cascade restoration confirmed, D02.)_  
+**A11** ~~Full-replacement backup restore; `.glaciertasks` archive with manifest/checksums.~~ _Confirmed, DATA-07/D34._  
+**A12** ~~JSON export contents~~ _Confirmed, D14._  
+**A13** ~~Main-process SQLite driver, Angular component library, packager, test tooling.~~ _Confirmed, D21/D22._  
 **A14** Quantitative scale/performance targets.  
 **A15** No comments, dependencies, epics, sprints, time tracking, public API, sync or collaboration in v1.  
-**A16** Initial navigation/window layouts and actor designation in history. *(Device-settings storage confirmed, D17.)*
+**A16** Initial navigation/window layouts and actor designation in history. _(Device-settings storage confirmed, D17.)_
 
 Where a proposal conflicts with future product-owner direction, the confirmed requirements take precedence.

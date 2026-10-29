@@ -1,0 +1,52 @@
+appId: com.glacier.tasks
+productName: Glacier Tasks
+asar: true
+
+# better-sqlite3 ships N-API prebuilds that load in Node and Electron alike (ADR 0003);
+# never compile native modules during packaging.
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+
+directories:
+  output: release
+
+files:
+  - package.json
+  - dist/**/*
+  - "!dist/**/*.map"
+  # better-sqlite3 ships prebuilt binaries for every platform; keep sources out of the package.
+  - "!**/node_modules/better-sqlite3/{src,deps,binding.gyp}/**"
+  - "!**/node_modules/better-sqlite3/binding.gyp"
+  - "!**/node_modules/node-addon-api/**"
+
+# Native addons cannot be loaded from inside the asar archive.
+asarUnpack:
+  - "**/node_modules/better-sqlite3/prebuilds/*.node"
+
+linux:
+  category: Office
+  files:
+    - "!**/node_modules/better-sqlite3/prebuilds/{darwin-*,win32-*,*-arm64}.node"
+  executableName: glacier-tasks
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+
+appImage:
+  artifactName: Glacier-Tasks-${version}-linux-${arch}.AppImage
+
+deb:
+  artifactName: Glacier-Tasks-${version}-linux-${arch}.deb
+
+win:
+  files:
+    - "!**/node_modules/better-sqlite3/prebuilds/{darwin-*,linux*,*-arm64}.node"
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  artifactName: Glacier-Tasks-${version}-win-${arch}-Setup.${ext}
