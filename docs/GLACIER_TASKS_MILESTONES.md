@@ -66,7 +66,7 @@
 **Deliverables:** project switcher, project settings, profile manager, schema and tests.  
 **Acceptance:** create two independent projects; same profile appears in both; no login or network; profile avatar remains after moving original file; project/profile events are stored.  
 **Dependencies:** M1.  
-**Status:** Implemented (2026-10-29). See `docs/adr/0007-avatar-storage-and-media-protocol.md`. Moved to M3, because both need tasks: project trash/restore (together with the cascading trash service) and bulk unassignment of archived profiles (USER-05). History views stay in M6; M2 records the events and serves them through `activity.forEntity`/`forProject`.
+**Status:** Done (2026-10-29); CI green on Windows and Linux. See `docs/adr/0007-avatar-storage-and-media-protocol.md`. Moved to M3, because both need tasks: project trash/restore (together with the cascading trash service) and bulk unassignment of archived profiles (USER-05). History views stay in M6; M2 records the events and serves them through `activity.forEntity`/`forProject`.
 
 ## M3 — Story, subtask and editing core
 
