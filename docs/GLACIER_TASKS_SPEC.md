@@ -187,14 +187,14 @@ Local app data directory (standard per-user location only, D16)
 - `BOARD-03` Expand card to inspect subtasks and change a subtask's status from the expanded card (D06); subtasks are never standalone top-level cards.
 - `BOARD-04` Drag stories across columns to change status; use typed validation and atomic persistence, showing an error and restoring UI state if write fails.
 - `BOARD-05` Reorder cards within a column; persist order using fractional sort keys; a card moved to another column is placed at the top (D26).
-- `BOARD-06` Apply project filters consistently with the list view; board filters evaluate story fields only (D09).
+- `BOARD-06` Apply project filters consistently with the list view; board filters evaluate story fields only (D09). **[CONFIRMED]** Board and list share one filter set per project (D43).
 
 ### 4.6 List view and navigation (`LIST`)
 
 - `LIST-01` Project-specific searchable, sortable, filterable task list.
-- `LIST-02` **[ASSUMPTION]** Stories appear as expandable rows with children shown beneath; status, priority, assignee, due date and labels visible as columns.
+- `LIST-02` **[CONFIRMED]** Stories appear as expandable rows with children shown beneath; status, priority, assignee, due date and labels are visible by default, and a column menu toggles further columns (D44).
 - `LIST-03` **[ASSUMPTION]** Sorting supports issue key, title, priority, status, assignee, creation/update date, start date and due date; filtering supports status, priority, assignee, labels, dates and task type. Subtasks sort within their parent.
-- `LIST-04` Preserve view-specific selection, sorting and filtering per project in device settings **[ASSUMPTION]**.
+- `LIST-04` **[CONFIRMED]** Preserve sorting, filtering and visible columns per project in device settings; search text and expanded rows are not kept (D42).
 - `LIST-05` **[CONFIRMED]** A subtask matching a filter/search is shown beneath its parent story; a non-matching parent is shown dimmed as context (D09).
 
 ### 4.7 Search (`SEARCH`)
@@ -202,7 +202,7 @@ Local app data directory (standard per-user location only, D16)
 - `SEARCH-01` Full-text search, filtering and sorting.
 - `SEARCH-02` Search story/subtask title, Markdown description, and issue key; support filters by project/status/priority/assignee/label/date **[ASSUMPTION]**. Subtask hits are presented per LIST-05.
 - `SEARCH-03` Use locally maintained FTS indexes; index updates in same transaction as task writes. Rebuild indexes after restore (D20) and after schema upgrade as necessary.
-- `SEARCH-04` **[ASSUMPTION]** Search defaults to current project with an option to search all projects. Trash is excluded from regular search.
+- `SEARCH-04` **[CONFIRMED]** Search defaults to the current (last opened) project with an option to search all projects (D41). Trash is excluded from regular search.
 
 ### 4.8 Attachments (`FILE`)
 

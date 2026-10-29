@@ -6,8 +6,10 @@ import {
   ENTITY_TYPES,
   LABEL_COLORS,
   LANGUAGES,
+  LIST_COLUMNS,
   PRIORITIES,
   STATUS_CATEGORIES,
+  TASK_SORT_FIELDS,
   TASK_TYPES,
   THEMES,
 } from './enums.js';
@@ -144,32 +146,41 @@ export const updateTaskInputSchema = z
   .partial()
   .refine(dateRangeRefinement.check, { message: dateRangeRefinement.message, path: ['dueDate'] });
 
-export const taskQuerySchema = z.strictObject({
-  projectId: idSchema.nullable(), // null → all projects (SEARCH-04)
-  text: z.string().trim().max(500).default(''),
-  types: z.array(taskTypeSchema).default([]),
-  statusIds: z.array(idSchema).default([]),
-  priorities: z.array(prioritySchema).default([]),
-  assigneeUserIds: z.array(idSchema.nullable()).default([]),
-  labelIds: z.array(idSchema).default([]),
+// Filters on a task's own fields (ADR 0010): OR within one filter, AND across filters.
+const FILTER_MAX = 100;
+const taskFiltersShape = {
+  types: z.array(taskTypeSchema).max(FILTER_MAX).default([]),
+  statusIds: z.array(idSchema).max(FILTER_MAX).default([]),
+  /** Used by the all-projects search, where status ids don't apply (D41). */
+  statusCategories: z.array(statusCategorySchema).max(FILTER_MAX).default([]),
+  priorities: z.array(prioritySchema).max(FILTER_MAX).default([]),
+  /** `null` selects unassigned tasks. */
+  assigneeUserIds: z.array(idSchema.nullable()).max(FILTER_MAX).default([]),
+  labelIds: z.array(idSchema).max(FILTER_MAX).default([]),
   dueFrom: localDateSchema.nullable().default(null),
   dueTo: localDateSchema.nullable().default(null),
-  sortBy: z
-    .enum([
-      'issueKey',
-      'title',
-      'priority',
-      'status',
-      'assignee',
-      'createdAt',
-      'updatedAt',
-      'startDate',
-      'dueDate',
-      'sortOrder',
-    ])
-    .default('sortOrder'),
-  sortDirection: z.enum(['asc', 'desc']).default('asc'),
+};
+
+export const taskSortFieldSchema = z.enum(TASK_SORT_FIELDS);
+export const sortDirectionSchema = z.enum(['asc', 'desc']);
+
+export const taskQuerySchema = z.strictObject({
+  projectId: idSchema.nullable(), // null → all projects (SEARCH-04, D41)
+  text: z.string().trim().max(500).default(''),
+  ...taskFiltersShape,
+  sortBy: taskSortFieldSchema.default('sortOrder'),
+  sortDirection: sortDirectionSchema.default('asc'),
   page: pageRequestSchema.default({ offset: 0, limit: 100 }),
+});
+
+export const taskFiltersSchema = z.strictObject(taskFiltersShape);
+
+/** Per-project list/board state kept in device settings (LIST-04, D42, D43). */
+export const projectViewSchema = z.strictObject({
+  sortBy: taskSortFieldSchema.exclude(['relevance']),
+  sortDirection: sortDirectionSchema,
+  filters: taskFiltersSchema,
+  columns: z.array(z.enum(LIST_COLUMNS)).max(LIST_COLUMNS.length),
 });
 
 // --- Data / settings --------------------------------------------------------
@@ -219,6 +230,8 @@ export type DeviceSettingsPatch = z.input<typeof deviceSettingsPatchSchema>;
 export type CreateTaskData = z.output<typeof createTaskInputSchema>;
 export type UpdateTaskData = z.output<typeof updateTaskInputSchema>;
 export type TaskQueryData = z.output<typeof taskQuerySchema>;
+export type TaskFilters = z.output<typeof taskFiltersSchema>;
+export type ProjectView = z.output<typeof projectViewSchema>;
 export type LabelData = z.output<typeof labelInputSchema>;
 export type LabelPatchData = z.output<typeof labelPatchSchema>;
 export type StatusInputData = z.output<typeof statusInputSchema>;

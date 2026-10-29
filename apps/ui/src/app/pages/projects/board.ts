@@ -20,11 +20,13 @@ import { RouterLink } from '@angular/router';
 import {
   isAppErrorInfo,
   sortKeyBetween,
+  type TaskFilters,
   type TaskSummary,
   type WorkflowStatus,
 } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { EMPTY_FILTERS, queryAll } from '../../core/tasks/project-view';
 import { PRIORITY_KEYS } from '../../core/tasks/task-display';
 import { UsersStore } from '../../core/users/users-store';
 import { Avatar } from '../../shared/avatar';
@@ -36,9 +38,10 @@ interface Column {
 }
 
 /**
- * Kanban board (BOARD-01..05): one column per status, story cards only, expandable subtasks
+ * Kanban board (BOARD-01..06): one column per status, story cards only, expandable subtasks
  * with status changes (D06), drag & drop with fractional sort keys (D26) and a status select
- * on every card as the keyboard alternative to dragging.
+ * on every card as the keyboard alternative to dragging. The project's filters apply to the
+ * story fields only (D09, D43); columns stay, so the status filter is ignored.
  */
 @Component({
   selector: 'app-board',
@@ -61,12 +64,24 @@ export class Board {
   protected readonly users = inject(UsersStore);
 
   readonly projectId = input.required<string>();
+  readonly filters = input<TaskFilters>(EMPTY_FILTERS);
 
   protected readonly priorityKey = PRIORITY_KEYS;
   protected readonly tasks = resource({
-    params: () => this.projectId(),
-    loader: ({ params }) =>
-      this.api.tasks.query({ projectId: params, page: { offset: 0, limit: 500 } }),
+    params: () => ({ projectId: this.projectId(), filters: this.filters() }),
+    loader: async ({ params: { projectId, filters } }) => {
+      const [stories, subtasks] = await Promise.all([
+        queryAll(this.api, {
+          projectId,
+          ...filters,
+          types: ['STORY'],
+          statusIds: [],
+          statusCategories: [],
+        }),
+        queryAll(this.api, { projectId, types: ['SUBTASK'] }),
+      ]);
+      return { stories, subtasks };
+    },
   });
   protected readonly statuses = resource({
     params: () => this.projectId(),
@@ -79,15 +94,15 @@ export class Board {
 
   /** Local, optimistically updated columns; reset whenever the server data arrives. */
   protected readonly columns = linkedSignal<Column[]>(() => {
-    const tasks = this.tasks.value()?.items ?? [];
+    const stories = this.tasks.value()?.stories ?? [];
     return (this.statuses.value() ?? []).map((status) => ({
       status,
-      stories: tasks.filter((t) => t.type === 'STORY' && t.statusId === status.id),
+      stories: stories.filter((t) => t.statusId === status.id),
     }));
   });
   protected readonly subtasksByStory = computed(() => {
     const map = new Map<string, TaskSummary[]>();
-    for (const task of this.tasks.value()?.items ?? []) {
+    for (const task of this.tasks.value()?.subtasks ?? []) {
       if (task.parentStoryId)
         map.set(task.parentStoryId, [...(map.get(task.parentStoryId) ?? []), task]);
     }

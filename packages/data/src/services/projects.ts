@@ -87,6 +87,11 @@ export class ProjectService {
     return row !== undefined && row.trashed_at === null;
   }
 
+  /** Live or trashed; false only for unknown (or permanently deleted) projects. */
+  exists(id: string): boolean {
+    return this.findRow(id) !== undefined;
+  }
+
   create(input: CreateProjectInput): Project {
     const key = normalizeProjectKey(input.key);
     const name = input.name.trim();

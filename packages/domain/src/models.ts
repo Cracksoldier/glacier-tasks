@@ -11,6 +11,7 @@ import type {
   TaskType,
   Theme,
 } from './enums.js';
+import type { ProjectView } from './schemas.js';
 
 export interface Project {
   id: string;
@@ -91,6 +92,17 @@ export interface TaskSummary {
   subtaskProgress: { done: number; total: number } | null;
 }
 
+/**
+ * One story row of the list view or search (LIST-05, D09). `storyMatches` is false when the
+ * story is shown only as dimmed context for matching subtasks; `subtasks` holds the matching
+ * subtasks (all of them when nothing is filtered), sorted within their parent.
+ */
+export interface TaskListRow {
+  story: TaskSummary;
+  storyMatches: boolean;
+  subtasks: TaskSummary[];
+}
+
 export interface TrashItem {
   kind: 'PROJECT' | 'STORY' | 'SUBTASK';
   id: string;
@@ -166,6 +178,8 @@ export interface DeviceSettings {
   lastProjectId: string | null;
   lastView: 'board' | 'list';
   autoBackup: AutoBackupSettings;
+  /** Sort, filters and list columns per project id (D42). */
+  projectViews: Record<string, ProjectView>;
 }
 
 export interface BackupResult {

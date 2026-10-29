@@ -2,7 +2,7 @@
 
 import type { Database } from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { CreateTaskData, WorkflowStatus } from '@glacier-tasks/domain';
+import { type CreateTaskData, taskQuerySchema, type WorkflowStatus } from '@glacier-tasks/domain';
 import { migrate, MIGRATIONS, openDatabase } from '../index.js';
 import { ActivityService } from './activity.js';
 import { createServiceContext, type ServiceContext } from './context.js';
@@ -469,52 +469,6 @@ describe('bulk unassignment (USER-05)', () => {
   });
 });
 
-describe('query (M3 subset)', () => {
-  it('lists live stories in board order and pages', () => {
-    const doing = story({ title: 'doing', statusId: statuses.doing.id });
-    const todo = story({ title: 'todo' });
-    subtask(todo.id);
-    const page = tasks.query({ ...queryAll(), types: ['STORY'] });
-    expect(page.items.map((t) => t.id)).toEqual([todo.id, doing.id]);
-    expect(page.total).toBe(2);
-    expect(tasks.query({ ...queryAll(), sortBy: 'issueKey', sortDirection: 'desc' }).total).toBe(3);
-    expect(() => tasks.query({ ...queryAll(), text: 'x' })).toThrowError(
-      expect.objectContaining({ message: 'errors.notAvailable' }),
-    );
-  });
-
-  it('refuses the filters and sort orders that M5 adds', () => {
-    const unsupported = [
-      { priorities: ['HIGH' as const] },
-      { assigneeUserIds: [null] },
-      { labelIds: ['00000000-0000-4000-8000-000000000999'] },
-      { dueFrom: '2026-01-01' },
-      { dueTo: '2026-01-01' },
-      { sortBy: 'title' as const },
-      { projectId: null },
-    ];
-    for (const overrides of unsupported) {
-      expect(
-        () => tasks.query({ ...queryAll(), ...overrides }),
-        JSON.stringify(overrides),
-      ).toThrowError(expect.objectContaining({ message: 'errors.notAvailable' }));
-    }
-  });
-});
-
 function queryAll() {
-  return {
-    projectId,
-    text: '',
-    types: [] as Array<'STORY' | 'SUBTASK'>,
-    statusIds: [],
-    priorities: [],
-    assigneeUserIds: [],
-    labelIds: [],
-    dueFrom: null,
-    dueTo: null,
-    sortBy: 'sortOrder' as const,
-    sortDirection: 'asc' as const,
-    page: { offset: 0, limit: 100 },
-  };
+  return taskQuerySchema.parse({ projectId });
 }

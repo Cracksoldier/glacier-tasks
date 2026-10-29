@@ -11,6 +11,7 @@ import {
   IPC_CHANNELS,
   normalizeProjectKey,
   type ProjectSummary,
+  type ProjectView,
   sortKeyBetween,
   type UpdateProjectInput,
   type CreateTaskInput,
@@ -49,6 +50,7 @@ export function defaultTestSettings(): DeviceSettings {
     lastProjectId: null,
     lastView: 'board',
     autoBackup: { enabled: false, folder: null, intervalHours: 24, retention: 7, lastRunAt: null },
+    projectViews: {},
   };
 }
 
@@ -194,6 +196,19 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
       ...rest,
       autoBackup: { ...stub.settings.autoBackup, ...autoBackup },
     };
+    return structuredClone(stub.settings);
+  };
+  api['settings']!['setProjectView'] = async (projectId, view) => {
+    if (stub.failNextUpdate) {
+      const error = stub.failNextUpdate;
+      stub.failNextUpdate = null;
+      throw error;
+    }
+    findProject(projectId as string);
+    const projectViews = { ...stub.settings.projectViews };
+    if (view) projectViews[projectId as string] = structuredClone(view as ProjectView);
+    else delete projectViews[projectId as string];
+    stub.settings = { ...stub.settings, projectViews };
     return structuredClone(stub.settings);
   };
   installTaskApi(stub, api, newId, now);
@@ -357,13 +372,71 @@ function installTaskApi(
     stub.labels = stub.labels.filter((l) => l.id !== id);
   };
 
+  // Enough of ADR 0010 for component tests: substring text match, every filter, a few sorts.
+  const matches = (t: GlacierApiStub['tasks'][number], q: TaskQuery): boolean => {
+    const text = (q.text ?? '').trim().toLowerCase();
+    const has = <T>(list: ReadonlyArray<T> | undefined, value: T) =>
+      !list?.length || list.includes(value);
+    return (
+      !t.trashedAt &&
+      (q.projectId === null || t.projectId === q.projectId) &&
+      (!text || `${t.issueKey} ${t.title} ${t.descriptionMarkdown}`.toLowerCase().includes(text)) &&
+      has(q.types, t.type) &&
+      has(q.statusIds, t.statusId) &&
+      has(q.priorities, t.priority) &&
+      has(q.assigneeUserIds, t.assigneeUserId) &&
+      (!q.labelIds?.length || t.labelIds.some((id) => q.labelIds?.includes(id))) &&
+      (!q.dueFrom || (t.dueDate !== null && t.dueDate >= q.dueFrom)) &&
+      (!q.dueTo || (t.dueDate !== null && t.dueDate <= q.dueTo))
+    );
+  };
+  const compare = (q: TaskQuery) => (a: TaskSummary, b: TaskSummary) => {
+    const value = (t: TaskSummary): string | number =>
+      q.sortBy === 'title'
+        ? t.title.toLowerCase()
+        : q.sortBy === 'issueKey'
+          ? t.issueNumber
+          : q.sortBy === 'priority'
+            ? ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].indexOf(t.priority)
+            : t.sortOrder;
+    const order =
+      value(a) < value(b) ? -1 : value(a) > value(b) ? 1 : a.issueNumber - b.issueNumber;
+    return q.sortDirection === 'desc' ? -order : order;
+  };
+  const page = <T>(items: T[], q: TaskQuery) => {
+    const { offset = 0, limit = 100 } = q.page ?? {};
+    return { items: items.slice(offset, offset + limit), total: items.length, offset, limit };
+  };
   api['tasks']!['query'] = async (input) => {
     const query = input as TaskQuery;
-    const items = stub.tasks
-      .filter((t) => t.projectId === query.projectId && !t.trashedAt)
-      .filter((t) => !query.types?.length || query.types.includes(t.type))
-      .map((t) => summary(t));
-    return { items, total: items.length, offset: 0, limit: 500 };
+    return page(
+      stub.tasks
+        .filter((t) => matches(t, query))
+        .map(summary)
+        .sort(compare(query)),
+      query,
+    );
+  };
+  api['tasks']!['list'] = async (input) => {
+    const query = input as TaskQuery;
+    const hits = new Set(stub.tasks.filter((t) => matches(t, query)).map((t) => t.id));
+    const rows = stub.tasks
+      .filter((t) => t.type === 'STORY' && !t.trashedAt)
+      .filter(
+        (story) =>
+          hits.has(story.id) ||
+          stub.tasks.some((t) => t.parentStoryId === story.id && hits.has(t.id)),
+      )
+      .map((story) => ({
+        story: summary(story),
+        storyMatches: hits.has(story.id),
+        subtasks: stub.tasks
+          .filter((t) => t.parentStoryId === story.id && hits.has(t.id))
+          .map(summary)
+          .sort(compare(query)),
+      }))
+      .sort((a, b) => compare(query)(a.story, b.story));
+    return page(rows, query);
   };
   api['tasks']!['get'] = async (id) => detail(id as string);
   api['tasks']!['create'] = async (input) => {

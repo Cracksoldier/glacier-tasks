@@ -10,7 +10,6 @@ import {
 } from '@angular/router';
 import { ProjectsStore } from './core/projects/projects-store';
 import { SettingsStore } from './core/settings/settings-store';
-import { ProjectPage } from './pages/projects/project-page';
 import { ProjectsPage } from './pages/projects/projects-page';
 
 /** Start page: the last opened project if it still exists, otherwise the dashboard (PROJ-02). */
@@ -24,7 +23,10 @@ export const startPage: CanActivateFn = () => {
 export const routes: Routes = [
   { path: '', pathMatch: 'full', canActivate: [startPage], children: [] },
   { path: 'projects', component: ProjectsPage },
-  { path: 'projects/:projectId', component: ProjectPage },
+  {
+    path: 'projects/:projectId',
+    loadComponent: () => import('./pages/projects/project-page').then((m) => m.ProjectPage),
+  },
   {
     path: 'projects/:projectId/tasks/:taskId',
     loadComponent: () => import('./pages/task/task-editor-page').then((m) => m.TaskEditorPage),
@@ -37,6 +39,10 @@ export const routes: Routes = [
     path: 'projects/:projectId/settings',
     loadComponent: () =>
       import('./pages/projects/project-settings-page').then((m) => m.ProjectSettingsPage),
+  },
+  {
+    path: 'search',
+    loadComponent: () => import('./pages/search/search-page').then((m) => m.SearchPage),
   },
   {
     path: 'profiles',

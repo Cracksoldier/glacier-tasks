@@ -90,11 +90,12 @@ write transaction.
 | I17 | Every task write checks and increments `version` | D05 | T, S |
 | I18 | Cascade trash sets `trash_cascade_root_id`; restore brings back only those children | D02 | T, D (consistency check) |
 | I19 | Activity events are append-only | AUDIT-01 | D |
-| I20 | FTS index contains exactly the live tasks | SEARCH-03 | D (triggers) |
+| I20 | FTS index contains exactly the live tasks; search and list never return trashed tasks or tasks of trashed projects | SEARCH-03 | D (triggers), S |
 | I21 | Board/list ordering uses base-62 fractional keys; moved cards go to the top | D26 | F, S |
 | I22 | Attachments ≤ 100 MiB (configurable); previews only PNG/JPEG/GIF/WebP | D33 | F, T |
 | I23 | Avatars PNG/JPEG/WebP ≤ 5 MiB | D24 | F, D, T |
 | I24 | Workspace from a newer schema version is never opened for writing | §11 | T (migrate) |
+| I25 | Every task query has a deterministic order: empty values last, ties broken by project key and issue number | LIST-03 | S |
 
 ## 5. Build and packaging
 

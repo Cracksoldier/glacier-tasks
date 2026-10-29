@@ -31,7 +31,7 @@ describe('App shell', () => {
     await fixture.whenStable();
     const element = fixture.nativeElement as HTMLElement;
     const labels = [...element.querySelectorAll('.nav-link span')].map((n) => n.textContent);
-    expect(labels).toEqual(['Projects', 'Profiles', 'Trash', 'Settings']);
+    expect(labels).toEqual(['Projects', 'Search', 'Profiles', 'Trash', 'Settings']);
     expect(element.querySelector('nav')?.getAttribute('aria-label')).toBe('Main navigation');
     expect(element.textContent).toContain('No projects yet');
   });

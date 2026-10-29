@@ -89,3 +89,13 @@ Reference application for visual identity, tooling and release process:
 |---|---|---|
 | D39 | M3 ships a minimal Trash page: directly trashed projects, stories and subtasks with a Restore action (items trashed by a cascade come back with their parent). Permanent deletion, filters and per-project trash views remain in M7. Refines D19. | TRASH-01..06, D19 |
 | D40 | The story/subtask editor is a full-page route (`#/projects/:projectId/tasks/:taskId`) with explicit Save/Cancel. Until the M4 board, the project page lists the project's stories. See `docs/adr/0008-task-service-and-markdown.md`. | TASK-03, TASK-08 |
+
+## 2026-10-29 — M5 planning
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D41 | Search: the project list view has a filter bar with a text field for the current project. A sidebar entry **Search** (Ctrl+F) opens a search page that defaults to the last opened project and offers "All projects". Results use the list's story rows plus a project column. Confirms the SEARCH-04 assumption. | SEARCH-01..04 |
+| D42 | Per project, device settings remember the list/board sort, filters and visible list columns. Search text and expanded rows are not remembered. | LIST-04, D17 |
+| D43 | The board and the list share one filter set per project. The board applies it to story fields only (D09) and ignores the status and type filters, because columns are statuses and cards are stories. | BOARD-06, D09 |
+| D44 | List columns: issue key and title are always shown. A "Columns" menu toggles status, priority, assignee, due date and labels (on by default) and type, start date, created, updated and subtasks (off by default). | LIST-02 |
+

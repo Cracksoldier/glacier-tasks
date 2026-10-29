@@ -92,4 +92,64 @@ describe('DeviceSettingsStore', () => {
     const store = new DeviceSettingsStore(file, [], silentLogger);
     expect(store.get().theme).toBe('dark');
   });
+
+  describe('project views (D42)', () => {
+    const P1 = '00000000-0000-4000-8000-000000000001';
+    const P2 = '00000000-0000-4000-8000-000000000002';
+    const view = {
+      sortBy: 'title' as const,
+      sortDirection: 'desc' as const,
+      filters: {
+        types: [],
+        statusIds: [],
+        statusCategories: [],
+        priorities: ['HIGH' as const],
+        assigneeUserIds: [null],
+        labelIds: [],
+        dueFrom: null,
+        dueTo: null,
+      },
+      columns: ['status' as const, 'labels' as const],
+    };
+
+    it('stores, persists and forgets a view per project', () => {
+      const store = new DeviceSettingsStore(file, ['en-US'], silentLogger);
+      expect(store.get().projectViews).toEqual({});
+      store.setProjectView(P1, view);
+      expect(new DeviceSettingsStore(file, ['en-US'], silentLogger).get().projectViews).toEqual({
+        [P1]: view,
+      });
+      expect(store.setProjectView(P1, null).projectViews).toEqual({});
+      expect(() => store.setProjectView(P1, { ...view, columns: ['title'] } as never)).toThrow();
+    });
+
+    it('reads files from before M5 and drops unreadable views only', () => {
+      const store = new DeviceSettingsStore(file, ['en-US'], silentLogger);
+      store.update({ theme: 'light' });
+      const stored = JSON.parse(readFileSync(file, 'utf-8'));
+      delete stored.projectViews;
+      writeFileSync(file, JSON.stringify(stored));
+      expect(new DeviceSettingsStore(file, ['en-US'], silentLogger).get()).toMatchObject({
+        theme: 'light',
+        projectViews: {},
+      });
+
+      stored.projectViews = { [P1]: view, [P2]: { sortBy: 'nonsense' }, 'not-a-uuid': view };
+      writeFileSync(file, JSON.stringify(stored));
+      expect(new DeviceSettingsStore(file, ['en-US'], silentLogger).get()).toMatchObject({
+        theme: 'light',
+        projectViews: { [P1]: view },
+      });
+    });
+
+    it('prunes views of unknown projects', () => {
+      const store = new DeviceSettingsStore(file, ['en-US'], silentLogger);
+      store.setProjectView(P1, view);
+      store.setProjectView(P2, view);
+      store.pruneProjectViews((id) => id === P2);
+      expect(
+        Object.keys(new DeviceSettingsStore(file, ['en-US'], silentLogger).get().projectViews),
+      ).toEqual([P2]);
+    });
+  });
 });

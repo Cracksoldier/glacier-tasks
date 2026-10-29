@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   resource,
   signal,
   untracked,
@@ -15,21 +16,20 @@ import { GLACIER_API } from '../../core/api/glacier-api';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { ProjectsStore } from '../../core/projects/projects-store';
 import { SettingsStore } from '../../core/settings/settings-store';
-import { PRIORITY_KEYS } from '../../core/tasks/task-display';
-import { UsersStore } from '../../core/users/users-store';
-import { Avatar } from '../../shared/avatar';
-import { Board } from './board';
+import { ProjectViewStore } from '../../core/tasks/project-view';
 import { Dialog } from '../../shared/dialog';
-import { LabelChip } from '../../shared/label-chip';
+import { TaskFilterBar, type TaskSort } from '../../shared/task-filter-bar';
+import { type ListQuery, TaskList } from '../../shared/task-list';
+import { Board } from './board';
 
 /**
- * Project home (PROJ-02): remembers the project as last opened and lists its stories until
- * the Kanban board replaces the list in M4 (D40).
+ * Project home (PROJ-02): remembers the project as last opened and shows the board or the
+ * list (D17) with the project's shared filters (D42, D43).
  */
 @Component({
   selector: 'app-project-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Avatar, Board, Dialog, LabelChip, RouterLink],
+  imports: [Board, Dialog, RouterLink, TaskFilterBar, TaskList],
   template: `
     @if (project(); as project) {
       <section class="page wide">
@@ -77,66 +77,29 @@ import { LabelChip } from '../../shared/label-chip';
           </button>
         </div>
 
+        <app-task-filter-bar
+          [filters]="projectView().filters"
+          [statuses]="statuses.value() ?? []"
+          [labels]="labels.value() ?? []"
+          [text]="text()"
+          [sort]="projectView()"
+          [showText]="view() === 'list'"
+          [showSort]="view() === 'list'"
+          [showStatus]="view() === 'list'"
+          (filtersChange)="viewStore.update(project.id, { filters: $event })"
+          (sortChange)="setSort(project.id, $event)"
+          (textChange)="text.set($event)"
+        />
         @if (view() === 'board') {
-          <app-board [projectId]="project.id" />
+          <app-board [projectId]="project.id" [filters]="projectView().filters" />
         } @else {
-          @if (stories.error()) {
-            <p class="error-banner" role="alert">{{ i18n.errorMessage(stories.error()) }}</p>
-          }
-          @if (storyRows().length === 0 && !stories.isLoading()) {
-            <div class="empty-state">
-              <h2>{{ i18n.t('stories.emptyTitle') }}</h2>
-              <p>{{ i18n.t('stories.emptyBody') }}</p>
-            </div>
-          } @else {
-            <ul class="card story-list" data-testid="story-list">
-              @for (row of storyRows(); track row.story.id) {
-                <li>
-                  <a
-                    class="story-row"
-                    [routerLink]="['/projects', project.id, 'tasks', row.story.id]"
-                    [attr.data-issue-key]="row.story.issueKey"
-                  >
-                    <span class="issue-key mono">{{ row.story.issueKey }}</span>
-                    <span class="title">{{ row.story.title }}</span>
-                    <span class="labels">
-                      @for (label of row.labels; track label.id) {
-                        <app-label-chip [name]="label.name" [color]="label.color" />
-                      }
-                    </span>
-                    <span class="status" data-testid="story-status">{{ row.statusName }}</span>
-                    <span class="priority priority-{{ row.story.priority }}">
-                      {{ i18n.t(priorityKey[row.story.priority]) }}
-                    </span>
-                    <span class="due">
-                      @if (row.story.dueDate) {
-                        {{ i18n.formatLocalDate(row.story.dueDate) }}
-                      }
-                    </span>
-                    <span class="progress" data-testid="story-progress">
-                      @if (row.story.subtaskProgress; as progress) {
-                        @if (progress.total > 0) {
-                          {{ progress.done }}/{{ progress.total }}
-                        }
-                      }
-                    </span>
-                    <span class="assignee">
-                      @if (row.assignee; as user) {
-                        <app-avatar
-                          [userId]="user.id"
-                          [name]="user.name"
-                          [avatarFileId]="user.avatarFileId"
-                          [archived]="user.archivedAt !== null"
-                          [size]="24"
-                          [title]="user.name"
-                        />
-                      }
-                    </span>
-                  </a>
-                </li>
-              }
-            </ul>
-          }
+          <app-task-list
+            [query]="listQuery()"
+            [columns]="projectView().columns"
+            emptyTitle="stories.emptyTitle"
+            emptyBody="stories.emptyBody"
+            (columnsChange)="viewStore.update(project.id, { columns: $event })"
+          />
         }
       </section>
 
@@ -191,56 +154,6 @@ import { LabelChip } from '../../shared/label-chip';
       color: var(--color-text-muted);
       white-space: pre-line;
     }
-    .story-list {
-      margin: 0;
-      padding: 4px 0;
-      list-style: none;
-
-      li + li {
-        border-top: 1px solid var(--color-border);
-      }
-    }
-    .story-row {
-      display: grid;
-      grid-template-columns: 84px minmax(0, 1fr) auto 110px 80px 96px 44px 28px;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 16px;
-      color: var(--color-text);
-      text-decoration: none;
-
-      &:hover {
-        background-color: var(--color-surface-hover);
-      }
-    }
-    .issue-key {
-      color: var(--color-text-muted);
-      font-size: 12px;
-    }
-    .title {
-      overflow: hidden;
-      font-weight: 600;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .labels {
-      display: flex;
-      gap: 4px;
-    }
-    .status,
-    .due,
-    .progress {
-      color: var(--color-text-muted);
-      font-size: 12px;
-    }
-    .priority {
-      font-size: 12px;
-    }
-    .priority-HIGH,
-    .priority-CRITICAL {
-      color: var(--color-danger-text);
-      font-weight: 600;
-    }
     .wide {
       max-width: none;
     }
@@ -278,7 +191,7 @@ export class ProjectPage {
   private readonly api = inject(GLACIER_API);
   private readonly store = inject(ProjectsStore);
   private readonly settings = inject(SettingsStore);
-  private readonly users = inject(UsersStore);
+  protected readonly viewStore = inject(ProjectViewStore);
   private readonly router = inject(Router);
 
   /** Bound from the route parameter. */
@@ -286,39 +199,28 @@ export class ProjectPage {
   protected readonly project = computed(() => this.store.find(this.projectId()));
 
   protected readonly titleMax = TITLE_MAX_LENGTH;
-  protected readonly priorityKey = PRIORITY_KEYS;
-
-  /** Board or list (D17 `lastView`); the list is the simple story list until M5. */
+  /** Board or list (D17 `lastView`). */
   protected readonly view = this.settings.lastView;
-
-  protected readonly stories = resource({
-    params: () => (this.project() && this.view() === 'list' ? this.projectId() : undefined),
-    loader: ({ params }) =>
-      this.api.tasks.query({
-        projectId: params,
-        types: ['STORY'],
-        page: { offset: 0, limit: 500 },
-      }),
+  protected readonly projectView = this.viewStore.view(this.projectId);
+  /** List search text; not remembered (D42) and reset when the project changes. */
+  protected readonly text = linkedSignal({ source: this.projectId, computation: () => '' });
+  protected readonly listQuery = computed<ListQuery>(() => {
+    const view = this.projectView();
+    return {
+      projectId: this.projectId(),
+      text: this.text(),
+      ...view.filters,
+      sortBy: view.sortBy,
+      sortDirection: view.sortDirection,
+    };
   });
-  private readonly statuses = resource({
+  protected readonly statuses = resource({
     params: () => (this.project() ? this.projectId() : undefined),
     loader: ({ params }) => this.api.workflows.list(params),
   });
-  private readonly labels = resource({
+  protected readonly labels = resource({
     params: () => (this.project() ? this.projectId() : undefined),
     loader: ({ params }) => this.api.labels.list(params),
-  });
-
-  protected readonly storyRows = computed(() => {
-    const statuses = new Map((this.statuses.value() ?? []).map((s) => [s.id, s.name]));
-    const labels = new Map((this.labels.value() ?? []).map((l) => [l.id, l]));
-    const users = new Map(this.users.all().map((u) => [u.id, u]));
-    return (this.stories.value()?.items ?? []).map((story) => ({
-      story,
-      statusName: statuses.get(story.statusId) ?? '',
-      labels: story.labelIds.flatMap((id) => labels.get(id) ?? []),
-      assignee: story.assigneeUserId ? users.get(story.assigneeUserId) : undefined,
-    }));
   });
 
   protected readonly createOpen = signal(false);
@@ -327,7 +229,6 @@ export class ProjectPage {
   protected readonly createError = signal<string | null>(null);
 
   constructor() {
-    if (!this.users.loaded()) void this.users.load().catch(() => undefined);
     effect(() => {
       if (!this.store.loaded()) return;
       const project = this.project();
@@ -343,6 +244,10 @@ export class ProjectPage {
         }
       });
     });
+  }
+
+  protected setSort(projectId: string, { sortBy, sortDirection }: TaskSort): void {
+    if (sortBy !== 'relevance') this.viewStore.update(projectId, { sortBy, sortDirection });
   }
 
   protected setView(view: 'board' | 'list'): void {

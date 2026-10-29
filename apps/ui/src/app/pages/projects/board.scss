@@ -38,25 +38,6 @@
   }
 }
 
-.category-dot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.category-TODO {
-  background-color: var(--category-todo);
-}
-
-.category-IN_PROGRESS {
-  background-color: var(--category-in-progress);
-}
-
-.category-DONE {
-  background-color: var(--category-done);
-}
-
 .count {
   margin-left: auto;
   color: var(--color-text-muted);
@@ -110,12 +91,6 @@
 .priority {
   color: var(--color-text-muted);
   font-size: 11px;
-}
-
-.priority-HIGH,
-.priority-CRITICAL {
-  color: var(--color-danger-text);
-  font-weight: 600;
 }
 
 .title {

@@ -113,7 +113,7 @@
 **Tasks**
 1. Build expandable story/subtask list and configured visible columns.
 2. Add SQLite FTS5 indexes for title, Markdown and issue identifier.
-3. Implement project/global search (global scope **ASSUMPTION**), status/assignee/priority/label/date filters and relevant sorting.
+3. Implement project/global search (global scope confirmed, D41), status/assignee/priority/label/date filters and relevant sorting.
 4. Show matching subtasks under dimmed non-matching parents in list/search; board filters on story fields only (D09).
 5. Exclude trashed items from normal results; maintain FTS indexes on writes and migrations (restore rebuild in M7, D20).
 6. Add pagination or virtualization (Angular CDK virtual scroll) and keyboard navigation for large result sets.

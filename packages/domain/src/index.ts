@@ -8,6 +8,7 @@ export * from './limits.js';
 export * from './media.js';
 export * from './models.js';
 export * from './schemas.js';
+export * from './search.js';
 export * from './sort-key.js';
 
 /** Product name used across processes; also proves cross-package resolution in M0. */

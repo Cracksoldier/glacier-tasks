@@ -47,3 +47,41 @@ export const DEFAULT_STATUSES: ReadonlyArray<{
   { name: 'In Progress', category: 'IN_PROGRESS', isDefault: false },
   { name: 'Done', category: 'DONE', isDefault: false },
 ];
+
+/** Sort fields of the list view and search (LIST-03, ADR 0010). */
+export const TASK_SORT_FIELDS = [
+  'sortOrder',
+  'issueKey',
+  'title',
+  'priority',
+  'status',
+  'assignee',
+  'createdAt',
+  'updatedAt',
+  'startDate',
+  'dueDate',
+  'relevance',
+] as const;
+export type TaskSortField = (typeof TASK_SORT_FIELDS)[number];
+
+/** Optional list columns; issue key and title are always shown (D44). */
+export const LIST_COLUMNS = [
+  'type',
+  'status',
+  'priority',
+  'assignee',
+  'labels',
+  'startDate',
+  'dueDate',
+  'createdAt',
+  'updatedAt',
+  'subtasks',
+] as const;
+export type ListColumn = (typeof LIST_COLUMNS)[number];
+export const DEFAULT_LIST_COLUMNS: ReadonlyArray<ListColumn> = [
+  'status',
+  'priority',
+  'assignee',
+  'dueDate',
+  'labels',
+];

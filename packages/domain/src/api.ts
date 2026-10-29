@@ -20,6 +20,7 @@ import type {
   RestoreResult,
   StatusUsage,
   TaskDetail,
+  TaskListRow,
   TaskSummary,
   TrashItem,
   UserProfile,
@@ -33,6 +34,7 @@ import type {
   ExportOptions,
   LabelInput,
   LabelPatch,
+  ProjectView,
   StatusInput,
   StatusPatch,
   TaskQuery,
@@ -65,7 +67,10 @@ export interface GlacierTasksAPI {
     unassignAll(id: string): Promise<{ unassigned: number }>;
   };
   tasks: {
+    /** Flat: tasks matching on their own fields (board, pickers). */
     query(input: TaskQuery): Promise<PagedResult<TaskSummary>>;
+    /** Hierarchical story rows with matching subtasks; pages count rows (LIST-05, D09). */
+    list(input: TaskQuery): Promise<PagedResult<TaskListRow>>;
     get(id: string): Promise<TaskDetail>;
     create(input: CreateTaskInput): Promise<TaskDetail>;
     update(id: string, expectedVersion: number, patch: UpdateTaskInput): Promise<TaskDetail>;
@@ -113,6 +118,8 @@ export interface GlacierTasksAPI {
     getDevice(): Promise<DeviceSettings>;
     updateDevice(patch: DeviceSettingsPatch): Promise<DeviceSettings>;
     chooseAutoBackupFolder(): Promise<DeviceSettings>;
+    /** Stores (or with `null` forgets) a project's sort, filters and columns (D42). */
+    setProjectView(projectId: string, view: ProjectView | null): Promise<DeviceSettings>;
   };
 }
 
@@ -138,6 +145,7 @@ export const IPC_CHANNELS = {
   ],
   tasks: [
     'query',
+    'list',
     'get',
     'create',
     'update',
@@ -153,7 +161,7 @@ export const IPC_CHANNELS = {
   workflows: ['list', 'create', 'update', 'usage', 'removeAndMigrate'],
   attachments: ['add', 'list', 'open', 'saveAs', 'remove'],
   data: ['backup', 'restore', 'exportJson'],
-  settings: ['getDevice', 'updateDevice', 'chooseAutoBackupFolder'],
+  settings: ['getDevice', 'updateDevice', 'chooseAutoBackupFolder', 'setProjectView'],
 } as const satisfies { [G in keyof GlacierTasksAPI]: ReadonlyArray<keyof GlacierTasksAPI[G]> };
 
 export type IpcChannel = {

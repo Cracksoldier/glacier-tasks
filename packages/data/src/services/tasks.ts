@@ -18,6 +18,7 @@ import {
   type TaskChanges,
   type TaskCreatedPayload,
   type TaskDetail,
+  type TaskListRow,
   type TaskMovedToStoryPayload,
   type TaskQueryData,
   type TaskRef,
@@ -31,6 +32,7 @@ import {
 import { recordEvent } from './activity.js';
 import type { ServiceContext } from './context.js';
 import type { ProjectService } from './projects.js';
+import { matchSql, orderSql, STATUS_JOIN, withSql } from './task-query.js';
 
 interface TaskRow {
   id: string;
@@ -141,52 +143,93 @@ export class TaskService {
     };
   }
 
-  /**
-   * M3 subset of the task query (filters and full-text search follow in M5): live tasks of
-   * one project, optionally by type and status, in board order or by issue number.
-   */
+  /** Live tasks matching on their own fields, flat (board, pickers; ADR 0010). */
   query(input: TaskQueryData): PagedResult<TaskSummary> {
-    // Refuse what M5 adds instead of silently returning unfiltered or unsorted results.
-    if (
-      input.projectId === null ||
-      input.text !== '' ||
-      input.priorities.length > 0 ||
-      input.assigneeUserIds.length > 0 ||
-      input.labelIds.length > 0 ||
-      input.dueFrom !== null ||
-      input.dueTo !== null ||
-      (input.sortBy !== 'sortOrder' && input.sortBy !== 'issueKey')
-    ) {
-      throw new AppError('VALIDATION', 'errors.notAvailable');
-    }
-    this.requireLiveProject(input.projectId);
-    const where = ['t.project_id = ?', 't.trashed_at IS NULL'];
-    const params: unknown[] = [input.projectId];
-    if (input.types.length > 0) {
-      where.push(`t.type IN (${input.types.map(() => '?').join(', ')})`);
-      params.push(...input.types);
-    }
-    if (input.statusIds.length > 0) {
-      where.push(`t.status_id IN (${input.statusIds.map(() => '?').join(', ')})`);
-      params.push(...input.statusIds);
-    }
-    const direction = input.sortDirection === 'desc' ? 'DESC' : 'ASC';
-    const order =
-      input.sortBy === 'issueKey'
-        ? `t.issue_number ${direction}`
-        : `s.position ${direction}, t.sort_order ${direction}, t.issue_number ${direction}`;
-    const filter = where.join(' AND ');
+    if (input.projectId !== null) this.requireLiveProject(input.projectId);
+    const match = matchSql(input);
     const { total } = this.ctx.db
-      .prepare(`SELECT count(*) AS total FROM tasks t WHERE ${filter}`)
-      .get(...params) as { total: number };
+      .prepare(
+        `${withSql(match)} SELECT count(*) AS total
+         FROM tasks t JOIN projects p ON p.id = t.project_id ${match.joins} WHERE ${match.where}`,
+      )
+      .get(...match.params) as { total: number };
+    const order = orderSql(input, { rank: match.ranked ? 'f.rank' : null });
     const items = this.ctx.db
       .prepare<unknown[], TaskRow>(
-        `${SELECT_TASK}
-         JOIN statuses s ON s.project_id = t.project_id AND s.id = t.status_id
-         WHERE ${filter} ORDER BY ${order} LIMIT ? OFFSET ?`,
+        `${withSql(match)} ${SELECT_TASK} ${match.joins}
+         WHERE ${match.where} ORDER BY ${order} LIMIT ? OFFSET ?`,
       )
-      .all(...params, input.page.limit, input.page.offset)
+      .all(...match.params, input.page.limit, input.page.offset)
       .map(toSummary);
+    return { items, total, offset: input.page.offset, limit: input.page.limit };
+  }
+
+  /**
+   * Story rows for the list view and search (LIST-05, D09): every live story that matches or
+   * has a matching subtask, with its matching subtasks. Pages and totals count rows.
+   */
+  list(input: TaskQueryData): PagedResult<TaskListRow> {
+    if (input.projectId !== null) this.requireLiveProject(input.projectId);
+    const match = matchSql(input);
+    const rank = match.ranked ? 'f.rank' : 'NULL';
+    const matched = withSql(
+      match,
+      `matched AS (
+        SELECT t.id, t.type, t.parent_story_id, ${rank} AS rank
+        FROM tasks t JOIN projects p ON p.id = t.project_id ${match.joins}
+        WHERE ${match.where}
+      )`,
+      `story_rows AS (
+        SELECT CASE type WHEN 'STORY' THEN id ELSE parent_story_id END AS story_id,
+               min(rank) AS rank
+        FROM matched GROUP BY 1
+      )`,
+    );
+    const { total } = this.ctx.db
+      .prepare(`${matched} SELECT count(*) AS total FROM story_rows`)
+      .get(...match.params) as { total: number };
+    const ranked = match.ranked ? 'r.rank' : null;
+    const stories = this.ctx.db
+      .prepare<unknown[], TaskRow>(
+        `${matched}
+         ${SELECT_TASK} ${STATUS_JOIN}
+         JOIN story_rows r ON r.story_id = t.id
+         WHERE t.trashed_at IS NULL
+         ORDER BY ${orderSql(input, { rank: ranked })} LIMIT ? OFFSET ?`,
+      )
+      .all(...match.params, input.page.limit, input.page.offset);
+
+    const subtasks = new Map<string, TaskSummary[]>();
+    const matchingStories = new Set<string>();
+    if (stories.length > 0) {
+      const ids = stories.map((row) => row.id);
+      const inIds = ids.map(() => '?').join(', ');
+      const hits = this.ctx.db
+        .prepare<unknown[], { id: string }>(
+          `${matched} SELECT id FROM matched WHERE id IN (${inIds})`,
+        )
+        .all(...match.params, ...ids);
+      for (const { id } of hits) matchingStories.add(id);
+      const order = orderSql(input, { rank: match.ranked ? 'm.rank' : null, withinParent: true });
+      const rows = this.ctx.db
+        .prepare<unknown[], TaskRow>(
+          `${matched}
+           ${SELECT_TASK} ${STATUS_JOIN}
+           JOIN matched m ON m.id = t.id
+           WHERE t.type = 'SUBTASK' AND t.parent_story_id IN (${inIds})
+           ORDER BY t.parent_story_id, ${order}`,
+        )
+        .all(...match.params, ...ids);
+      for (const row of rows) {
+        const parent = row.parent_story_id as string;
+        subtasks.set(parent, [...(subtasks.get(parent) ?? []), toSummary(row)]);
+      }
+    }
+    const items = stories.map((row) => ({
+      story: toSummary(row),
+      storyMatches: matchingStories.has(row.id),
+      subtasks: subtasks.get(row.id) ?? [],
+    }));
     return { items, total, offset: input.page.offset, limit: input.page.limit };
   }
 

@@ -157,3 +157,42 @@
 .mono {
   font-family: var(--font-mono);
 }
+
+/* Text for assistive technology only (legends, column headers of icon columns). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
+/* Status category marker (board columns, list rows). */
+.category-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.category-TODO {
+  background-color: var(--category-todo);
+}
+
+.category-IN_PROGRESS {
+  background-color: var(--category-in-progress);
+}
+
+.category-DONE {
+  background-color: var(--category-done);
+}
+
+.priority-HIGH,
+.priority-CRITICAL {
+  color: var(--color-danger-text);
+  font-weight: 600;
+}

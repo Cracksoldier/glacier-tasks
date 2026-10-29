@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.total {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.scroller {
+  overflow-x: auto;
+}
+
+.grid {
+  padding: 0;
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--grid-template);
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--color-focus);
+  }
+}
+
+.header {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.viewport {
+  // Height is set from the window size (TaskList.fitViewport).
+  overflow-x: hidden;
+}
+
+.viewport .row:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.subtask {
+  .issue-key {
+    padding-left: 14px;
+  }
+  .title {
+    font-weight: 400;
+  }
+}
+
+// D09: a story shown only as context for matching subtasks.
+.dimmed [role='gridcell']:not(.expander) {
+  opacity: 0.55;
+}
+
+.toggle {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+
+.issue-key {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.title {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.status,
+.assignee,
+.labels {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.labels {
+  overflow: hidden;
+}
+
+[data-column] {
+  font-size: 13px;
+}

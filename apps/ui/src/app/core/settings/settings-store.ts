@@ -1,5 +1,5 @@
 import { inject, Injectable, signal, type WritableSignal } from '@angular/core';
-import { DEFAULT_THEME, type Language, type Theme } from '@glacier-tasks/domain';
+import { DEFAULT_THEME, type Language, type ProjectView, type Theme } from '@glacier-tasks/domain';
 import { GLACIER_API } from '../api/glacier-api';
 
 /** Device settings held as signals; writes go through IPC and roll back on failure. */
@@ -13,6 +13,8 @@ export class SettingsStore {
   readonly lastProjectId = signal<string | null>(null);
   /** Board or list on the project page (D17). */
   readonly lastView = signal<'board' | 'list'>('board');
+  /** Sort, filters and list columns per project (D42). */
+  readonly projectViews = signal<Readonly<Record<string, ProjectView>>>({});
 
   async load(): Promise<void> {
     const settings = await this.api.settings.getDevice();
@@ -20,6 +22,7 @@ export class SettingsStore {
     this.language.set(settings.language);
     this.lastProjectId.set(settings.lastProjectId);
     this.lastView.set(settings.lastView);
+    this.projectViews.set(settings.projectViews);
   }
 
   setTheme(theme: Theme): Promise<void> {
@@ -42,6 +45,12 @@ export class SettingsStore {
   setLastView(lastView: 'board' | 'list'): Promise<void> {
     return this.optimistic(this.lastView, lastView, () =>
       this.api.settings.updateDevice({ lastView }),
+    );
+  }
+
+  setProjectView(projectId: string, view: ProjectView): Promise<void> {
+    return this.optimistic(this.projectViews, { ...this.projectViews(), [projectId]: view }, () =>
+      this.api.settings.setProjectView(projectId, view),
     );
   }
 

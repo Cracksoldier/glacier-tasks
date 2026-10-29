@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { allIpcChannels, ipcChannel } from './api.js';
 import {
+  projectViewSchema,
+  taskQuerySchema,
   createProjectInputSchema,
   createTaskInputSchema,
   exportOptionsSchema,
@@ -123,5 +125,36 @@ describe('label schemas (D25)', () => {
     expect(labelInputSchema.safeParse({ name: 'Bug', color: '#ff0000' }).success).toBe(false);
     expect(labelPatchSchema.safeParse({ color: null }).success).toBe(true);
     expect(labelPatchSchema.safeParse({ name: '' }).success).toBe(false);
+  });
+});
+
+describe('task query and project view schemas (ADR 0010, D42)', () => {
+  const ID = '00000000-0000-4000-8000-000000000001';
+
+  it('fills defaults for every filter', () => {
+    expect(taskQuerySchema.parse({ projectId: ID })).toMatchObject({
+      text: '',
+      statusCategories: [],
+      assigneeUserIds: [],
+      sortBy: 'sortOrder',
+      sortDirection: 'asc',
+    });
+    expect(taskQuerySchema.safeParse({ projectId: null, sortBy: 'relevance' }).success).toBe(true);
+    expect(taskQuerySchema.safeParse({ projectId: ID, unknown: 1 }).success).toBe(false);
+  });
+
+  it('validates a stored project view', () => {
+    const view = {
+      sortBy: 'dueDate',
+      sortDirection: 'desc',
+      filters: { priorities: ['HIGH'], assigneeUserIds: [null] },
+      columns: ['status', 'labels'],
+    };
+    expect(projectViewSchema.parse(view).filters).toMatchObject({
+      priorities: ['HIGH'],
+      types: [],
+    });
+    expect(projectViewSchema.safeParse({ ...view, sortBy: 'relevance' }).success).toBe(false);
+    expect(projectViewSchema.safeParse({ ...view, columns: ['title'] }).success).toBe(false);
   });
 });

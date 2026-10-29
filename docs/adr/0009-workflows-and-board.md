@@ -82,4 +82,4 @@ the 256-character limit of `sortKeySchema` and reordering next to it would have 
 - **Expanded card:** each subtask has a status select that saves immediately (D06, TASK-08) and
   never changes the story (TASK-05).
 - **Views:** the project page shows Board | List tabs. The choice is stored in the device setting
-  `lastView` (D17). The list view is the simple M3 story list until M5.
+  `lastView` (D17). Since M5 the list view and the board filters follow ADR 0010.

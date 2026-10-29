@@ -14,6 +14,7 @@ import {
   labelInputSchema,
   labelPatchSchema,
   pageRequestSchema,
+  projectViewSchema,
   sortKeySchema,
   statusInputSchema,
   statusPatchSchema,
@@ -46,6 +47,7 @@ export const IPC_ARGS = {
   'users:unassignAll': byId,
 
   'tasks:query': z.tuple([taskQuerySchema]),
+  'tasks:list': z.tuple([taskQuerySchema]),
   'tasks:get': byId,
   'tasks:create': z.tuple([createTaskInputSchema]),
   'tasks:update': z.tuple([idSchema, versionSchema, updateTaskInputSchema]),
@@ -84,6 +86,7 @@ export const IPC_ARGS = {
   'settings:getDevice': none,
   'settings:updateDevice': z.tuple([deviceSettingsPatchSchema]),
   'settings:chooseAutoBackupFolder': none,
+  'settings:setProjectView': z.tuple([idSchema, projectViewSchema.nullable()]),
 } as const satisfies Record<IpcChannel, z.ZodTuple>;
 
 export type IpcArgs<C extends IpcChannel> = z.output<(typeof IPC_ARGS)[C]>;

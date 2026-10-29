@@ -2,7 +2,12 @@
 
 import type { Database } from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type CreateTaskData, sortKeyBetween, type WorkflowStatus } from '@glacier-tasks/domain';
+import {
+  type CreateTaskData,
+  sortKeyBetween,
+  taskQuerySchema,
+  type WorkflowStatus,
+} from '@glacier-tasks/domain';
 import { migrate, MIGRATIONS, openDatabase } from '../index.js';
 import { ActivityService } from './activity.js';
 import { createServiceContext, type ServiceContext } from './context.js';
@@ -264,18 +269,5 @@ function baseSubtask(parentStoryId: string): CreateTaskData {
 }
 
 function queryFor(statusIds: string[]) {
-  return {
-    projectId,
-    text: '',
-    types: ['STORY' as const],
-    statusIds,
-    priorities: [],
-    assigneeUserIds: [],
-    labelIds: [],
-    dueFrom: null,
-    dueTo: null,
-    sortBy: 'sortOrder' as const,
-    sortDirection: 'asc' as const,
-    page: { offset: 0, limit: 100 },
-  };
+  return taskQuerySchema.parse({ projectId, types: ['STORY'], statusIds });
 }

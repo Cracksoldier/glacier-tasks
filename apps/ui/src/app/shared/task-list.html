@@ -1,0 +1,163 @@
+<div class="list-toolbar">
+  <span class="total" data-testid="list-total" aria-live="polite">
+    @if (loaded()) {
+      {{ i18n.t('list.total', { count: total() }) }}
+    } @else {
+      {{ i18n.t('common.loading') }}
+    }
+  </span>
+  <app-multi-select
+    testId="list-columns"
+    [label]="i18n.t('list.columns')"
+    [options]="columnOptions()"
+    [selected]="columns()"
+    (selectedChange)="setColumns($event)"
+  />
+</div>
+
+@if (error(); as message) {
+  <p class="error-banner" role="alert" data-testid="list-error">{{ message }}</p>
+}
+
+@if (loaded() && rows().length === 0) {
+  <div class="empty-state" data-testid="list-empty">
+    @if (filtered()) {
+      <h2>{{ i18n.t('list.noMatchesTitle') }}</h2>
+      <p>{{ i18n.t('list.noMatchesBody') }}</p>
+    } @else {
+      <h2>{{ i18n.t(emptyTitle()) }}</h2>
+      <p>{{ i18n.t(emptyBody()) }}</p>
+    }
+  </div>
+} @else {
+  <div class="scroller">
+    <div
+      class="grid card"
+      role="treegrid"
+      data-testid="task-list"
+      [attr.aria-label]="i18n.t('list.label')"
+      [attr.aria-busy]="loading()"
+      [style.--grid-template]="gridTemplate()"
+      [style.min-width.px]="minWidth()"
+      (keydown)="keydown($event)"
+    >
+      <div class="head" role="rowgroup">
+        <div class="row header" role="row">
+          <span role="columnheader"><span class="visually-hidden">{{ i18n.t('list.expand') }}</span></span>
+          <span role="columnheader">{{ i18n.t('list.column.key') }}</span>
+          @if (showProject()) {
+            <span role="columnheader">{{ i18n.t('list.column.project') }}</span>
+          }
+          <span role="columnheader">{{ i18n.t('list.column.title') }}</span>
+          @for (column of visibleColumns(); track column) {
+            <span role="columnheader">{{ i18n.t(columnKey[column]) }}</span>
+          }
+        </div>
+      </div>
+
+      <cdk-virtual-scroll-viewport class="viewport" role="rowgroup" [itemSize]="rowHeight"
+        [style.height.px]="viewportHeight()"
+        minBufferPx="360" maxBufferPx="720">
+        <div
+          *cdkVirtualFor="let item of items(); let i = index; trackBy: trackItem"
+          class="row"
+          role="row"
+          data-testid="list-row"
+          [class.subtask]="item.kind === 'subtask'"
+          [class.dimmed]="item.kind === 'story' && !item.matches"
+          [attr.data-kind]="item.kind"
+          [attr.data-issue-key]="item.task.issueKey"
+          [attr.data-row-index]="i"
+          [attr.aria-level]="item.kind === 'story' ? 1 : 2"
+          [attr.aria-expanded]="item.kind === 'story' && item.childCount > 0 ? item.expanded : null"
+          [tabindex]="i === activeIndex() ? 0 : -1"
+          (focus)="rowFocused(i)"
+        >
+          <span role="gridcell" class="expander">
+            @if (item.kind === 'story' && item.childCount > 0) {
+              <button type="button" class="btn btn-ghost btn-icon toggle" tabindex="-1"
+                data-testid="list-toggle"
+                [attr.aria-label]="i18n.t(item.expanded ? 'list.collapse' : 'list.expand')"
+                (click)="toggle(item.task.id)">
+                <i class="fa-solid" [class.fa-chevron-down]="item.expanded"
+                  [class.fa-chevron-right]="!item.expanded" aria-hidden="true"></i>
+              </button>
+            }
+          </span>
+          <span role="gridcell" class="issue-key mono">{{ item.task.issueKey }}</span>
+          @if (showProject()) {
+            <span role="gridcell" class="muted ellipsis">{{ projectName(item.task) }}</span>
+          }
+          <span role="gridcell" class="ellipsis">
+            <a class="title" tabindex="-1" data-testid="list-title"
+              [routerLink]="['/projects', item.task.projectId, 'tasks', item.task.id]">{{ item.task.title }}</a>
+            @if (item.kind === 'story' && !item.matches) {
+              <span class="visually-hidden">{{ i18n.t('list.contextOnly') }}</span>
+            }
+          </span>
+          @for (column of visibleColumns(); track column) {
+            <span role="gridcell" class="ellipsis" [attr.data-column]="column">
+              @switch (column) {
+                @case ('type') {
+                  {{ i18n.t(typeKey[item.task.type]) }}
+                }
+                @case ('status') {
+                  @if (status(item.task); as status) {
+                    <span class="status">
+                      <span class="category-dot category-{{ status.category }}" aria-hidden="true"></span>
+                      {{ status.name }}
+                    </span>
+                  }
+                }
+                @case ('priority') {
+                  <span class="priority-{{ item.task.priority }}">
+                    {{ i18n.t(priorityKey[item.task.priority]) }}
+                  </span>
+                }
+                @case ('assignee') {
+                  @if (item.task.assigneeUserId && usersById().get(item.task.assigneeUserId); as user) {
+                    <span class="assignee">
+                      <app-avatar [userId]="user.id" [name]="user.name" [avatarFileId]="user.avatarFileId"
+                        [archived]="user.archivedAt !== null" [size]="20" />
+                      <span class="ellipsis">{{ user.name }}</span>
+                    </span>
+                  }
+                }
+                @case ('labels') {
+                  <span class="labels">
+                    @for (label of labelsOf(item.task); track label.id) {
+                      <app-label-chip [name]="label.name" [color]="label.color" />
+                    }
+                  </span>
+                }
+                @case ('startDate') {
+                  @if (item.task.startDate) {
+                    {{ i18n.formatLocalDate(item.task.startDate) }}
+                  }
+                }
+                @case ('dueDate') {
+                  @if (item.task.dueDate) {
+                    {{ i18n.formatLocalDate(item.task.dueDate) }}
+                  }
+                }
+                @case ('createdAt') {
+                  {{ i18n.formatDateTime(item.task.createdAt) }}
+                }
+                @case ('updatedAt') {
+                  {{ i18n.formatDateTime(item.task.updatedAt) }}
+                }
+                @case ('subtasks') {
+                  @if (item.task.subtaskProgress; as progress) {
+                    @if (progress.total > 0) {
+                      {{ progress.done }}/{{ progress.total }}
+                    }
+                  }
+                }
+              }
+            </span>
+          }
+        </div>
+      </cdk-virtual-scroll-viewport>
+    </div>
+  </div>
+}

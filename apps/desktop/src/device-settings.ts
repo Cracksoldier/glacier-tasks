@@ -12,6 +12,8 @@ import {
   deviceSettingsPatchSchema,
   LANGUAGES,
   type Language,
+  type ProjectView,
+  projectViewSchema,
   THEMES,
 } from '@glacier-tasks/domain';
 import { writeFileAtomic } from './fs-safe.js';
@@ -39,6 +41,18 @@ const storedSchema = z.object({
     retention: z.int().min(1),
     lastRunAt: z.string().nullable(),
   }),
+  // Added in M5 (D42). One unreadable view is dropped instead of resetting every setting.
+  projectViews: z
+    .record(z.string(), z.unknown())
+    .default({})
+    .transform((views) => {
+      const valid: Record<string, ProjectView> = {};
+      for (const [id, view] of Object.entries(views)) {
+        const parsed = projectViewSchema.safeParse(view);
+        if (z.uuid().safeParse(id).success && parsed.success) valid[id] = parsed.data;
+      }
+      return valid;
+    }),
   window: z
     .object({
       bounds: z.object({
@@ -70,6 +84,7 @@ export function defaultDeviceSettings(preferredLanguages: ReadonlyArray<string>)
       retention: DEFAULT_AUTO_BACKUP_RETENTION,
       lastRunAt: null,
     },
+    projectViews: {},
     window: null,
   };
 }
@@ -102,6 +117,27 @@ export class DeviceSettingsStore {
     };
     this.persist();
     return this.get();
+  }
+
+  /** Stores a project's sort, filters and columns, or forgets them with `null` (D42). */
+  setProjectView(projectId: string, view: ProjectView | null): DeviceSettings {
+    const projectViews = { ...this.current.projectViews };
+    if (view) projectViews[projectId] = projectViewSchema.parse(view);
+    else delete projectViews[projectId];
+    this.current = { ...this.current, projectViews };
+    this.persist();
+    return this.get();
+  }
+
+  /** Forgets the views of projects that no longer exist (permanently deleted or unknown). */
+  pruneProjectViews(isKnownProject: (projectId: string) => boolean): void {
+    const projectViews: Record<string, ProjectView> = {};
+    for (const [id, view] of Object.entries(this.current.projectViews)) {
+      if (isKnownProject(id)) projectViews[id] = view;
+    }
+    if (Object.keys(projectViews).length === Object.keys(this.current.projectViews).length) return;
+    this.current = { ...this.current, projectViews };
+    this.persist();
   }
 
   getWindowState(): WindowState | null {

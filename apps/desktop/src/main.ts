@@ -128,6 +128,7 @@ async function start(): Promise<void> {
   const workflows = new WorkflowService(services);
   avatarStore = new AvatarStore({ dir: paths.avatars, users, logger });
   avatarStore.reconcile();
+  settings.pruneProjectViews((id) => projects.exists(id));
   const avatars = avatarStore;
 
   const handlers: IpcHandlers = {
@@ -149,6 +150,7 @@ async function start(): Promise<void> {
     },
     tasks: {
       query: (input) => tasks.query(input),
+      list: (input) => tasks.list(input),
       get: (id) => tasks.get(id),
       create: (input) => tasks.create(input),
       update: (id, expectedVersion, patch) => tasks.update(id, expectedVersion, patch),
@@ -205,6 +207,10 @@ async function start(): Promise<void> {
           mainWindow?.setBackgroundColor(backgroundFor(updated.theme));
         }
         return updated;
+      },
+      setProjectView: (projectId, view) => {
+        if (!projects.isLive(projectId)) throw new AppError('NOT_FOUND', 'errors.projectNotFound');
+        return settings.setProjectView(projectId, view);
       },
     },
   };
