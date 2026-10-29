@@ -182,6 +182,8 @@
 **Acceptance:** all §14 spec Definition-of-Done requirements pass; no known blocker to offline CRUD or data recovery; Windows/Linux packages built by CI function without connectivity.  
 **Dependencies:** M1–M7.
 
+**Status:** Done (2026-10-29); CI green on Windows and Linux; v1.0.0 published (https://github.com/Cracksoldier/glacier-tasks/releases/tag/v1.0.0) with checksums verified. See `docs/adr/0013-v1-release-and-polish.md`, `docs/acceptance-matrix.md` and `docs/security-review.md`. Date-field language, release, docs and signing confirmed as D52–D55.
+
 ## Cross-milestone traceability
 
 | Confirmed requirement                                             | Main milestone(s)                          |

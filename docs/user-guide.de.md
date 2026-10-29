@@ -27,9 +27,9 @@ geprüft hast.
 
 ### Linux
 
-- **AppImage:** ausführbar machen (`chmod +x Glacier-Tasks-<Version>-linux-x64.AppImage`) und
+- **AppImage:** ausführbar machen (`chmod +x Glacier-Tasks-<Version>-linux-x86_64.AppImage`) und
   starten. Manche Distributionen brauchen für AppImages `libfuse2`.
-- **deb:** `sudo apt install ./Glacier-Tasks-<Version>-linux-x64.deb`
+- **deb:** `sudo apt install ./Glacier-Tasks-<Version>-linux-amd64.deb`
 
 ### Aktualisieren
 

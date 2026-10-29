@@ -26,9 +26,9 @@ for a file whose checksum you checked.
 
 ### Linux
 
-- **AppImage:** make it executable (`chmod +x Glacier-Tasks-<version>-linux-x64.AppImage`) and
+- **AppImage:** make it executable (`chmod +x Glacier-Tasks-<version>-linux-x86_64.AppImage`) and
   start it. Some distributions need `libfuse2` for AppImages.
-- **deb:** `sudo apt install ./Glacier-Tasks-<version>-linux-x64.deb`
+- **deb:** `sudo apt install ./Glacier-Tasks-<version>-linux-amd64.deb`
 
 ### Updating
 
