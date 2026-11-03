@@ -65,8 +65,8 @@ Install the newer version over the old one. Your data stays in the data folder (
   another place in its column. The status select on every card does the same by keyboard. A
   card moved to another column goes to its top.
 - **Group: Subtasks:** every story with subtasks gets its own row with the status columns, and
-  each subtask can be dragged into another status on its own. Stories without subtasks follow
-  under **Other stories**.
+  each subtask can be dragged into another status on its own or to another place in its
+  column. It stays where you drop it. Stories without subtasks follow under **Other stories**.
 - **Long columns:** they show 100 cards at first; **Show more** loads the rest.
 
 ### List, filters and search

@@ -54,6 +54,7 @@ export const IPC_ARGS = {
   'tasks:create': z.tuple([createTaskInputSchema]),
   'tasks:update': z.tuple([idSchema, versionSchema, updateTaskInputSchema]),
   'tasks:move': z.tuple([idSchema, versionSchema, idSchema, sortKeySchema.optional()]),
+  'tasks:moveSubtask': z.tuple([idSchema, versionSchema, idSchema, sortKeySchema.optional()]),
   'tasks:moveToStory': z.tuple([idSchema, versionSchema, idSchema]),
   'tasks:trash': byId,
   'tasks:restore': byId,

@@ -259,6 +259,8 @@ async function start(): Promise<void> {
       update: (id, expectedVersion, patch) => tasks.update(id, expectedVersion, patch),
       move: (id, expectedVersion, statusId, sortOrder) =>
         tasks.move(id, expectedVersion, statusId, sortOrder),
+      moveSubtask: (id, expectedVersion, statusId, sortOrder) =>
+        tasks.moveSubtask(id, expectedVersion, statusId, sortOrder),
       moveToStory: (id, expectedVersion, targetStoryId) =>
         tasks.moveToStory(id, expectedVersion, targetStoryId),
       trash: (id) => tasks.trash(id),

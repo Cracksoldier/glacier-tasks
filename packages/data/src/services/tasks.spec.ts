@@ -2,7 +2,12 @@
 
 import type { Database } from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { type CreateTaskData, taskQuerySchema, type WorkflowStatus } from '@glacier-tasks/domain';
+import {
+  type CreateTaskData,
+  sortKeyBetween,
+  taskQuerySchema,
+  type WorkflowStatus,
+} from '@glacier-tasks/domain';
 import { migrate, MIGRATIONS, openDatabase } from '../index.js';
 import { ActivityService } from './activity.js';
 import { createServiceContext, type ServiceContext } from './context.js';
@@ -326,6 +331,71 @@ describe('moving subtasks (D04, D27)', () => {
     expect(() => tasks.moveToStory(sub.id, 1, second.id)).toThrowError(
       expect.objectContaining({ message: 'errors.invalidParent' }),
     );
+  });
+});
+
+describe('board drops of subtasks (BOARD-07, D56)', () => {
+  const order = (storyId: string) => tasks.get(storyId).subtasks.map((s) => s.title);
+
+  it('reorders a subtask within its story without recording history', () => {
+    const parent = story();
+    const a = subtask(parent.id, 'a');
+    const b = subtask(parent.id, 'b');
+    tasks.moveSubtask(b.id, 1, statuses.todo.id, sortKeyBetween(null, a.sortOrder));
+
+    expect(order(parent.id)).toEqual(['b', 'a']);
+    expect(tasks.get(b.id)).toMatchObject({ statusId: statuses.todo.id, version: 2 });
+    expect(events(b.id)).toEqual(['task.created']);
+  });
+
+  it('sets status and place in one write and records the status change (D06)', () => {
+    const parent = story();
+    const a = subtask(parent.id, 'a');
+    const b = subtask(parent.id, 'b');
+    const c = subtask(parent.id, 'c');
+    tasks.moveSubtask(c.id, 1, statuses.done.id, sortKeyBetween(a.sortOrder, b.sortOrder));
+
+    expect(order(parent.id)).toEqual(['a', 'c', 'b']);
+    expect(tasks.get(c.id)).toMatchObject({ statusId: statuses.done.id, version: 2 });
+    expect(activity.forEntity('TASK', c.id)[0]).toMatchObject({
+      eventType: 'task.updated',
+      payload: {
+        changes: {
+          status: {
+            from: { id: statuses.todo.id, name: 'To Do', category: 'TODO' },
+            to: { id: statuses.done.id, name: 'Done', category: 'DONE' },
+          },
+        },
+      },
+    });
+    expect(tasks.get(parent.id)).toMatchObject({ statusId: statuses.todo.id, version: 1 });
+  });
+
+  it('keeps the stored order without a sort key', () => {
+    const parent = story();
+    subtask(parent.id, 'a');
+    const b = subtask(parent.id, 'b');
+    tasks.moveSubtask(b.id, 1, statuses.doing.id);
+    expect(tasks.get(b.id)).toMatchObject({ sortOrder: b.sortOrder, statusId: statuses.doing.id });
+    expect(order(parent.id)).toEqual(['a', 'b']);
+  });
+
+  it('refuses stories, stale versions and statuses of other projects', () => {
+    const parent = story();
+    const sub = subtask(parent.id);
+    const other = projects.create({ key: 'OTHER', name: 'Other' });
+    const [foreign] = projects.statuses(other.id) as [WorkflowStatus];
+
+    expect(() => tasks.moveSubtask(parent.id, 1, statuses.done.id)).toThrowError(
+      expect.objectContaining({ message: 'errors.moveSubtasksOnly' }),
+    );
+    expect(() => tasks.moveSubtask(sub.id, 7, statuses.done.id)).toThrowError(
+      expect.objectContaining({ message: 'errors.staleTask' }),
+    );
+    expect(() => tasks.moveSubtask(sub.id, 1, foreign.id)).toThrowError(
+      expect.objectContaining({ message: 'errors.crossProjectReference' }),
+    );
+    expect(tasks.get(sub.id)).toMatchObject({ statusId: statuses.todo.id, version: 1 });
   });
 });
 

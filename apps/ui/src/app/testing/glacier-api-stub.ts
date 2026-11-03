@@ -657,6 +657,16 @@ function installTaskApi(
       version: task.version + 1,
     });
   };
+  api['tasks']!['moveSubtask'] = async (id, version, statusId, sortOrder) => {
+    const task = findTask(id as string);
+    if (task.type !== 'SUBTASK') throw fail('VALIDATION', 'errors.moveSubtasksOnly');
+    if (task.version !== version) throw fail('CONFLICT', 'errors.staleTask');
+    Object.assign(task, {
+      statusId,
+      sortOrder: sortOrder ?? task.sortOrder,
+      version: task.version + 1,
+    });
+  };
   api['tasks']!['moveToStory'] = async (id, version, target) => {
     const task = findTask(id as string);
     if (task.version !== version) throw fail('CONFLICT', 'errors.staleTask');

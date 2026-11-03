@@ -114,7 +114,7 @@ Reference application for visual identity, tooling and release process:
 | D48 | The `.glaciertasks` archive (D34) is written and read with **yazl** and **yauzl** (streaming, ZIP64), pinned exactly. See `docs/adr/0012-backup-restore-and-trash.md`. | DATA-04, T14 |
 | D49 | The global Trash page has a project filter; each project page links to its own trash ("Trash (n)"), which opens the Trash page filtered to that project. | TRASH-03 |
 | D50 | Permanent deletion is confirmed by typing the project or issue key; "Empty trash" by typing a localized confirmation word. Both warn that only a backup can bring the data back. | TRASH-05 |
-| D51 | The board can be grouped by subtasks (Jira-style swimlanes): every story with subtasks gets a row with the status columns, its subtasks are cards that can be dragged into another status on their own (status only, D06; no reordering within a column), and stories without subtasks follow in an "Other stories" row. The grouping is remembered per project like the other view settings (D42). | BOARD-07 |
+| D51 | The board can be grouped by subtasks (Jira-style swimlanes): every story with subtasks gets a row with the status columns, its subtasks are cards that can be dragged into another status on their own (status only, D06; reordering added by D56), and stories without subtasks follow in an "Other stories" row. The grouping is remembered per project like the other view settings (D42). | BOARD-07 |
 
 ## 2026-10-29 — M8 planning
 
@@ -124,4 +124,10 @@ Reference application for visual identity, tooling and release process:
 | D53 | v1.0.0 is published by pushing the `v1.0.0` tag after green CI; the existing release workflow builds and publishes the installers. | D37, M8 |
 | D54 | The user guide and release notes are in English and German; the technical README is English. | M8 |
 | D55 | Release builds stay unsigned. Each release publishes `SHA256SUMS.txt`, and the user guide explains the SmartScreen warning and checksum verification. | D21, M8 |
+
+## 2026-11-03 — after v1.0.1
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D56 | In the subtask swimlanes (D51), cards can be reordered within a column. A subtask dropped into another column keeps its drop position (status and place in its story's subtask order change in one write; only the status change is recorded in history). Stories in "Other stories" follow D26: reordered within their column, to the top of another. Replaces "no reordering within a column" in D51. | BOARD-05, BOARD-07 |
 

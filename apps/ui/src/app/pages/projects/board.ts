@@ -64,8 +64,9 @@ const CARDS_PER_PAGE = 100;
  * with status changes (D06), drag & drop with fractional sort keys (D26) and a status select
  * on every card as the keyboard alternative to dragging. The project's filters apply to the
  * story fields only (D09, D43); columns stay, so the status filter is ignored. Grouped by
- * subtasks (BOARD-07, D51), each story with subtasks becomes a swimlane whose subtasks can be
- * dragged between statuses; stories without subtasks follow in an "Other stories" row.
+ * subtasks (BOARD-07, D51, D56), each story with subtasks becomes a swimlane whose subtasks can
+ * be dragged between statuses and reordered; stories without subtasks follow in an "Other
+ * stories" row.
  */
 @Component({
   selector: 'app-board',
@@ -222,9 +223,11 @@ export class Board {
   }
 
   /**
-   * BOARD-07: a card dropped into another column of its swimlane changes status. Subtasks
-   * change only their own status (D06); stories in "Other stories" move to the top of the
-   * column (D26). Order inside a column is not changed here.
+   * BOARD-07, D56: cards in a swimlane are reordered within a column, and a subtask dropped
+   * into another column keeps its drop position. Subtasks change only their own status and
+   * place (D06); stories in "Other stories" moved to another column go to its top (D26). Sort
+   * keys come from the visible neighbours: subtask order is per story, and a story lands
+   * between the stories next to it in "Other stories".
    */
   protected async dropInLane(
     event: CdkDragDrop<LaneColumn, LaneColumn, TaskSummary>,
@@ -232,23 +235,43 @@ export class Board {
     const task = event.item.data;
     const from = event.previousContainer.data;
     const to = event.container.data;
-    if (from.status.id === to.status.id) return;
+    const sameColumn = from === to;
+    if (sameColumn && event.previousIndex === event.currentIndex) return;
+
+    // D26: a story moved to another column goes to its top; everything else stays where dropped.
+    const index = sameColumn || task.type === 'SUBTASK' ? event.currentIndex : 0;
+    const tasks = [...to.tasks];
+    if (sameColumn) moveItemInArray(tasks, event.previousIndex, index);
+    else tasks.splice(index, 0, task);
+
+    let sortOrder: string | undefined;
+    if (task.type === 'SUBTASK' || sameColumn) {
+      try {
+        sortOrder = sortKeyBetween(
+          tasks[index - 1]?.sortOrder ?? null,
+          tasks[index + 1]?.sortOrder ?? null,
+        );
+      } catch {
+        sortOrder = undefined; // inconsistent neighbours: keep the stored order
+      }
+    }
+    tasks[index] = { ...task, statusId: to.status.id, sortOrder: sortOrder ?? task.sortOrder };
+
     this.lanes.update((lanes) =>
       lanes.map((lane) => ({
         ...lane,
         columns: lane.columns.map((column) => {
+          if (column === to) return { ...column, tasks };
           if (column === from)
             return { ...column, tasks: column.tasks.filter((t) => t.id !== task.id) };
-          if (column === to)
-            return { ...column, tasks: [...column.tasks, { ...task, statusId: to.status.id }] };
           return column;
         }),
       })),
     );
     await this.persist(() =>
       task.type === 'SUBTASK'
-        ? this.api.tasks.update(task.id, task.version, { statusId: to.status.id })
-        : this.api.tasks.move(task.id, task.version, to.status.id),
+        ? this.api.tasks.moveSubtask(task.id, task.version, to.status.id, sortOrder)
+        : this.api.tasks.move(task.id, task.version, to.status.id, sortOrder),
     );
   }
 

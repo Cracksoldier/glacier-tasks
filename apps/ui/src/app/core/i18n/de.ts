@@ -207,6 +207,7 @@ export const de = {
   'errors.lastDoneStatus': 'Jedes Projekt braucht mindestens einen Status der Kategorie Erledigt.',
   'errors.invalidReplacement': 'Wähle einen anderen Status dieses Projekts.',
   'errors.moveStoriesOnly': 'Auf dem Board können nur Stories verschoben werden.',
+  'errors.moveSubtasksOnly': 'Nur Unteraufgaben können so verschoben werden.',
 
   'errors.validation': 'Die Eingabe ist ungültig.',
   'errors.unexpected':

@@ -79,6 +79,13 @@ export interface GlacierTasksAPI {
     create(input: CreateTaskInput): Promise<TaskDetail>;
     update(id: string, expectedVersion: number, patch: UpdateTaskInput): Promise<TaskDetail>;
     move(id: string, expectedVersion: number, statusId: string, sortOrder?: string): Promise<void>;
+    /** Board drop of a subtask (BOARD-07, D56): status and place in its story's order. */
+    moveSubtask(
+      id: string,
+      expectedVersion: number,
+      statusId: string,
+      sortOrder?: string,
+    ): Promise<void>;
     moveToStory(subtaskId: string, expectedVersion: number, targetStoryId: string): Promise<void>;
     trash(id: string): Promise<void>;
     restore(id: string): Promise<void>;
@@ -171,6 +178,7 @@ export const IPC_CHANNELS = {
     'create',
     'update',
     'move',
+    'moveSubtask',
     'moveToStory',
     'trash',
     'restore',

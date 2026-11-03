@@ -79,23 +79,23 @@ async function render(filters = EMPTY_FILTERS) {
     lanes(): Array<{ id: string; columns: LaneColumn[] }>;
     dropInLane(event: unknown): Promise<void>;
   };
-  /** Simulates a CDK drop of a card from one column of a lane into another. */
-  const drop = async (laneIndex: number, from: number, to: number, key: string) => {
+  /** Simulates a CDK drop of a card from one column of a lane to a place in another or the same. */
+  const drop = async (laneIndex: number, from: number, to: number, key: string, at = 0) => {
     const lane = board.lanes()[laneIndex] as { columns: LaneColumn[] };
     const source = lane.columns[from] as LaneColumn;
     await board.dropInLane({
       item: { data: source.tasks.find((t) => t.issueKey === key) },
       previousContainer: { data: source },
       container: { data: lane.columns[to] },
-      previousIndex: 0,
-      currentIndex: 0,
+      previousIndex: source.tasks.findIndex((t) => t.issueKey === key),
+      currentIndex: at,
     } as unknown as CdkDragDrop<unknown>);
     await settle(fixture);
   };
   return { fixture, root, lanes, cards, drop };
 }
 
-describe('board grouped by subtasks (BOARD-07, D51)', () => {
+describe('board grouped by subtasks (BOARD-07, D51, D56)', () => {
   it('shows a lane per story with subtasks and the other stories last', async () => {
     const { root, lanes, cards } = await render();
     expect(lanes()).toEqual(['GAME-1', 'other']);
@@ -108,22 +108,50 @@ describe('board grouped by subtasks (BOARD-07, D51)', () => {
   });
 
   it('changes only the subtask status when a subtask is dropped into another column', async () => {
-    const update = vi.spyOn(stub.api.tasks, 'update');
+    const moveSubtask = vi.spyOn(stub.api.tasks, 'moveSubtask');
     const { cards, drop } = await render();
     await drop(0, 0, 1, 'GAME-2');
-    expect(update).toHaveBeenCalledWith(stub.tasks[1]?.id, 1, { statusId: status(1) });
+    expect(moveSubtask).toHaveBeenCalledWith(stub.tasks[1]?.id, 1, status(1), expect.any(String));
     expect(cards('GAME-1', 'In Progress')).toEqual(['GAME-2']);
     expect(stub.tasks[0]?.statusId).toBe(status(0)); // the story keeps its status (D06)
   });
 
-  it('moves other stories between columns and ignores drops in the same column', async () => {
+  it('reorders subtasks within a column and keeps the drop position in another (D56)', async () => {
+    await stub.api.tasks.create({
+      projectId,
+      type: 'SUBTASK',
+      parentStoryId: stub.tasks[0]?.id as string,
+      title: 'Icons',
+    });
+    const { cards, drop } = await render();
+    expect(cards('GAME-1', 'To Do')).toEqual(['GAME-2', 'GAME-5']);
+
+    await drop(0, 0, 0, 'GAME-5', 0);
+    expect(cards('GAME-1', 'To Do')).toEqual(['GAME-5', 'GAME-2']);
+    expect(stub.tasks[4]).toMatchObject({ statusId: status(0), version: 2 });
+
+    await drop(0, 0, 2, 'GAME-2', 0);
+    expect(cards('GAME-1', 'To Do')).toEqual(['GAME-5']);
+    expect(cards('GAME-1', 'Done')).toEqual(['GAME-2', 'GAME-3']);
+  });
+
+  it('reorders other stories within a column and moves them to the top of another', async () => {
+    await stub.api.tasks.create({ projectId, type: 'STORY', title: 'Audio', statusId: status(1) });
     const move = vi.spyOn(stub.api.tasks, 'move');
     const update = vi.spyOn(stub.api.tasks, 'update');
-    const { drop } = await render();
-    await drop(1, 1, 1, 'GAME-4');
-    expect(move).not.toHaveBeenCalled();
-    await drop(1, 1, 2, 'GAME-4');
-    expect(move).toHaveBeenCalledWith(stub.tasks[3]?.id, 1, status(2));
+    const { cards, drop } = await render();
+    expect(cards('other', 'In Progress')).toEqual(['GAME-4', 'GAME-5']);
+
+    await drop(1, 1, 1, 'GAME-4', 0);
+    expect(move).not.toHaveBeenCalled(); // dropped where it was
+
+    await drop(1, 1, 1, 'GAME-5', 0);
+    expect(move).toHaveBeenCalledWith(stub.tasks[4]?.id, 1, status(1), expect.any(String));
+    expect(cards('other', 'In Progress')).toEqual(['GAME-5', 'GAME-4']);
+
+    await drop(1, 1, 2, 'GAME-4', 1);
+    expect(move).toHaveBeenLastCalledWith(stub.tasks[3]?.id, 1, status(2), undefined);
+    expect(cards('other', 'Done')).toEqual(['GAME-4']);
     expect(update).not.toHaveBeenCalled();
   });
 

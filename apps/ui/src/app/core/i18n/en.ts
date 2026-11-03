@@ -200,6 +200,7 @@ export const en = {
   'errors.lastDoneStatus': 'Every project needs at least one status in the category Done.',
   'errors.invalidReplacement': 'Choose another status of this project.',
   'errors.moveStoriesOnly': 'Only stories can be moved on the board.',
+  'errors.moveSubtasksOnly': 'Only subtasks can be moved this way.',
 
   'errors.validation': 'The input is invalid.',
   'errors.unexpected': 'An unexpected error occurred. Your data was not changed.',

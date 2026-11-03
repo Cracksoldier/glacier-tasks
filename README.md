@@ -19,8 +19,8 @@ network requests.
   description (preview, read-only checklists, inline images from the task's own attachments).
 - **Board:**
   - drag and drop between and within status columns
-  - optional grouping by subtasks, where each story gets a swimlane and its subtasks move on
-    their own
+  - optional grouping by subtasks, where each story gets a swimlane and its subtasks move and
+    reorder on their own
   - filters on story fields
 - **List** with a virtual-scrolling tree of stories and subtasks, column picker, sorting,
   filters and full-text search. There is also a **search page** for one or all projects

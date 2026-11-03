@@ -68,8 +68,9 @@ Installiere die neuere Version über die alte. Deine Daten bleiben im Datenordne
   oder an eine andere Stelle ihrer Spalte. Die Statusauswahl auf jeder Karte macht dasselbe per
   Tastatur. Eine in eine andere Spalte verschobene Karte kommt dort nach oben.
 - **Gruppieren: Unteraufgaben:** jede Story mit Unteraufgaben bekommt eine eigene Zeile mit den
-  Statusspalten, und jede Unteraufgabe lässt sich einzeln in einen anderen Status ziehen.
-  Stories ohne Unteraufgaben folgen unter **Weitere Stories**.
+  Statusspalten, und jede Unteraufgabe lässt sich einzeln in einen anderen Status oder an eine
+  andere Stelle ihrer Spalte ziehen. Sie bleibt dort, wo du sie ablegst. Stories ohne
+  Unteraufgaben folgen unter **Weitere Stories**.
 - **Lange Spalten:** sie zeigen zuerst 100 Karten; **Mehr anzeigen** lädt den Rest.
 
 ### Liste, Filter und Suche

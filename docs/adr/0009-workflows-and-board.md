@@ -37,8 +37,9 @@
 
 ## Board moves (`TaskService.move`)
 
-- `tasks.move(id, expectedVersion, statusId, sortOrder?)` moves **stories only**; subtask status
-  changes go through `tasks.update` (D06).
+- `tasks.move(id, expectedVersion, statusId, sortOrder?)` moves **stories only**. Subtask status
+  changes go through `tasks.update` (D06), and board drops of subtasks in the swimlanes go
+  through `tasks.moveSubtask` (see below).
 - **Another column:** the card goes to the **top** of the target column (D26). The given key is
   ignored, and a `task.updated` status change is recorded.
 - **Same column:** the client sends `sortKeyBetween(prev, next)` from its current neighbours. The
@@ -97,11 +98,17 @@ the 256-character limit of `sortKeySchema` and reordering next to it would have 
   - Columns scroll on their own above 360 px.
   - Stories without subtasks follow in an "Other stories" lane.
 - **Dropping:**
-  - **A subtask** dropped into another column changes only its status through `tasks.update`
-    (version-checked, history, D06). The story keeps its status.
-  - **A story** in "Other stories" moves through `tasks.move`, to the top of the column (D26).
-  - **Inside one column** a drop does nothing: the order follows the story's subtask order and,
-    in the "Other stories" lane, the column shows only part of the board.
+  - **A subtask** goes through `tasks.moveSubtask(id, expectedVersion, statusId, sortOrder?)`
+    (D56, added after v1.0.1). It sets the status and the sort key in one version-checked write.
+    The story keeps its status (D06). A status change records the same `task.updated` event as
+    `tasks.update`; a pure reorder records none. Without a key the stored order is kept.
+  - The subtask keeps its drop position, within its column and in another one. The client sends
+    `sortKeyBetween(prev, next)` from the visible neighbours. Subtask keys are ordered per story,
+    so the subtasks of other statuses between them only interleave in the story's own list.
+  - **A story** in "Other stories" moves through `tasks.move`: within its column with the key
+    between its visible neighbours, to another column at the top (D26). Stories with subtasks,
+    which this lane hides, keep their keys, so the story lands between its visible neighbours on
+    the plain board too.
   - Each lane has its own `cdkDropListGroup`, so cards never change lanes.
 - **Keyboard:** every card keeps a status select as the alternative to dragging.
 

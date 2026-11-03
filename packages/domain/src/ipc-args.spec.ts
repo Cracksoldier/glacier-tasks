@@ -31,6 +31,9 @@ describe('IPC_ARGS', () => {
     expect(IPC_ARGS['tasks:move'].safeParse([ID, 1, OTHER_ID]).success).toBe(true);
     expect(IPC_ARGS['tasks:move'].safeParse([ID, 1, OTHER_ID, 'a0V']).success).toBe(true);
     expect(IPC_ARGS['tasks:move'].safeParse([ID, 1, OTHER_ID, 'a0V0']).success).toBe(false);
+    expect(IPC_ARGS['tasks:moveSubtask'].safeParse([ID, 1, OTHER_ID]).success).toBe(true);
+    expect(IPC_ARGS['tasks:moveSubtask'].safeParse([ID, 1, OTHER_ID, 'a0V']).success).toBe(true);
+    expect(IPC_ARGS['tasks:moveSubtask'].safeParse([ID, 1, OTHER_ID, 'a0V0']).success).toBe(false);
   });
 
   it('never accepts a file path for avatar selection (T5)', () => {

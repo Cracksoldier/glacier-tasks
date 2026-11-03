@@ -178,7 +178,7 @@ test('deleting a status migrates live and trashed tasks (UJ-04, D01, D07)', asyn
   }
 });
 
-test('grouped by subtasks, a subtask is dragged into another status on its own (BOARD-07, D51)', async () => {
+test('grouped by subtasks, subtasks are reordered and dragged into another status (BOARD-07, D51, D56)', async () => {
   const first = await launchApp(userData.dir);
   try {
     const { page } = first;
@@ -188,7 +188,12 @@ test('grouped by subtasks, a subtask is dragged into another status on its own (
     await expect(lane.locator('[data-column="To Do"] [data-testid="lane-card"]')).toHaveCount(2);
     await expect(page.locator('[data-lane="other"] [data-testid="lane-card"]')).toHaveCount(1);
 
+    // Reordering inside a column persists (D56).
+    const todo = lane.locator('[data-column="To Do"] [data-testid="lane-card"]');
     const card = lane.locator('[data-testid="lane-card"][data-issue-key="GAME-2"]');
+    await drag(page, lane.locator('[data-testid="lane-card"][data-issue-key="GAME-3"]'), card);
+    await expect(todo.first()).toHaveAttribute('data-issue-key', 'GAME-3');
+
     await drag(page, card, lane.locator('[data-column="Done"] .lane-cards'));
     await expect(lane.locator('[data-column="Done"] [data-testid="lane-card"]')).toHaveCount(1);
 
@@ -200,9 +205,15 @@ test('grouped by subtasks, a subtask is dragged into another status on its own (
         (await api.workflows.list(project?.id as string)).map((s) => [s.id, s.name]),
       );
       const tasks = (await api.tasks.query({ projectId: project?.id as string })).items;
-      return Object.fromEntries(tasks.map((t) => [t.issueKey, statuses.get(t.statusId)]));
+      const story = tasks.find((t) => t.issueKey === 'GAME-1');
+      const order = (await api.tasks.get(story?.id as string)).subtasks.map((t) => t.issueKey);
+      return {
+        status: Object.fromEntries(tasks.map((t) => [t.issueKey, statuses.get(t.statusId)])),
+        order,
+      };
     });
-    expect(states).toMatchObject({ 'GAME-1': 'To Do', 'GAME-2': 'Done', 'GAME-3': 'To Do' });
+    expect(states.status).toMatchObject({ 'GAME-1': 'To Do', 'GAME-2': 'Done', 'GAME-3': 'To Do' });
+    expect(states.order).toEqual(['GAME-3', 'GAME-2']);
   } finally {
     await first.app.close();
   }

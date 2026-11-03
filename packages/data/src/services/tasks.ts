@@ -438,6 +438,34 @@ export class TaskService {
     })();
   }
 
+  /**
+   * Board drop of a subtask in a swimlane (BOARD-07, D56): sets its status and, if given, its
+   * sort key within the story's subtasks. Only a status change is recorded in history (D06).
+   */
+  moveSubtask(id: string, expectedVersion: number, statusId: string, sortOrder?: string): void {
+    this.ctx.db.transaction(() => {
+      const row = this.requireLive(id);
+      if (row.type !== 'SUBTASK') throw new AppError('VALIDATION', 'errors.moveSubtasksOnly');
+      assertVersion(row, expectedVersion);
+      const to = this.statusSnapshot(row.project_id, statusId);
+      const result = this.ctx.db
+        .prepare(
+          `UPDATE tasks SET status_id = ?, sort_order = ?, version = version + 1, updated_at = ?
+           WHERE id = ? AND version = ?`,
+        )
+        .run(statusId, sortOrder ?? row.sort_order, this.ctx.now(), id, expectedVersion);
+      if (result.changes !== 1) throw stale();
+      if (statusId !== row.status_id) {
+        const payload: TaskUpdatedPayload = {
+          issueKey: issueKey(row),
+          title: row.title,
+          changes: { status: { from: this.statusSnapshot(row.project_id, row.status_id), to } },
+        };
+        this.record(row, TASK_EVENTS.updated, payload);
+      }
+    })();
+  }
+
   /** D04: a subtask moves to another live story of the same project; its key stays. */
   moveToStory(subtaskId: string, expectedVersion: number, targetStoryId: string): void {
     this.ctx.db.transaction(() => {
