@@ -84,9 +84,14 @@ test('with minimize to tray on, minimizing hides the window and a second launch 
     await page.getByTestId('minimize-to-tray').check();
     await expect.poll(() => storedSettings()['minimizeToTray']).toBe(true);
 
-    // Under xvfb there is no window manager, so minimize() does nothing and never emits
-    // 'minimize'. Emit the event the window manager would cause instead.
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.emit('minimize'));
+    // A real minimize where possible: on Windows, bringing back a hidden, minimized window is
+    // what can go wrong. Under xvfb there is no window manager, so minimize() does nothing and
+    // never emits 'minimize'; emit the event the window manager would cause instead.
+    await app.evaluate(({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows()[0];
+      window?.minimize();
+      if (window && !window.isMinimized()) window.emit('minimize');
+    });
     await expect.poll(() => windowState(app).then((windows) => windows[0]?.visible)).toBe(false);
     await expect.poll(() => storedSettings()['trayHintShown']).toBe(true);
 

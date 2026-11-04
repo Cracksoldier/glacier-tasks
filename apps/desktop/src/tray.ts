@@ -14,6 +14,12 @@ import { APP_NAME, type DeviceSettings, type Language } from '@glacier-tasks/dom
 import type { DeviceSettingsStore } from './device-settings.js';
 import type { Logger } from './logger.js';
 
+/**
+ * How long minimize events are ignored after the window is brought back. On Windows, showing a
+ * hidden, minimized window reports another minimize, which must not hide it again.
+ */
+const REVEAL_GUARD_MS = 500;
+
 const TRAY_TEXT = {
   en: {
     open: `Open ${APP_NAME}`,
@@ -47,6 +53,10 @@ export class TrayController {
   private closeToTray = false;
   private minimizeToTray = false;
   private quitting = false;
+  private revealing = false;
+  /** Set while the window is hidden in the tray, so a window that isn't shown yet is left alone. */
+  private hiddenInTray = false;
+  private revealTimer: NodeJS.Timeout | undefined;
 
   constructor(private readonly options: TrayControllerOptions) {}
 
@@ -59,7 +69,8 @@ export class TrayController {
       this.hideWindow();
     });
     window.on('minimize', () => {
-      if (this.tray && this.minimizeToTray) this.hideWindow();
+      if (this.revealing || !this.tray || !this.minimizeToTray) return;
+      this.hideWindow();
     });
     // Windows shutdown or logoff: let the window close so the session can end.
     window.on('query-session-end', () => this.markQuitting());
@@ -80,7 +91,7 @@ export class TrayController {
       this.tray = undefined;
       this.language = undefined;
       // Never leave the window hidden without a way back.
-      if (this.window && !this.window.isVisible()) this.show();
+      if (this.hiddenInTray) this.show();
       return;
     }
     if (!this.tray) {
@@ -106,12 +117,20 @@ export class TrayController {
     }
   }
 
-  /** Brings the window back, from the tray or from being minimized. */
+  /** Brings the window back, from the tray or from being minimized (also on a second launch). */
   show(): void {
     const window = this.window;
     if (!window || window.isDestroyed()) return;
-    if (window.isMinimized()) window.restore();
+    this.hiddenInTray = false;
+    this.revealing = true;
+    clearTimeout(this.revealTimer);
+    this.revealTimer = setTimeout(() => {
+      this.revealing = false;
+    }, REVEAL_GUARD_MS);
+    // Show first: restoring a hidden window does nothing on Windows, and the window is still
+    // minimized when it was hidden by minimizing.
     window.show();
+    if (window.isMinimized()) window.restore();
     window.focus();
   }
 
@@ -121,12 +140,15 @@ export class TrayController {
   }
 
   dispose(): void {
+    clearTimeout(this.revealTimer);
     this.tray?.destroy();
     this.tray = undefined;
   }
 
   private hideWindow(): void {
-    this.window?.hide();
+    if (!this.window) return;
+    this.hiddenInTray = true;
+    this.window.hide();
     this.showHintOnce();
   }
 

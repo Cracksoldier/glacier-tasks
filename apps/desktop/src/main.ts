@@ -570,6 +570,10 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', () => {
     // Also the way back to a window hidden in the tray when the desktop shows no tray icons (D59).
+    if (tray) {
+      tray.show();
+      return;
+    }
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
