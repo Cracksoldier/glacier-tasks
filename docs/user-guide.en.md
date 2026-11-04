@@ -42,6 +42,9 @@ Install the newer version over the old one. Your data stays in the data folder (
 
 1. **Settings:** choose a theme (light, dark or system) and a language (English or German).
    Date fields follow a new language after a restart; Settings offers **Restart now**.
+   Under **Window** you can opt in to keep the app running in the system tray when you close
+   the window, and to hide it there when you minimize it. The tray icon's menu opens or quits
+   the app.
 2. **New project:** give it a name and a key of 2–10 characters, such as `GAME`. Every story and
    subtask gets an ID like `GAME-12`. The key can change only until the first task exists.
 3. **Profiles:** create profiles for the people you assign work to (names and optional
@@ -190,6 +193,9 @@ somewhere else.
 - **An automatic backup failed:** a warning appears with a link to Settings. Check that the
   folder exists and is writable.
 - **Date fields show the wrong format:** restart the app after changing the language.
+- **The window is gone but the app still runs:** it's in the system tray (Settings → Window).
+  Open it from the tray icon, or start Glacier Tasks again. On Linux, some desktops (for example
+  GNOME without the AppIndicator extension) don't show tray icons.
 
 ## 8. Limitations
 

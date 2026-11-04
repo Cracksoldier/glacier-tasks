@@ -107,6 +107,14 @@ h2 {
   }
 }
 
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
 .attachment-limit {
   margin: 0;
 

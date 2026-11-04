@@ -70,6 +70,22 @@ export class SettingsPage {
     }
   }
 
+  /** D59: both tray options are opt-in; a failed save unticks the box again. */
+  protected async setTray(
+    option: 'closeToTray' | 'minimizeToTray',
+    input: HTMLInputElement,
+  ): Promise<void> {
+    this.error.set(null);
+    try {
+      await (option === 'closeToTray'
+        ? this.settings.setCloseToTray(input.checked)
+        : this.settings.setMinimizeToTray(input.checked));
+    } catch {
+      input.checked = this.settings[option]();
+      this.error.set(this.i18n.t('settings.saveFailed'));
+    }
+  }
+
   /** D52: native date fields switch language only with a restart. */
   protected async restart(): Promise<void> {
     await this.api.app.restart().catch(() => this.error.set(this.i18n.t('settings.saveFailed')));

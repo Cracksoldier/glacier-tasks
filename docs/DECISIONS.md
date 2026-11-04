@@ -137,3 +137,9 @@ Reference application for visual identity, tooling and release process:
 | ID | Decision | Spec refs |
 |---|---|---|
 | D58 | A story can be exported with its live subtasks as JSON and imported into the open project. "Swimlanes" in the request means workflow statuses: they are matched by name (ignoring case), and only if a status has no match does the import show a mapping step (all rows prefilled, by category otherwise). One profile picker, or "Unassigned", sets the assignee of the story and all subtasks; it is prefilled with the original assignee if that profile exists and isn't archived. Labels are matched by name; missing ones are created with the exported colour. Attachments are not exported; the preview warns about `attachment:` references. History isn't carried over: the created events note "imported from KEY-n". Replaces "no JSON import" in DATA-02. | DATA-02, DATA-11 |
+
+## 2026-11-04 — system tray
+
+| ID | Decision | Spec refs |
+|---|---|---|
+| D59 | Two opt-in device settings, both off by default: closing the window keeps the app running in the system tray, and minimizing hides the window there. The tray icon exists only while one of them is on; its menu has "Open Glacier Tasks" and "Quit" (a click on the icon opens the window where the OS reports clicks). The first time the window goes to the tray, a single OS notification says the app is still running. Quitting from the tray, OS shutdown and logoff always close the app. Starting the app again brings a hidden window back, also on Linux desktops without tray icons. | UX-04, UX-08, D17 |

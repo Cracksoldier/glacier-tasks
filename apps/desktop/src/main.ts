@@ -67,6 +67,7 @@ import { hardenApp, hardenSession } from './security.js';
 import { PendingStoryImport, readStoryFile, serializeStory } from './story-import.js';
 import { runSmoke } from './smoke.js';
 import { showStartupError } from './startup-error.js';
+import { TrayController } from './tray.js';
 import { createMainWindow, rendererDir, WINDOW_BACKGROUND } from './window.js';
 import { openWorkspace } from './workspace.js';
 
@@ -76,6 +77,9 @@ const devUrl = isDev ? 'http://localhost:4200' : undefined;
 
 const userDataOverride = process.env['GLACIER_USER_DATA'];
 if (userDataOverride) app.setPath('userData', userDataOverride);
+// Windows shows notifications (the tray hint, D59) only for a known app id; matches appId in
+// electron-builder.yml.
+if (process.platform === 'win32') app.setAppUserModelId('com.glacier.tasks');
 // E2E only: native dialogs can't be driven, so tests name the file to save or open. Honoured
 // only together with a separate data directory, never in a normal run.
 const testDialogPath = userDataOverride ? process.env['GLACIER_TEST_DIALOG_PATH'] : undefined;
@@ -91,6 +95,7 @@ let workspace: Database | undefined;
 let avatarStore: AvatarStore | undefined;
 let attachmentStore: AttachmentStore | undefined;
 let mainWindow: BrowserWindow | undefined;
+let tray: TrayController | undefined;
 // Set as soon as they exist, so a failed start can still log and speak the user's language.
 let startupLogger: Logger | undefined;
 let startupSettings: DeviceSettingsStore | undefined;
@@ -456,6 +461,13 @@ async function start(): Promise<void> {
           nativeTheme.themeSource = updated.theme;
           mainWindow?.setBackgroundColor(backgroundFor(updated.theme));
         }
+        if (
+          patch.closeToTray !== undefined ||
+          patch.minimizeToTray !== undefined ||
+          patch.language !== undefined
+        ) {
+          tray?.sync(updated);
+        }
         return updated;
       },
       chooseAutoBackupFolder: async () => {
@@ -492,6 +504,19 @@ async function start(): Promise<void> {
   mainWindow.on('closed', () => {
     mainWindow = undefined;
   });
+  if (!isSmoke) {
+    // D59: opt-in close/minimize to the system tray.
+    tray = new TrayController({
+      settings,
+      logger,
+      onQuit: () => {
+        tray?.markQuitting();
+        app.quit();
+      },
+    });
+    tray.attach(mainWindow);
+    tray.sync(settings.get());
+  }
 
   if (!isSmoke) {
     // D13: never blocks startup; a failure is shown as a warning in the app.
@@ -544,6 +569,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
+    // Also the way back to a window hidden in the tray when the desktop shows no tray icons (D59).
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
@@ -554,7 +580,11 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(start).catch(failStartup);
 
   app.on('window-all-closed', () => app.quit());
+  // Quitting must never be turned into hiding the window (D59).
+  app.on('before-quit', () => tray?.markQuitting());
   app.on('will-quit', () => {
+    tray?.dispose();
+    tray = undefined;
     avatarStore = undefined;
     workspace?.close();
     workspace = undefined;

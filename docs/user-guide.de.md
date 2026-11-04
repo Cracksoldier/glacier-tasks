@@ -43,7 +43,10 @@ Installiere die neuere Version über die alte. Deine Daten bleiben im Datenordne
 
 1. **Einstellungen:** wähle ein Design (hell, dunkel oder wie das System) und eine Sprache
    (Deutsch oder Englisch). Datumsfelder wechseln nach einem Neustart in die neue Sprache; die
-   Einstellungen bieten dafür **Jetzt neu starten** an.
+   Einstellungen bieten dafür **Jetzt neu starten** an. Unter **Fenster** kannst du
+   einschalten, dass die App beim Schließen des Fensters im Infobereich weiterläuft und beim
+   Minimieren dorthin verschwindet. Das Menü des Symbols im Infobereich öffnet oder beendet die
+   App.
 2. **Neues Projekt:** gib ihm einen Namen und einen Schlüssel aus 2–10 Zeichen, zum Beispiel
    `GAME`. Jede Story und Unteraufgabe bekommt eine ID wie `GAME-12`. Der Schlüssel lässt sich
    nur ändern, solange es noch keine Aufgabe gibt.
@@ -208,6 +211,10 @@ verschiebe den ganzen Ordner an einen anderen Ort.
 - **Ein automatisches Backup ist fehlgeschlagen:** eine Warnung mit Link zu den Einstellungen
   erscheint. Prüfe, ob der Ordner existiert und beschreibbar ist.
 - **Datumsfelder zeigen das falsche Format:** starte die App nach einem Sprachwechsel neu.
+- **Das Fenster ist weg, die App läuft aber noch:** sie ist im Infobereich (Einstellungen →
+  Fenster). Öffne sie über das Symbol dort oder starte Glacier Tasks erneut. Unter Linux zeigen
+  manche Desktops (zum Beispiel GNOME ohne die AppIndicator-Erweiterung) keine Symbole im
+  Infobereich an.
 
 ## 8. Einschränkungen
 

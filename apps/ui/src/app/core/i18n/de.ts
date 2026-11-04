@@ -73,6 +73,11 @@ export const de = {
   'settings.theme.dark': 'Dunkel',
   'settings.theme.system': 'Wie System',
   'settings.language': 'Sprache',
+  'settings.window': 'Fenster',
+  'settings.closeToTray': 'Beim Schließen des Fensters läuft Glacier Tasks im Infobereich weiter',
+  'settings.minimizeToTray': 'Beim Minimieren wird das Fenster in den Infobereich verschoben',
+  'settings.trayHint':
+    'Über das Symbol im Infobereich öffnest oder beendest du die App. Unter Linux muss der Desktop Infobereich-Symbole anzeigen; ein erneuter Start von Glacier Tasks holt das Fenster ebenfalls zurück.',
   'settings.about': 'Info',
   'settings.version': 'Version',
   'settings.schemaVersion': 'Datenbankschema',

@@ -35,6 +35,10 @@ export class SettingsStore {
     lastRunAt: null,
     lastFailure: null,
   });
+  /** Opt-in: closing the window hides it to the system tray (D59). */
+  readonly closeToTray = signal(false);
+  /** Opt-in: minimizing the window hides it to the system tray (D59). */
+  readonly minimizeToTray = signal(false);
   /** Sort, filters and list columns per project (D42). */
   readonly projectViews = signal<Readonly<Record<string, ProjectView>>>({});
 
@@ -47,6 +51,8 @@ export class SettingsStore {
     this.projectViews.set(settings.projectViews);
     this.attachmentMaxMiB.set(settings.attachmentMaxMiB);
     this.autoBackup.set(settings.autoBackup);
+    this.closeToTray.set(settings.closeToTray);
+    this.minimizeToTray.set(settings.minimizeToTray);
   }
 
   /** Enabled flag, interval and retention; the folder only comes from the native picker. */
@@ -87,6 +93,18 @@ export class SettingsStore {
   setAttachmentMaxMiB(attachmentMaxMiB: number): Promise<void> {
     return this.optimistic(this.attachmentMaxMiB, attachmentMaxMiB, () =>
       this.api.settings.updateDevice({ attachmentMaxMiB }),
+    );
+  }
+
+  setCloseToTray(closeToTray: boolean): Promise<void> {
+    return this.optimistic(this.closeToTray, closeToTray, () =>
+      this.api.settings.updateDevice({ closeToTray }),
+    );
+  }
+
+  setMinimizeToTray(minimizeToTray: boolean): Promise<void> {
+    return this.optimistic(this.minimizeToTray, minimizeToTray, () =>
+      this.api.settings.updateDevice({ minimizeToTray }),
     );
   }
 

@@ -41,6 +41,10 @@ export async function buildDesktop({ dev = false } = {}) {
 
   // Linux window icon (Windows takes the icon from the executable).
   cpSync(join(root, 'build', 'icon.png'), join(outDir, 'icon.png'));
+  // Tray icons (D59): 16 px with a @2x variant on Windows, 32 px for Linux panels.
+  cpSync(join(root, 'build', 'icons', '16x16.png'), join(outDir, 'tray.png'));
+  cpSync(join(root, 'build', 'icons', '32x32.png'), join(outDir, 'tray@2x.png'));
+  cpSync(join(root, 'build', 'icons', '32x32.png'), join(outDir, 'tray-linux.png'));
 
   if (dev) return;
   if (!existsSync(join(rendererSource, 'index.html'))) {

@@ -253,6 +253,7 @@ Local app data directory (standard per-user location only, D16)
 - `UX-05` No login/logout UI, user permissions, sync state, or server configuration screens.
 - `UX-06` **[CONFIRMED]** UI available in English and German, switchable in settings; first launch picks German if the OS language is German, otherwise English. Dates are formatted for the selected UI language. All user-facing strings go through the translation layer from M1 (D15).
 - `UX-07` **[CONFIRMED]** Visual identity follows Glacier Notes: its color tokens (cold dark-blue dark theme, cool light theme, ice-blue accent), system font stack, Font Awesome icons. App icon is a Glacier Notes icon variant with a board/checklist motif (D18, D23).
+- `UX-08` **[CONFIRMED]** Opt-in system tray: closing and, separately, minimizing the window can hide it to the system tray. Both settings are off by default and stored in device settings (D59).
 
 ## 5. Data model and database constraints
 

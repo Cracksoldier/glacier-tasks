@@ -70,6 +70,11 @@ export const en = {
   'settings.theme.dark': 'Dark',
   'settings.theme.system': 'Follow system',
   'settings.language': 'Language',
+  'settings.window': 'Window',
+  'settings.closeToTray': 'Closing the window keeps Glacier Tasks running in the system tray',
+  'settings.minimizeToTray': 'Minimizing the window hides it to the system tray',
+  'settings.trayHint':
+    'Open or quit the app from the tray icon. On Linux, the desktop must show tray icons; starting Glacier Tasks again also brings the window back.',
   'settings.about': 'About',
   'settings.version': 'Version',
   'settings.schemaVersion': 'Database schema',

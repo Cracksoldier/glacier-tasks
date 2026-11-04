@@ -40,6 +40,25 @@ describe('SettingsPage', () => {
     expect(query('app-version').textContent).toBe('1.2.3');
   });
 
+  it('offers both tray options unticked and saves them (D59)', async () => {
+    const { fixture, stub, query } = await render();
+    expect(query<HTMLInputElement>('close-to-tray').checked).toBe(false);
+    expect(query<HTMLInputElement>('minimize-to-tray').checked).toBe(false);
+    query<HTMLInputElement>('close-to-tray').click();
+    query<HTMLInputElement>('minimize-to-tray').click();
+    await fixture.whenStable();
+    expect(stub.updates).toEqual([{ closeToTray: true }, { minimizeToTray: true }]);
+  });
+
+  it('unticks a tray option again when saving fails', async () => {
+    const { fixture, stub, query, element } = await render();
+    stub.failNextUpdate = { code: 'IO', message: 'errors.unexpected' };
+    query<HTMLInputElement>('close-to-tray').click();
+    await fixture.whenStable();
+    expect(element.querySelector('[role="alert"]')).not.toBeNull();
+    expect(query<HTMLInputElement>('close-to-tray').checked).toBe(false);
+  });
+
   it('reports a failed save and keeps the previous selection', async () => {
     const { fixture, stub, query, element } = await render();
     stub.failNextUpdate = { code: 'IO', message: 'errors.unexpected' };

@@ -89,6 +89,8 @@ export function defaultTestSettings(): DeviceSettings {
     },
     projectViews: {},
     attachmentMaxMiB: 100,
+    closeToTray: false,
+    minimizeToTray: false,
   };
 }
 

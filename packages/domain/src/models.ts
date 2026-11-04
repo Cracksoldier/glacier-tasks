@@ -185,6 +185,10 @@ export interface DeviceSettings {
   autoBackup: AutoBackupSettings;
   /** Sort, filters and list columns per project id (D42). */
   projectViews: Record<string, ProjectView>;
+  /** Closing the window hides it to the system tray instead of quitting (D59, opt-in). */
+  closeToTray: boolean;
+  /** Minimizing the window hides it to the system tray (D59, opt-in). */
+  minimizeToTray: boolean;
 }
 
 export interface BackupResult {

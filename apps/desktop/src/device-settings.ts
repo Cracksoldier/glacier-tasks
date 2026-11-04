@@ -29,6 +29,8 @@ export interface WindowState {
 
 interface StoredSettings extends DeviceSettings {
   window: WindowState | null;
+  /** The one-off "still running in the tray" notification has been shown (D59). */
+  trayHintShown: boolean;
 }
 
 const storedSchema = z.object({
@@ -64,6 +66,10 @@ const storedSchema = z.object({
       }
       return valid;
     }),
+  // Added after v1.0.3 (D59); both opt-in.
+  closeToTray: z.boolean().default(false),
+  minimizeToTray: z.boolean().default(false),
+  trayHintShown: z.boolean().default(false),
   window: z
     .object({
       bounds: z.object({
@@ -122,6 +128,9 @@ export function defaultDeviceSettings(preferredLanguages: ReadonlyArray<string>)
       lastFailure: null,
     },
     projectViews: {},
+    closeToTray: false,
+    minimizeToTray: false,
+    trayHintShown: false,
     window: null,
   };
 }
@@ -138,9 +147,9 @@ export class DeviceSettingsStore {
     this.current = this.load(defaultDeviceSettings(preferredLanguages));
   }
 
-  /** Renderer-visible settings (window state stays internal). */
+  /** Renderer-visible settings (window state and the tray hint flag stay internal). */
   get(): DeviceSettings {
-    const { window: _window, ...visible } = this.current;
+    const { window: _window, trayHintShown: _hint, ...visible } = this.current;
     return structuredClone(visible);
   }
 
@@ -194,6 +203,16 @@ export class DeviceSettingsStore {
     }
     if (Object.keys(projectViews).length === Object.keys(this.current.projectViews).length) return;
     this.current = { ...this.current, projectViews };
+    this.persist();
+  }
+
+  trayHintShown(): boolean {
+    return this.current.trayHintShown;
+  }
+
+  markTrayHintShown(): void {
+    if (this.current.trayHintShown) return;
+    this.current = { ...this.current, trayHintShown: true };
     this.persist();
   }
 

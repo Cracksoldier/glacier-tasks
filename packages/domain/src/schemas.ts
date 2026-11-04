@@ -225,6 +225,8 @@ export const deviceSettingsPatchSchema = z
         retention: z.int().min(1).max(100),
       })
       .partial(),
+    closeToTray: z.boolean(),
+    minimizeToTray: z.boolean(),
   })
   .partial();
 

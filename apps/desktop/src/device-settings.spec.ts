@@ -126,6 +126,45 @@ describe('DeviceSettingsStore', () => {
     expect(() => store.update({ attachmentMaxMiB: 1.5 })).toThrow();
   });
 
+  describe('system tray (D59)', () => {
+    it('is opt-in and reads files written before the setting existed', () => {
+      const store = new DeviceSettingsStore(file, ['en-US'], silentLogger);
+      expect(store.get()).toMatchObject({ closeToTray: false, minimizeToTray: false });
+      store.update({ theme: 'light' });
+      const stored = JSON.parse(readFileSync(file, 'utf-8'));
+      delete stored.closeToTray;
+      delete stored.minimizeToTray;
+      delete stored.trayHintShown;
+      writeFileSync(file, JSON.stringify(stored));
+      const reloaded = new DeviceSettingsStore(file, ['en-US'], silentLogger);
+      expect(reloaded.get()).toMatchObject({
+        theme: 'light',
+        closeToTray: false,
+        minimizeToTray: false,
+      });
+      expect(reloaded.trayHintShown()).toBe(false);
+    });
+
+    it('persists both options', () => {
+      new DeviceSettingsStore(file, [], silentLogger).update({ closeToTray: true });
+      new DeviceSettingsStore(file, [], silentLogger).update({ minimizeToTray: true });
+      expect(new DeviceSettingsStore(file, [], silentLogger).get()).toMatchObject({
+        closeToTray: true,
+        minimizeToTray: true,
+      });
+      expect(() =>
+        new DeviceSettingsStore(file, [], silentLogger).update({ closeToTray: 'yes' as never }),
+      ).toThrow();
+    });
+
+    it('remembers the one-off hint internally', () => {
+      const store = new DeviceSettingsStore(file, [], silentLogger);
+      store.markTrayHintShown();
+      expect(store.get()).not.toHaveProperty('trayHintShown');
+      expect(new DeviceSettingsStore(file, [], silentLogger).trayHintShown()).toBe(true);
+    });
+  });
+
   describe('project views (D42)', () => {
     const P1 = '00000000-0000-4000-8000-000000000001';
     const P2 = '00000000-0000-4000-8000-000000000002';
