@@ -496,6 +496,8 @@ export const en = {
   'storyImport.confirm': 'Import',
   'activity.task.imported': 'Created by import from {key}',
   'errors.exportStoriesOnly': 'Only stories can be exported.',
+  'errors.exportTooLarge':
+    'This story is too large for a story file (at most 500 subtasks and 10 MiB). Nothing was saved.',
   'errors.importInvalid':
     'This file is not a valid Glacier Tasks story export, or it is damaged. Nothing was imported.',
   'errors.importTooLarge': 'The file is too large for a story import.',

@@ -96,5 +96,12 @@ describe('storyImportInputSchema', () => {
     expect(storyImportInputSchema.safeParse({ ...base, statusMap: { x: ADA } }).success).toBe(
       false,
     );
+    const huge = Object.fromEntries(
+      Array.from({ length: STORY_IMPORT_MAX_SUBTASKS + 2 }, (_, i) => [
+        `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+        ADA,
+      ]),
+    );
+    expect(storyImportInputSchema.safeParse({ ...base, statusMap: huge }).success).toBe(false);
   });
 });

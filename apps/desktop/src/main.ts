@@ -64,7 +64,7 @@ import { handleMediaProtocol, registerMediaScheme } from './media-protocol.js';
 import { writeFileAtomic } from './fs-safe.js';
 import { ensureAppDirectories, resolveAppPaths } from './paths.js';
 import { hardenApp, hardenSession } from './security.js';
-import { PendingStoryImport, readStoryFile } from './story-import.js';
+import { PendingStoryImport, readStoryFile, serializeStory } from './story-import.js';
 import { runSmoke } from './smoke.js';
 import { showStartupError } from './startup-error.js';
 import { createMainWindow, rendererDir, WINDOW_BACKGROUND } from './window.js';
@@ -383,13 +383,15 @@ async function start(): Promise<void> {
       },
       exportStory: async (storyId) => {
         const document = storyTransfer.export(storyId, app.getVersion());
+        // Before the dialog: a story the import would reject fails without a file.
+        const text = serializeStory(document);
         const target = await saveDialog({
           defaultPath: `${document.story.issueKey}.${STORY_EXPORT_EXTENSION}`,
           filters: [{ name: STORY_FILTER_NAME[settings.get().language], extensions: ['json'] }],
         });
         if (!target) return null;
         try {
-          writeFileAtomic(target, `${JSON.stringify(document, null, 2)}\n`);
+          writeFileAtomic(target, text);
         } catch {
           throw new AppError('IO', 'errors.exportFailed');
         }

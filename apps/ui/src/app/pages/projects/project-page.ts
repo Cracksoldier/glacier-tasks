@@ -342,8 +342,6 @@ export class ProjectPage {
 
   protected async imported(story: TaskDetail): Promise<void> {
     this.importPreview.set(null);
-    // Labels may have been created; the filter bar shows them too.
-    this.labels.reload();
     await this.router.navigate(['/projects', story.projectId, 'tasks', story.id]);
   }
 

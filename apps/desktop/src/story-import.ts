@@ -13,13 +13,30 @@ import {
 } from '@glacier-tasks/domain';
 
 const invalid = () => new AppError('VALIDATION', 'errors.importInvalid');
+const tooLarge = () => new AppError('VALIDATION', 'errors.importTooLarge');
+
+/**
+ * The file text for an exported story. A story that the import would reject (too many
+ * subtasks, more than `maxBytes`) fails with `exportTooLarge` instead of writing a file
+ * that can never be imported.
+ */
+export function serializeStory(doc: StoryTransfer, maxBytes = STORY_IMPORT_MAX_BYTES): string {
+  const text = `${JSON.stringify(doc, null, 2)}\n`;
+  if (!storyTransferSchema.safeParse(doc).success || Buffer.byteLength(text) > maxBytes) {
+    throw new AppError('VALIDATION', 'errors.exportTooLarge');
+  }
+  return text;
+}
 
 /** Reads and validates a story file; throws `importTooLarge` or `importInvalid`. */
 export function readStoryFile(path: string, maxBytes = STORY_IMPORT_MAX_BYTES): StoryTransfer {
   let text: string;
   try {
-    if (statSync(path).size > maxBytes) throw new AppError('VALIDATION', 'errors.importTooLarge');
-    text = readFileSync(path, 'utf8');
+    if (statSync(path).size > maxBytes) throw tooLarge();
+    const bytes = readFileSync(path);
+    // The file may have grown since the check.
+    if (bytes.length > maxBytes) throw tooLarge();
+    text = bytes.toString('utf8');
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError('IO', 'errors.importReadFailed');

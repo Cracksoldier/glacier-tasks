@@ -112,7 +112,9 @@ export const storyImportInputSchema = z.strictObject({
   token: idSchema,
   projectId: idSchema,
   /** Source status id → status of the target project; every source status must be mapped. */
-  statusMap: z.record(idSchema, idSchema),
+  statusMap: z
+    .record(idSchema, idSchema)
+    .refine((map) => Object.keys(map).length <= STORY_IMPORT_MAX_SUBTASKS + 1, 'Too many statuses'),
   assigneeUserId: idSchema.nullable(),
 });
 
