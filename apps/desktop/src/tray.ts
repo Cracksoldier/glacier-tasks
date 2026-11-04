@@ -14,12 +14,6 @@ import { APP_NAME, type DeviceSettings, type Language } from '@glacier-tasks/dom
 import type { DeviceSettingsStore } from './device-settings.js';
 import type { Logger } from './logger.js';
 
-/**
- * How long minimize events are ignored after the window is brought back. On Windows, showing a
- * hidden, minimized window reports another minimize, which must not hide it again.
- */
-const REVEAL_GUARD_MS = 500;
-
 const TRAY_TEXT = {
   en: {
     open: `Open ${APP_NAME}`,
@@ -53,10 +47,8 @@ export class TrayController {
   private closeToTray = false;
   private minimizeToTray = false;
   private quitting = false;
-  private revealing = false;
   /** Set while the window is hidden in the tray, so a window that isn't shown yet is left alone. */
   private hiddenInTray = false;
-  private revealTimer: NodeJS.Timeout | undefined;
 
   constructor(private readonly options: TrayControllerOptions) {}
 
@@ -69,8 +61,7 @@ export class TrayController {
       this.hideWindow();
     });
     window.on('minimize', () => {
-      if (this.revealing || !this.tray || !this.minimizeToTray) return;
-      this.hideWindow();
+      if (this.tray && this.minimizeToTray) this.hideWindow();
     });
     // Windows shutdown or logoff: let the window close so the session can end.
     window.on('query-session-end', () => this.markQuitting());
@@ -122,13 +113,7 @@ export class TrayController {
     const window = this.window;
     if (!window || window.isDestroyed()) return;
     this.hiddenInTray = false;
-    this.revealing = true;
-    clearTimeout(this.revealTimer);
-    this.revealTimer = setTimeout(() => {
-      this.revealing = false;
-    }, REVEAL_GUARD_MS);
-    // Show first: restoring a hidden window does nothing on Windows, and the window is still
-    // minimized when it was hidden by minimizing.
+    // A window hidden by minimizing is still minimized.
     window.show();
     if (window.isMinimized()) window.restore();
     window.focus();
@@ -140,7 +125,6 @@ export class TrayController {
   }
 
   dispose(): void {
-    clearTimeout(this.revealTimer);
     this.tray?.destroy();
     this.tray = undefined;
   }
