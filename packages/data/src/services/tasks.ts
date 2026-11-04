@@ -236,7 +236,8 @@ export class TaskService {
 
   // --- Writes ----------------------------------------------------------------
 
-  create(input: CreateTaskData): TaskDetail {
+  /** `meta` is set by the main process only, e.g. for a story import (DATA-11). */
+  create(input: CreateTaskData, meta: { importedFrom?: string } = {}): TaskDetail {
     const id = this.ctx.newId();
     this.ctx.db.transaction(() => {
       const projectId = input.projectId;
@@ -298,6 +299,7 @@ export class TaskService {
         dueDate: input.dueDate,
         labels,
         parent: parent ? toRef(parent) : null,
+        ...(meta.importedFrom ? { importedFrom: meta.importedFrom } : {}),
       };
       this.record(row, TASK_EVENTS.created, payload);
       if (parent) this.recordOnParent(parent, TASK_EVENTS.subtaskCreated, { subtask: toRef(row) });

@@ -11,7 +11,12 @@ import {
   untracked,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { type ProjectViewKind, TITLE_MAX_LENGTH } from '@glacier-tasks/domain';
+import {
+  type ProjectViewKind,
+  type StoryImportPreview,
+  type TaskDetail,
+  TITLE_MAX_LENGTH,
+} from '@glacier-tasks/domain';
 import { GLACIER_API } from '../../core/api/glacier-api';
 import { loaded } from '../../core/api/loaded';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -23,6 +28,7 @@ import { TaskFilterBar, type TaskSort } from '../../shared/task-filter-bar';
 import { type ListQuery, TaskList } from '../../shared/task-list';
 import { Board } from './board';
 import { ProjectActivity } from './project-activity';
+import { StoryImportDialog } from './story-import-dialog';
 
 /**
  * Project home (PROJ-02): remembers the project as last opened and shows the board or the
@@ -31,7 +37,7 @@ import { ProjectActivity } from './project-activity';
 @Component({
   selector: 'app-project-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Board, Dialog, ProjectActivity, RouterLink, TaskFilterBar, TaskList],
+  imports: [Board, Dialog, ProjectActivity, RouterLink, StoryImportDialog, TaskFilterBar, TaskList],
   template: `
     @if (project(); as project) {
       <section class="page wide">
@@ -58,6 +64,16 @@ import { ProjectActivity } from './project-activity';
             </a>
             <button
               type="button"
+              class="btn"
+              data-testid="story-import"
+              [disabled]="inspecting()"
+              (click)="inspectImport(project.id)"
+            >
+              <i class="fa-solid fa-file-import" aria-hidden="true"></i>
+              {{ i18n.t('stories.import') }}
+            </button>
+            <button
+              type="button"
               class="btn btn-primary"
               data-testid="story-new"
               (click)="openCreate()"
@@ -69,6 +85,9 @@ import { ProjectActivity } from './project-activity';
         </header>
         @if (project.description) {
           <p class="description">{{ project.description }}</p>
+        }
+        @if (importError(); as message) {
+          <p class="error-banner" role="alert" data-testid="story-import-error">{{ message }}</p>
         }
 
         <div class="view-tabs" role="tablist" [attr.aria-label]="i18n.t('board.views')">
@@ -159,6 +178,13 @@ import { ProjectActivity } from './project-activity';
           </div>
         </form>
       </app-dialog>
+
+      <app-story-import-dialog
+        [preview]="importPreview()"
+        [projectId]="project.id"
+        (closed)="importPreview.set(null)"
+        (imported)="imported($event)"
+      />
     }
   `,
   styles: `
@@ -257,6 +283,15 @@ export class ProjectPage {
   protected readonly newTitle = signal('');
   protected readonly creating = signal(false);
   protected readonly createError = signal<string | null>(null);
+  protected readonly inspecting = signal(false);
+  protected readonly importError = linkedSignal<string, string | null>({
+    source: this.projectId,
+    computation: () => null,
+  });
+  protected readonly importPreview = linkedSignal<string, StoryImportPreview | null>({
+    source: this.projectId,
+    computation: () => null,
+  });
 
   constructor() {
     effect(() => {
@@ -288,6 +323,28 @@ export class ProjectPage {
     this.newTitle.set('');
     this.createError.set(null);
     this.createOpen.set(true);
+  }
+
+  /** DATA-11: choose a story file; the dialog then confirms mapping and assignee. */
+  protected async inspectImport(projectId: string): Promise<void> {
+    if (this.inspecting()) return;
+    this.inspecting.set(true);
+    this.importError.set(null);
+    try {
+      const preview = await this.api.data.inspectStoryImport(projectId);
+      if (preview) this.importPreview.set(preview);
+    } catch (error) {
+      this.importError.set(this.i18n.errorMessage(error));
+    } finally {
+      this.inspecting.set(false);
+    }
+  }
+
+  protected async imported(story: TaskDetail): Promise<void> {
+    this.importPreview.set(null);
+    // Labels may have been created; the filter bar shows them too.
+    this.labels.reload();
+    await this.router.navigate(['/projects', story.projectId, 'tasks', story.id]);
   }
 
   protected async create(projectId: string): Promise<void> {

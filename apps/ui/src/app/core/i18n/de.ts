@@ -482,4 +482,39 @@ export const de = {
 
   'settings.restartForDates': 'Datumsfelder wechseln nach einem Neustart in die neue Sprache.',
   'settings.restartNow': 'Jetzt neu starten',
+
+  'task.export': 'Exportieren',
+  'task.exportDone': 'Story exportiert: {name}.',
+  'stories.import': 'Story importieren',
+  'storyImport.title': 'Story importieren',
+  'storyImport.file': 'Datei',
+  'storyImport.story': 'Story',
+  'storyImport.subtasks': 'Unteraufgaben',
+  'storyImport.source': 'Exportiert aus',
+  'storyImport.sourceValue': '{name} ({key})',
+  'storyImport.statusesTitle': 'Status zuordnen',
+  'storyImport.statusesHint':
+    'Einige Status der Story gibt es in diesem Projekt nicht. Wähle hier einen Status für ihre Aufgaben.',
+  'storyImport.statusTasks': '{name} · {count} Aufgaben',
+  'storyImport.matched': 'Status mit gleichem Namen ({count})',
+  'storyImport.assignee': 'Zuständig für die Story und alle Unteraufgaben',
+  'storyImport.originalAssignee': 'In der Datei: {name}',
+  'storyImport.originalUnavailable':
+    'In der Datei: {name} (archiviert oder nicht in diesem Arbeitsbereich)',
+  'storyImport.labelsReused': 'Vorhandene Labels: {names}',
+  'storyImport.labelsCreated': 'Neue Labels: {names}',
+  'storyImport.attachments':
+    'Anhänge sind nicht Teil der Datei. Bilder in den Beschreibungen, die auf Anhänge verweisen, werden nicht angezeigt.',
+  'storyImport.note':
+    'Die Story und ihre Unteraufgaben erhalten neue IDs. Ihr Verlauf beginnt mit dem Import.',
+  'storyImport.confirm': 'Importieren',
+  'activity.task.imported': 'Durch Import aus {key} erstellt',
+  'errors.exportStoriesOnly': 'Nur Stories können exportiert werden.',
+  'errors.importInvalid':
+    'Diese Datei ist kein gültiger Glacier-Tasks-Story-Export oder beschädigt. Es wurde nichts importiert.',
+  'errors.importTooLarge': 'Die Datei ist für einen Story-Import zu groß.',
+  'errors.importReadFailed': 'Die Datei konnte nicht gelesen werden.',
+  'errors.importExpired':
+    'Der vorbereitete Import ist nicht mehr verfügbar. Bitte wähle die Datei erneut.',
+  'errors.importStatusUnmapped': 'Wähle für jeden Status der Story einen Status in diesem Projekt.',
 } as const satisfies Record<TranslationKey, string>;

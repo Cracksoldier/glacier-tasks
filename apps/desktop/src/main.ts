@@ -28,12 +28,20 @@ import {
   LATEST_SCHEMA_VERSION,
   MIGRATIONS,
   ProjectService,
+  StoryTransferService,
   TaskService,
   TrashService,
   UserService,
   WorkflowService,
 } from '@glacier-tasks/data';
-import { AppError, allIpcChannels, BACKUP_EXTENSION, MIB, type Theme } from '@glacier-tasks/domain';
+import {
+  AppError,
+  allIpcChannels,
+  BACKUP_EXTENSION,
+  MIB,
+  STORY_EXPORT_EXTENSION,
+  type Theme,
+} from '@glacier-tasks/domain';
 import { AttachmentStore } from './attachment-store.js';
 import {
   type ActivationOutcome,
@@ -56,6 +64,7 @@ import { handleMediaProtocol, registerMediaScheme } from './media-protocol.js';
 import { writeFileAtomic } from './fs-safe.js';
 import { ensureAppDirectories, resolveAppPaths } from './paths.js';
 import { hardenApp, hardenSession } from './security.js';
+import { PendingStoryImport, readStoryFile } from './story-import.js';
 import { runSmoke } from './smoke.js';
 import { showStartupError } from './startup-error.js';
 import { createMainWindow, rendererDir, WINDOW_BACKGROUND } from './window.js';
@@ -103,6 +112,7 @@ const EXPORT_FILTER_NAME = {
   en: 'JSON export (not a backup)',
   de: 'JSON-Export (kein Backup)',
 } as const;
+const STORY_FILTER_NAME = { en: 'Glacier Tasks story', de: 'Glacier-Tasks-Story' } as const;
 
 async function saveDialog(options: SaveDialogOptions): Promise<string | undefined> {
   if (testDialogPath) return testDialogPath;
@@ -205,6 +215,8 @@ async function start(): Promise<void> {
   const labels = new LabelService(services);
   const trash = new TrashService(services);
   const workflows = new WorkflowService(services);
+  const storyTransfer = new StoryTransferService(services, projects, tasks, labels);
+  const pendingImport = new PendingStoryImport();
   avatarStore = new AvatarStore({ dir: paths.avatars, users, logger });
   avatarStore.reconcile();
   settings.pruneProjectViews((id) => projects.exists(id));
@@ -368,6 +380,42 @@ async function start(): Promise<void> {
           throw new AppError('IO', 'errors.exportFailed');
         }
         return { fileName: basename(target), byteSize: statSync(target).size };
+      },
+      exportStory: async (storyId) => {
+        const document = storyTransfer.export(storyId, app.getVersion());
+        const target = await saveDialog({
+          defaultPath: `${document.story.issueKey}.${STORY_EXPORT_EXTENSION}`,
+          filters: [{ name: STORY_FILTER_NAME[settings.get().language], extensions: ['json'] }],
+        });
+        if (!target) return null;
+        try {
+          writeFileAtomic(target, `${JSON.stringify(document, null, 2)}\n`);
+        } catch {
+          throw new AppError('IO', 'errors.exportFailed');
+        }
+        return { fileName: basename(target), byteSize: statSync(target).size };
+      },
+      inspectStoryImport: async (projectId) => {
+        projects.get(projectId);
+        const file = await openDialog({
+          properties: ['openFile'],
+          filters: [{ name: STORY_FILTER_NAME[settings.get().language], extensions: ['json'] }],
+        });
+        if (!file) return null;
+        const doc = readStoryFile(file);
+        const plan = storyTransfer.preview(projectId, doc);
+        const { token, fileName } = pendingImport.set(file, doc);
+        return { token, fileName, ...plan };
+      },
+      importStory: (input) => {
+        const pending = pendingImport.take(input.token);
+        try {
+          return storyTransfer.import(pending.doc, input);
+        } catch (error) {
+          // Nothing was written; the user may fix the mapping and try again.
+          pendingImport.restore(pending);
+          throw error;
+        }
       },
     },
     users: {

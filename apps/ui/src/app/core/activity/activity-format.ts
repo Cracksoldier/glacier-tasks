@@ -96,7 +96,9 @@ export class ActivityFormatter {
       this.t(key, params);
     switch (type) {
       case 'task.created':
-        entry.summary = t('activity.task.created');
+        entry.summary = p['importedFrom']
+          ? t('activity.task.imported', { key: str(p['importedFrom']) })
+          : t('activity.task.created');
         entry.descriptionChanged = str(p['descriptionMarkdown']) !== '';
         if (p['parent'])
           entry.details.push(t('activity.task.inStory', { story: ref(p['parent']) }));

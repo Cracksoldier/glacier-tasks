@@ -55,11 +55,13 @@ push only when the user asks.
   - IPC contract (`api.ts`)
   - pure invariants and sort keys
   - activity event types and payloads (`activity-events.ts`), media URLs (`media.ts`)
+  - story export file schema (`story-transfer.ts`)
 - `packages/data`: main process only: `openDatabase`, `migrate`, migrations in
   `src/migrations/NNNN-name.ts` (never edit a released migration).
   - `src/services/`: DB-only services (`ProjectService`, `UserService`, `ActivityService`,
-    `TaskService`, `LabelService`, `TrashService`, `WorkflowService`, `AttachmentService`) taking a `ServiceContext` (db, clock, id
-    generator). Task writes check `version` (D05) and bump it on every change; see ADR 0008.
+    `TaskService`, `LabelService`, `TrashService`, `WorkflowService`, `AttachmentService`,
+    `StoryTransferService` for story JSON export/import, ADR 0014) taking a `ServiceContext`
+    (db, clock, id generator). Task writes check `version` (D05) and bump it on every change; see ADR 0008.
     Status rules and board moves: ADR 0009. Filters, search and the list query share one
     SQL builder (`task-query.ts`, ADR 0010). Each write is one transaction that
     also records its activity event (D12). Services never touch the file system.
@@ -79,6 +81,7 @@ push only when the user asks.
     reconciliation (ADR 0011)
   - `backup.ts`: `.glaciertasks` backups (yazl/yauzl), archive validation and staging, restore
     activation with rollback at startup, automatic backups (ADR 0012)
+  - `story-import.ts`: reads and validates story files, holds the previewed one (ADR 0014)
 
   Electron glue lives in `security.ts`, `window.ts`, `startup-error.ts`, `media-protocol.ts`
   (`glacier-media://avatar|attachment/<uuid>`) and `smoke.ts`.

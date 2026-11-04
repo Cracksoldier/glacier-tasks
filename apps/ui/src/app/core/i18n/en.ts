@@ -469,6 +469,40 @@ export const en = {
 
   'settings.restartForDates': 'Date fields switch to the new language after a restart.',
   'settings.restartNow': 'Restart now',
+
+  'task.export': 'Export',
+  'task.exportDone': 'Story exported: {name}.',
+  'stories.import': 'Import story',
+  'storyImport.title': 'Import story',
+  'storyImport.file': 'File',
+  'storyImport.story': 'Story',
+  'storyImport.subtasks': 'Subtasks',
+  'storyImport.source': 'Exported from',
+  'storyImport.sourceValue': '{name} ({key})',
+  'storyImport.statusesTitle': 'Map statuses',
+  'storyImport.statusesHint':
+    "Some statuses of the story don't exist in this project. Choose a status here for their tasks.",
+  'storyImport.statusTasks': '{name} · {count} tasks',
+  'storyImport.matched': 'Statuses with the same name ({count})',
+  'storyImport.assignee': 'Assignee for the story and all subtasks',
+  'storyImport.originalAssignee': 'In the file: {name}',
+  'storyImport.originalUnavailable': 'In the file: {name} (archived or not in this workspace)',
+  'storyImport.labelsReused': 'Existing labels: {names}',
+  'storyImport.labelsCreated': 'New labels: {names}',
+  'storyImport.attachments':
+    'Attachments are not part of the file. Images in the descriptions that refer to attachments are not shown.',
+  'storyImport.note':
+    'The story and its subtasks get new IDs. Their history starts with the import.',
+  'storyImport.confirm': 'Import',
+  'activity.task.imported': 'Created by import from {key}',
+  'errors.exportStoriesOnly': 'Only stories can be exported.',
+  'errors.importInvalid':
+    'This file is not a valid Glacier Tasks story export, or it is damaged. Nothing was imported.',
+  'errors.importTooLarge': 'The file is too large for a story import.',
+  'errors.importReadFailed': 'The file could not be read.',
+  'errors.importExpired':
+    'The prepared import is no longer available. Please choose the file again.',
+  'errors.importStatusUnmapped': 'Choose a status in this project for every status of the story.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

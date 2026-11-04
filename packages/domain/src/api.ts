@@ -20,6 +20,7 @@ import type {
   ProjectSummary,
   RestorePreview,
   StatusUsage,
+  StoryImportPreview,
   TaskDetail,
   TaskListRow,
   TaskSummary,
@@ -44,6 +45,7 @@ import type {
   UpdateTaskInput,
   UpdateUserInput,
 } from './schemas.js';
+import type { StoryImportInput } from './story-transfer.js';
 
 export interface GlacierTasksAPI {
   app: {
@@ -140,6 +142,12 @@ export interface GlacierTasksAPI {
     restore(token: string): Promise<void>;
     /** Export-only JSON (DATA-02/03, D14); null when cancelled. */
     exportJson(options: ExportOptions): Promise<ExportResult | null>;
+    /** Save dialog, then one story with its subtasks as JSON; null when cancelled (DATA-11). */
+    exportStory(storyId: string): Promise<ExportResult | null>;
+    /** Open dialog, then validation and a preview for this project; null when cancelled. */
+    inspectStoryImport(projectId: string): Promise<StoryImportPreview | null>;
+    /** Imports the previewed story with the chosen status mapping and assignee (D58). */
+    importStory(input: StoryImportInput): Promise<TaskDetail>;
   };
   settings: {
     getDevice(): Promise<DeviceSettings>;
@@ -189,7 +197,15 @@ export const IPC_CHANNELS = {
   trash: ['list', 'purge', 'empty'],
   workflows: ['list', 'create', 'update', 'usage', 'removeAndMigrate'],
   attachments: ['add', 'addFiles', 'list', 'open', 'saveAs', 'remove'],
-  data: ['backup', 'inspectRestore', 'restore', 'exportJson'],
+  data: [
+    'backup',
+    'inspectRestore',
+    'restore',
+    'exportJson',
+    'exportStory',
+    'inspectStoryImport',
+    'importStory',
+  ],
   settings: ['getDevice', 'updateDevice', 'chooseAutoBackupFolder', 'setProjectView'],
 } as const satisfies { [G in keyof GlacierTasksAPI]: ReadonlyArray<keyof GlacierTasksAPI[G]> };
 

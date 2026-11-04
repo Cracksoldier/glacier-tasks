@@ -149,6 +149,8 @@ export class TaskEditorPage {
   protected readonly subtaskError = signal<string | null>(null);
   protected readonly newSubtaskTitle = signal('');
   protected readonly trashOpen = signal(false);
+  protected readonly exporting = signal(false);
+  protected readonly exportNotice = signal<string | null>(null);
   protected readonly moveTarget = signal('');
 
   protected readonly titleValid = computed(() => this.title().trim().length > 0);
@@ -201,6 +203,7 @@ export class TaskEditorPage {
         this.conflict.set(null);
         this.error.set(null);
         this.saved.set(false);
+        this.exportNotice.set(null);
         void this.load(id);
       });
     });
@@ -368,6 +371,23 @@ export class TaskEditorPage {
       } else {
         this.error.set(this.i18n.errorMessage(error));
       }
+    }
+  }
+
+  /** DATA-11: the saved story with its subtasks as JSON; unsaved edits are not included. */
+  protected async exportStory(): Promise<void> {
+    const task = this.task();
+    if (!task || this.exporting()) return;
+    this.exporting.set(true);
+    this.error.set(null);
+    this.exportNotice.set(null);
+    try {
+      const result = await this.api.data.exportStory(task.id);
+      if (result) this.exportNotice.set(this.i18n.t('task.exportDone', { name: result.fileName }));
+    } catch (error) {
+      this.error.set(this.i18n.errorMessage(error));
+    } finally {
+      this.exporting.set(false);
     }
   }
 

@@ -23,6 +23,12 @@
         <span class="type-badge">{{ i18n.t(typeKey[task.type]) }}</span>
       </div>
       <div class="page-actions">
+        @if (task.type === 'STORY') {
+          <button type="button" class="btn btn-ghost" data-testid="task-export" [disabled]="exporting()" (click)="exportStory()">
+            <i class="fa-solid fa-file-export" aria-hidden="true"></i>
+            {{ i18n.t('task.export') }}
+          </button>
+        }
         <button type="button" class="btn btn-ghost" data-testid="task-trash" (click)="trashOpen.set(true)">
           <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
           {{ i18n.t('task.trash') }}
@@ -64,6 +70,9 @@
 
     @if (error(); as message) {
       <p class="error-banner" role="alert">{{ message }}</p>
+    }
+    @if (exportNotice(); as message) {
+      <p class="notice-banner" role="status" data-testid="task-export-done">{{ message }}</p>
     }
 
     <form class="layout" (submit)="$event.preventDefault(); save()" novalidate>

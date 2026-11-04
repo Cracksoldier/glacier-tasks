@@ -58,6 +58,13 @@ Install the newer version over the old one. Your data stays in the data folder (
   the meantime, the app keeps your text and offers to reload.
 - **Statuses:** a story's status and its subtasks' statuses are independent. Finishing all
   subtasks doesn't finish the story.
+- **Export and import a story:** **Export** on a story saves it with its subtasks as a
+  `.story.json` file. **Import story** on a project page reads such a file into that project:
+  - The story and its subtasks get new IDs. Their history starts with the import.
+  - Statuses are matched by name. If the project lacks one, you choose where those tasks go.
+  - You choose one assignee for the story and all subtasks, or none.
+  - Labels with the same name are reused; missing ones are created.
+  - Attachments are not part of the file. Unsaved changes on the story are not exported.
 
 ### Board
 

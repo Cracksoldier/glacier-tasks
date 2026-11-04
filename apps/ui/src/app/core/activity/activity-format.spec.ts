@@ -125,6 +125,18 @@ describe('ActivityFormatter (AUDIT-02/03)', () => {
     ]);
   });
 
+  it('marks tasks created by a story import (DATA-11)', () => {
+    const entry = formatter.format(
+      event('task.created', {
+        ...task,
+        descriptionMarkdown: '',
+        parent: null,
+        importedFrom: 'OLD-7',
+      }),
+    );
+    expect(entry.summary).toBe('Created by import from OLD-7');
+  });
+
   it('falls back to the raw type for unknown events', () => {
     expect(formatter.format(event('task.somethingNew', task)).summary).toBe('task.somethingNew');
   });

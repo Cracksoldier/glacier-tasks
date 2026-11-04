@@ -6,6 +6,8 @@ import {
   type AppInfo,
   type ExportOptions,
   type RestorePreview,
+  type StoryImportInput,
+  type StoryImportPreview,
   type AppErrorInfo,
   type AttachmentMetadata,
   type DroppedFile,
@@ -63,6 +65,12 @@ export interface GlacierApiStub {
   /** Tokens passed to `data.restore`, and export options passed to `data.exportJson`. */
   restored: string[];
   exports: ExportOptions[];
+  /** Story ids passed to `data.exportStory`. */
+  storyExports: string[];
+  /** Returned by `data.inspectStoryImport`; null simulates a cancelled dialog. */
+  storyImportPreview: StoryImportPreview | null;
+  /** Inputs passed to `data.importStory`, which creates a story with the previewed title. */
+  storyImports: StoryImportInput[];
 }
 
 export function defaultTestSettings(): DeviceSettings {
@@ -120,6 +128,9 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
     restorePreview: null,
     restored: [],
     exports: [],
+    storyExports: [],
+    storyImportPreview: null,
+    storyImports: [],
   };
   let nextId = 1;
   const newId = () => `00000000-0000-4000-8000-${String(nextId++).padStart(12, '0')}`;
@@ -240,6 +251,27 @@ export function createGlacierApiStub(initial: Partial<DeviceSettings> = {}): Gla
   api['data']!['exportJson'] = async (options) => {
     stub.exports.push(options as ExportOptions);
     return { fileName: 'glacier-tasks-workspace-2026-10-29.export.json', byteSize: 1000 };
+  };
+  api['data']!['exportStory'] = async (storyId) => {
+    stub.storyExports.push(storyId as string);
+    return { fileName: 'GAME-1.story.json', byteSize: 500 };
+  };
+  api['data']!['inspectStoryImport'] = async (projectId) => {
+    findProject(projectId as string);
+    return structuredClone(stub.storyImportPreview);
+  };
+  api['data']!['importStory'] = async (input) => {
+    const data = input as StoryImportInput;
+    if (!stub.storyImportPreview || stub.storyImportPreview.token !== data.token) {
+      throw conflict('errors.importExpired');
+    }
+    stub.storyImports.push(structuredClone(data));
+    return api['tasks']!['create']!({
+      projectId: data.projectId,
+      type: 'STORY',
+      title: stub.storyImportPreview.story.title,
+      assigneeUserId: data.assigneeUserId,
+    });
   };
   api['settings']!['chooseAutoBackupFolder'] = async () => {
     stub.settings = {

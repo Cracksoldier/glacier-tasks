@@ -25,6 +25,7 @@ import {
   updateUserInputSchema,
   versionSchema,
 } from './schemas.js';
+import { storyImportInputSchema } from './story-transfer.js';
 
 const none = z.tuple([]);
 const byId = z.tuple([idSchema]);
@@ -89,6 +90,9 @@ export const IPC_ARGS = {
   'data:inspectRestore': none,
   'data:restore': z.tuple([z.string().regex(/^[0-9a-f-]{36}$/)]),
   'data:exportJson': z.tuple([exportOptionsSchema]),
+  'data:exportStory': byId,
+  'data:inspectStoryImport': byId,
+  'data:importStory': z.tuple([storyImportInputSchema]),
 
   'settings:getDevice': none,
   'settings:updateDevice': z.tuple([deviceSettingsPatchSchema]),

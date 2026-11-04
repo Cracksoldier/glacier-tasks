@@ -128,6 +128,8 @@ export interface TaskCreatedPayload {
   dueDate: string | null;
   labels: LabelSnapshot[];
   parent: TaskRef | null;
+  /** Issue key in the story file the task was imported from (DATA-11). */
+  importedFrom?: string;
 }
 
 export interface TaskChanges {

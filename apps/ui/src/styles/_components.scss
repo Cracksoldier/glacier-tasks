@@ -59,6 +59,14 @@
   color: var(--color-danger-text);
 }
 
+.notice-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  color: var(--color-accent);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

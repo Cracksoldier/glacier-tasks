@@ -233,7 +233,7 @@ Local app data directory (standard per-user location only, D16)
 ### 4.11 Backup, restore and JSON export (`DATA`)
 
 - `DATA-01` Full backup and restore, including database, attachment bytes, avatars, and manifest/schema-version metadata.
-- `DATA-02` JSON export is **export-only**; **no JSON import** in v1. Only full backup restoration imports application data.
+- `DATA-02` The workspace/project JSON export is **export-only**. Only full backup restoration imports a workspace; the only JSON import is a single story (`DATA-11`, D58).
 - `DATA-03` Export creates structured JSON containing project/user/story/subtask/status/label/history metadata and attachment descriptors, but **not** binary attachment/avatar data. **[CONFIRMED]** Scope is selectable (whole workspace or one project); trashed items excluded by default with an option to include them (D14). User-facing warning explains that JSON is not a restorable complete backup.
 - `DATA-04` **[CONFIRMED]** (D34, D48) Use a versioned `.glaciertasks` archive (ZIP with `manifest.json`, consistent SQLite snapshot, and managed file entries); include checksums and validate archive paths and size limits on restore.
 - `DATA-05` Backups are captured from a consistent database snapshot (SQLite backup API or equivalent) while protecting attachment consistency; never ZIP a live WAL database directory without coordination.
@@ -242,6 +242,7 @@ Local app data directory (standard per-user location only, D16)
 - `DATA-08` Backups/restores work completely offline. Never execute contents of a backup or treat archive members as trusted file paths.
 - `DATA-09` **[CONFIRMED]** Opt-in automatic backups, off by default. When enabled: user-chosen folder; run on app launch at most once per configurable interval (default 24 h); keep the newest N automatic backups (default 7) and delete only older automatic backups in that folder. If the folder is unavailable, show a non-blocking warning (D13).
 - `DATA-10` **[CONFIRMED]** Restore never touches device settings (D17). Backups from an older schema version are restored then migrated; backups from a newer version are rejected (D28).
+- `DATA-11` **[CONFIRMED]** (D58) A story can be exported with its live subtasks as a JSON file and imported into the currently open project, of this or another workspace. Imported tasks get new issue keys and start a new history. Statuses are matched by name (ignoring case); if a status of the story has no same-named status in the project, the user maps it before importing. One chosen profile (or none) is assigned to the story and all its subtasks. Labels are matched by name and missing ones are created. Attachments are not part of the file. The import validates the file completely and writes everything in one transaction.
 
 ### 4.12 UI/settings/accessibility (`UX`)
 

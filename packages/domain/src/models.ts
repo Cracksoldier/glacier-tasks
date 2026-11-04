@@ -222,6 +222,34 @@ export interface AppInfo {
   startLanguage: Language;
 }
 
+/** A validated story file waiting for confirmation in the target project (DATA-11, D58). */
+export interface StoryImportPreview {
+  /** Identifies the pending file for `data.importStory`. */
+  token: string;
+  fileName: string;
+  source: { projectKey: string; projectName: string };
+  story: { issueKey: string; title: string };
+  subtaskCount: number;
+  /** Source statuses used by the story or its subtasks, with the suggested target status. */
+  statuses: Array<{
+    sourceId: string;
+    name: string;
+    category: StatusCategory;
+    taskCount: number;
+    /** A target status has the same name (ignoring case); no mapping needed. */
+    matchedByName: boolean;
+    suggestedStatusId: string;
+  }>;
+  /** At least one source status has no target status of the same name. */
+  needsMapping: boolean;
+  /** The story's original assignee; `suggestedUserId` is set if it can be assigned here. */
+  assignee: { name: string; suggestedUserId: string | null } | null;
+  /** Label names that exist in the target project vs. those the import creates. */
+  labels: { reused: string[]; created: string[] };
+  /** A description references attachments, which are not part of the file. */
+  hasAttachmentRefs: boolean;
+}
+
 export interface ExportResult {
   fileName: string;
   byteSize: number;

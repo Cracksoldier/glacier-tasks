@@ -108,7 +108,7 @@ export const labelPatchSchema = z
 
 // --- Tasks ------------------------------------------------------------------
 
-const taskFieldsShape = {
+export const taskFieldsShape = {
   title: requiredName(TITLE_MAX_LENGTH),
   descriptionMarkdown: z.string().max(DESCRIPTION_MAX_LENGTH),
   priority: prioritySchema,

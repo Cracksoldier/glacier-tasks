@@ -61,6 +61,16 @@ Installiere die neuere Version über die alte. Deine Daten bleiben im Datenordne
   sich die Aufgabe inzwischen geändert, behält die App deinen Text und bietet an, neu zu laden.
 - **Status:** der Status einer Story und der ihrer Unteraufgaben sind unabhängig. Sind alle
   Unteraufgaben erledigt, ist die Story deshalb noch nicht erledigt.
+- **Story exportieren und importieren:** **Exportieren** auf einer Story speichert sie mit
+  ihren Unteraufgaben als `.story.json`-Datei. **Story importieren** auf einer Projektseite
+  liest eine solche Datei in dieses Projekt ein:
+  - Die Story und ihre Unteraufgaben erhalten neue IDs. Ihr Verlauf beginnt mit dem Import.
+  - Status werden über den Namen zugeordnet. Fehlt einer im Projekt, wählst du, wohin diese
+    Aufgaben kommen.
+  - Du wählst eine zuständige Person für die Story und alle Unteraufgaben, oder keine.
+  - Labels mit gleichem Namen werden wiederverwendet, fehlende werden angelegt.
+  - Anhänge sind nicht Teil der Datei. Nicht gespeicherte Änderungen an der Story werden nicht
+    exportiert.
 
 ### Board
 

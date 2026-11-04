@@ -43,6 +43,7 @@ untrusted content ──► renderer (sandbox) ──IPC──► main process �
 | T12 | **Database corruption / partial writes** | Transactions for multi-table writes; WAL; FK and CHECK constraints; integrity check on restore and migration; refuse newer schemas | M0 ✔ / M1 ✔ / M7 ✔ (staged restore with integrity checks and rollback) |
 | T13 | **Sensitive data in logs** | Logs record operation, error code and technical detail but never task descriptions or attachment contents (spec §12); JSON lines, rotated at 5 MB × 3 | M1 ✔ |
 | T14 | **Supply chain** (compromised npm dependency) | Exact version pins + lockfile; `npm ci` in CI; small dependency set; no runtime downloads; review new dependencies | ongoing (M7: yazl/yauzl pinned, D48) |
+| T15 | **Crafted story files** (huge files, malformed JSON, oversized fields, references to other projects) | File read only in main after the native open dialog; size limit (10 MiB) before reading; strict Zod schema with the same field limits as the IPC inputs and checked internal references; status mapping and assignee re-checked by the services in one transaction; no paths, no attachment bytes; Markdown still sanitized at render time (T2) (DATA-11, ADR 0014) | after v1.0.2 ✔ |
 
 ## Additional hardening (M1)
 
