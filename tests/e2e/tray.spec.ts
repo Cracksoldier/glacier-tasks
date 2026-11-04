@@ -1,10 +1,9 @@
 // D59: opt-in close and minimize to the system tray.
 
-import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type ElectronApplication, expect, test } from '@playwright/test';
-import { APP_DIR, appEnv, createUserDataDir, launchApp, processExit } from './app';
+import { createUserDataDir, launchApp, launchSecondInstance, processExit } from './app';
 
 let userData: ReturnType<typeof createUserDataDir>;
 
@@ -25,21 +24,6 @@ function windowState(app: ElectronApplication) {
       minimized: window.isMinimized(),
     })),
   );
-}
-
-/** Starts a second instance, which hands over to the running one and exits (D05). */
-async function launchSecondInstance(app: ElectronApplication): Promise<number | null> {
-  const second = spawn(app.process().spawnfile, [APP_DIR], {
-    env: appEnv(userData.dir),
-    stdio: 'ignore',
-  });
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('second instance did not exit')), 20_000);
-    second.once('exit', (code) => {
-      clearTimeout(timer);
-      resolve(code);
-    });
-  });
 }
 
 test('closing the window quits the app by default', async () => {
@@ -95,7 +79,7 @@ test('with minimize to tray on, minimizing hides the window and a second launch 
     await expect.poll(() => windowState(app).then((windows) => windows[0]?.visible)).toBe(false);
     await expect.poll(() => storedSettings()['trayHintShown']).toBe(true);
 
-    expect(await launchSecondInstance(app)).toBe(0);
+    expect(await launchSecondInstance(app, userData.dir)).toBe(0);
     await expect.poll(() => windowState(app)).toEqual([{ visible: true, minimized: false }]);
     await expect(page.getByTestId('minimize-to-tray')).toBeChecked();
   } finally {

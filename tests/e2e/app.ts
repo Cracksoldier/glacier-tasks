@@ -1,5 +1,6 @@
 // Helpers to launch the built desktop app with an isolated user data directory.
 
+import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -49,4 +50,24 @@ export function processExit(app: ElectronApplication): Promise<void> {
   const child = app.process();
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
   return new Promise((resolve) => child.once('exit', () => resolve()));
+}
+
+/**
+ * Starts a second instance on the same data directory and resolves with its exit code; it hands
+ * over to the running one and exits (D05). The executable comes from the running app: on Windows,
+ * `app.process().spawnfile` is the shell Playwright starts Electron through, not Electron.
+ */
+export async function launchSecondInstance(
+  app: ElectronApplication,
+  userDataDir: string,
+): Promise<number | null> {
+  const electronPath = await app.evaluate(() => process.execPath);
+  const second = spawn(electronPath, [APP_DIR], { env: appEnv(userDataDir), stdio: 'ignore' });
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('second instance did not exit')), 20_000);
+    second.once('exit', (code) => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
 }

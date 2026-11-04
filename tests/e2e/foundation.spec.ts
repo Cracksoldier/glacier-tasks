@@ -1,8 +1,7 @@
 // M1 acceptance: renderer isolation, persisted theme/language, single instance, routing.
 
-import { spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { APP_DIR, appEnv, createUserDataDir, launchApp } from './app';
+import { createUserDataDir, launchApp, launchSecondInstance } from './app';
 
 let userData: ReturnType<typeof createUserDataDir>;
 
@@ -87,19 +86,21 @@ test('routes keep index.html and survive a reload (D36)', async () => {
   }
 });
 
-test('a second launch exits and leaves the first window open (D05)', async () => {
+test('a second launch exits and brings the first window to the front (D05)', async () => {
   const { app, page } = await launchApp(userData.dir);
   try {
-    const electronPath = app.process().spawnfile;
-    const second = spawn(electronPath, [APP_DIR], { env: appEnv(userData.dir), stdio: 'ignore' });
-    const exitCode = await new Promise<number | null>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('second instance did not exit')), 20_000);
-      second.once('exit', (code) => {
-        clearTimeout(timer);
-        resolve(code);
-      });
+    await app.evaluate(({ app }) => {
+      const g = globalThis as unknown as { secondInstances: number };
+      g.secondInstances = 0;
+      app.on('second-instance', () => g.secondInstances++);
     });
-    expect(exitCode).toBe(0);
+    expect(await launchSecondInstance(app, userData.dir)).toBe(0);
+    // The running instance is told, so it can bring its window to the front.
+    await expect
+      .poll(() =>
+        app.evaluate(() => (globalThis as unknown as { secondInstances: number }).secondInstances),
+      )
+      .toBe(1);
     await expect(page.getByTestId('app-shell')).toBeVisible();
     expect(app.windows()).toHaveLength(1);
   } finally {
