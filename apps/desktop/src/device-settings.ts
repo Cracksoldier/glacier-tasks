@@ -66,7 +66,7 @@ const storedSchema = z.object({
       }
       return valid;
     }),
-  // Added after v1.0.3 (D59); both opt-in.
+  // Added in 1.1.0 (D59); both opt-in.
   closeToTray: z.boolean().default(false),
   minimizeToTray: z.boolean().default(false),
   trayHintShown: z.boolean().default(false),
