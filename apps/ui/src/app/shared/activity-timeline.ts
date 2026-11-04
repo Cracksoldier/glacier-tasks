@@ -1,13 +1,25 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { ActivityEvent } from '@glacier-tasks/domain';
 import { ActivityFormatter } from '../core/activity/activity-format';
 import { I18nService } from '../core/i18n/i18n.service';
 
+/** Entries a collapsible history shows before "Show all" (D57). */
+const COLLAPSED_ENTRIES = 10;
+
 /**
  * History list, newest first (AUDIT-02, D12): task details, the project activity tab and the
  * profile history dialog. Text comes from the events' own snapshots, so renamed or archived
- * profiles, statuses and labels stay readable.
+ * profiles, statuses and labels stay readable. A collapsible list shows the newest 10 entries
+ * until "Show all" (D57); the project activity tab pages on the server instead (D45).
  */
 @Component({
   selector: 'app-activity-timeline',
@@ -18,7 +30,7 @@ import { I18nService } from '../core/i18n/i18n.service';
       <p class="muted" data-testid="activity-empty">{{ i18n.t('activity.empty') }}</p>
     } @else {
       <ol class="timeline" data-testid="activity-list">
-        @for (entry of entries(); track entry.id) {
+        @for (entry of visible(); track entry.id) {
           <li class="entry" data-testid="activity-entry">
             <i class="fa-solid {{ entry.icon }} icon" aria-hidden="true"></i>
             <div class="body">
@@ -54,6 +66,14 @@ import { I18nService } from '../core/i18n/i18n.service';
           </li>
         }
       </ol>
+      @if (collapsible() && entries().length > collapsedEntries) {
+        <button type="button" class="btn btn-ghost toggle" data-testid="activity-toggle"
+          [attr.aria-expanded]="expanded()" (click)="expanded.set(!expanded())">
+          <i class="fa-solid" [class.fa-chevron-down]="!expanded()" [class.fa-chevron-up]="expanded()"
+            aria-hidden="true"></i>
+          {{ expanded() ? i18n.t('activity.showLess') : i18n.t('activity.showAll', { total: entries().length }) }}
+        </button>
+      }
     }
   `,
   styles: `
@@ -107,6 +127,9 @@ import { I18nService } from '../core/i18n/i18n.service';
       font-size: 13px;
       overflow-wrap: anywhere;
     }
+    .toggle {
+      margin-top: 4px;
+    }
     .link {
       margin-top: 4px;
       padding: 2px 6px;
@@ -123,9 +146,21 @@ export class ActivityTimeline {
   readonly showSubject = input(false);
   /** Offers "Show versions" on entries that changed the description (task details). */
   readonly versionsLink = input(false);
+  /** Shows the newest 10 entries until "Show all" (task and profile history, D57). */
+  readonly collapsible = input(false);
+  /** The task or profile shown; another one collapses the list again. */
+  readonly listKey = input<string | null>(null);
   readonly openVersions = output<string>();
 
+  protected readonly collapsedEntries = COLLAPSED_ENTRIES;
+  /** Not remembered; reloaded events of the same task keep it (D57). */
+  protected readonly expanded = linkedSignal({ source: this.listKey, computation: () => false });
   protected readonly entries = computed(() =>
     this.events().map((event) => this.formatter.format(event)),
+  );
+  protected readonly visible = computed(() =>
+    this.collapsible() && !this.expanded()
+      ? this.entries().slice(0, COLLAPSED_ENTRIES)
+      : this.entries(),
   );
 }

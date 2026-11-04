@@ -172,7 +172,7 @@
             <p class="error-banner" role="alert">{{ i18n.errorMessage(history.error()) }}</p>
           }
           <app-activity-timeline [events]="loaded(history) ?? []" [versionsLink]="true"
-            (openVersions)="openVersions($event)" />
+            [collapsible]="true" [listKey]="task.id" (openVersions)="openVersions($event)" />
         </section>
       </div>
 

@@ -100,7 +100,9 @@ In **Project settings** you can:
 
 ### History
 
-- **Task history:** every task shows its history, newest first.
+- **Task history:** every task shows its history, newest first. Longer histories show the
+  newest 10 entries; **Show all** expands them and **Show less** collapses them again. Profile
+  histories work the same way.
 - **Description versions:** view each version formatted or as source, and compare it with the
   one before.
 - **Elsewhere:** the project's **Activity** tab shows project, status, label and task changes,

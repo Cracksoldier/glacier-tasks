@@ -216,7 +216,7 @@ Local app data directory (standard per-user location only, D16)
 ### 4.9 History (`AUDIT`)
 
 - `AUDIT-01` Append-only local activity events for the changes described in §3.7.
-- `AUDIT-02` Present chronological history on task details; historical assignee names must remain intelligible even if profile later changes.
+- `AUDIT-02` Present chronological history on task details; historical assignee names must remain intelligible even if profile later changes. Longer histories show the newest 10 entries and expand on request (D57).
 - `AUDIT-03` **[ASSUMPTION]** Record snapshots of display names at event time rather than requiring joins to the current user or status names.
 - `AUDIT-04` **[CONFIRMED]** Description version browser on task details: list versions from history, view any version rendered or as source, and compare it with the previous version (D11).
 - `AUDIT-05` **[CONFIRMED]** History for projects, statuses, labels and profiles per §3.7 (D12); profile history opens from the profile manager (D46).

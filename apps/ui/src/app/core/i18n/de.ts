@@ -316,6 +316,8 @@ export const de = {
   'activity.profileHistoryTitle': 'Verlauf von {name}',
   'activity.empty': 'Noch kein Verlauf.',
   'activity.loadMore': 'Mehr anzeigen ({shown} von {total})',
+  'activity.showAll': 'Alle anzeigen ({total})',
+  'activity.showLess': 'Weniger anzeigen',
   'activity.showVersions': 'Beschreibungsversionen anzeigen',
   'activity.none': 'keins',
   'activity.unassigned': 'nicht zugewiesen',

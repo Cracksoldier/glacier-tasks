@@ -130,4 +130,5 @@ Reference application for visual identity, tooling and release process:
 | ID | Decision | Spec refs |
 |---|---|---|
 | D56 | In the subtask swimlanes (D51), cards can be reordered within a column. A subtask dropped into another column keeps its drop position (status and place in its story's subtask order change in one write; only the status change is recorded in history). Stories in "Other stories" follow D26: reordered within their column, to the top of another. Replaces "no reordering within a column" in D51. | BOARD-05, BOARD-07 |
+| D57 | Task and profile history show the newest 10 entries when there are more. "Show all (n)" expands the list in place and "Show less" collapses it again. The expanded state is not remembered and resets for another task or profile. The project Activity tab keeps its paging (D45). | AUDIT-02, D12 |
 

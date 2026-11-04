@@ -114,6 +114,35 @@ describe('profile history (D12, D46)', () => {
     expect(entries(dialog)).toHaveLength(2);
     expect(entries(dialog)[0]).toContain('Name: Anne → Ann');
   });
+
+  it('shows the newest 10 entries of a long history until expanded (D57)', async () => {
+    await TestBed.inject(SettingsStore).load();
+    const ann = await stub.api.users.create({ name: 'Ann' });
+    for (let n = 1; n <= 12; n++)
+      stub.events.push(
+        event(n, {
+          entityType: 'USER',
+          entityId: ann.id,
+          projectId: null,
+          eventType: 'user.updated',
+          payload: { name: 'Ann', changes: { name: { from: `Ann ${n - 1}`, to: `Ann ${n}` } } },
+        }),
+      );
+    await TestBed.inject(UsersStore).load();
+    const harness = await RouterTestingHarness.create('/profiles');
+    await settle(harness);
+    const root = harness.routeNativeElement as HTMLElement;
+    (root.querySelector('[data-testid="profile-history"]') as HTMLElement).click();
+    await settle(harness);
+    const dialog = root.querySelector('[data-testid="profile-history-dialog"]') as HTMLElement;
+    expect(entries(dialog)).toHaveLength(10);
+    expect(entries(dialog)[0]).toContain('Ann 11 → Ann 12');
+    const toggle = dialog.querySelector('[data-testid="activity-toggle"]') as HTMLElement;
+    expect(toggle.textContent).toContain('Show all (12)');
+    toggle.click();
+    await settle(harness);
+    expect(entries(dialog)).toHaveLength(12);
+  });
 });
 
 describe('attachment size setting (D47)', () => {

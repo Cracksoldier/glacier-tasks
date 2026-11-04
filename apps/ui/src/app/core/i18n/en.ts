@@ -307,6 +307,8 @@ export const en = {
   'activity.profileHistoryTitle': 'History of {name}',
   'activity.empty': 'No history yet.',
   'activity.loadMore': 'Show more ({shown} of {total})',
+  'activity.showAll': 'Show all ({total})',
+  'activity.showLess': 'Show less',
   'activity.showVersions': 'Show description versions',
   'activity.none': 'none',
   'activity.unassigned': 'unassigned',

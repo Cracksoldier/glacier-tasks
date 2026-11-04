@@ -146,7 +146,8 @@ type EditorState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; id:
         <p class="error-banner" role="alert">{{ i18n.errorMessage(history.error()) }}</p>
       }
       <div class="history" data-testid="profile-history-dialog">
-        <app-activity-timeline [events]="loaded(history) ?? []" />
+        <app-activity-timeline [events]="loaded(history) ?? []" [collapsible]="true"
+          [listKey]="historyOf()?.id ?? null" />
       </div>
     </app-dialog>
 

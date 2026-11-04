@@ -109,7 +109,9 @@ In den **Projekteinstellungen** kannst du:
 
 ### Verlauf
 
-- **Aufgabenverlauf:** jede Aufgabe zeigt ihren Verlauf, neueste Änderung zuerst.
+- **Aufgabenverlauf:** jede Aufgabe zeigt ihren Verlauf, neueste Änderung zuerst. Längere
+  Verläufe zeigen die neuesten 10 Einträge; **Alle anzeigen** klappt sie auf und **Weniger
+  anzeigen** wieder zu. Der Verlauf eines Profils funktioniert genauso.
 - **Beschreibungsversionen:** zeige jede Version formatiert oder als Quelltext an und vergleiche
   sie mit der vorherigen.
 - **Woanders:** der Reiter **Aktivität** im Projekt zeigt Änderungen an Projekt, Status, Labels
